@@ -44,7 +44,7 @@ DashItem
   `period`, `higher_is_better`, `sparkline_periods`. Calcula `value`, `previous`,
   `delta`, `delta_pct`, `trend: [{period, value}]` no motor (testável sem interface).
   Medidor = KPI com `display: gauge` (usa `target` e `gauge_max`).
-- `bi.chart` com `chart_type="pareto"`: ordena por valor decrescente e calcula
+- `bi.chart` com `chart_type="pareto"` (um só eixo Y, acumulado com rótulos diretos): ordena por valor decrescente e calcula
   `cum_pct` por categoria no motor. "Outros" entra no fim, para o acumulado fechar em
   100%. `pareto_threshold` (padrão 0,8) marca `highlight` nas categorias até o corte.
 - `bi.venn` (nova): `mode: flags | key_group`. Em `flags`, 2 ou 3 colunas são

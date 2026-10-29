@@ -17,16 +17,16 @@ o PNG sobre os visuais de hoje; depois a formatação; por fim os tipos novos.
 
 ## Fase 2 — Formatação
 
-- [ ] T10 Modelos de formato + `GET /api/dashboard/formats`; widgets `color` e `palette` (RF-1410)
-- [ ] T11 Painel Formato: cartão, cores com aviso de contraste, legenda, rótulos, eixos (RF-1411..RF-1413)
-- [ ] T12 Elementos livres: texto, imagem (com logo pronto), formas; copiar, colar e duplicar (RF-1440..RF-1442, RF-1404)
+- [x] T10 Modelos de formato + `GET /api/dashboard/formats`; widgets `color` e `palette` (RF-1410)
+- [x] T11 Painel Formato: cartão, cores com aviso de contraste, legenda, rótulos, eixos (RF-1411..RF-1413)
+- [x] T12 Elementos livres: texto, imagem (com logo pronto), formas; copiar, colar e duplicar (RF-1440..RF-1442, RF-1404)
 
 ## Fase 3 — Visuais novos
 
 - [ ] T13 KPI: comparação com meta ou período anterior, variação e tendência no motor; testes (RF-1420..RF-1423)
 - [ ] T14 Big number rico e medidor no front (RF-1421..RF-1423, RF-1432)
 - [ ] T15 Chart com segunda dimensão: empilhado, agrupado, 100%, multi-linha, área; testes (RF-1430)
-- [ ] T16 Pareto: acumulado e destaque no motor, eixo duplo no front; testes (RF-1435)
+- [ ] T16 Pareto: acumulado e destaque no motor; um só eixo Y, acumulado com rótulos diretos no front; testes (RF-1435)
 - [ ] T17 Ferramenta Venn: regiões nos dois modos, geometria proporcional para 2 conjuntos; testes (RF-1436, RF-1437)
 - [ ] T18 Dispersão e funil (RF-1431, RF-1432)
 - [ ] T19 Ferramenta Table + formatação condicional (RF-1433, RF-1414)

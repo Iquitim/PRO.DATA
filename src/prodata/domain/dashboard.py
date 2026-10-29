@@ -56,6 +56,12 @@ class DashItem(BaseModel):
             raise ValueError(f"O visual '{self.id}' precisa da caixa de BI de origem.")
         if self.kind == "image" and self.content:
             check_image(self.content)
+        if self.kind == "text":
+            self.content = self.content[:5000]
+        # Import tardio: os modelos de formato usam o gerador de formulários das ferramentas.
+        from prodata.dashboard.formats import clean_format
+
+        self.format = clean_format(self.kind, self.format)
         return self
 
 

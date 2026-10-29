@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from prodata.dashboard.formats import describe_formats
 from prodata.dashboard.layouts import Arrangement, LayoutItem, Rect, Template, arrange_all, place
 from prodata.domain.dashboard import DashPage
 
@@ -32,3 +35,9 @@ class PlaceRequest(BaseModel):
 @router.post("/place")
 def place_visuals(req: PlaceRequest) -> dict[str, Rect]:
     return place(req.items, req.occupied)
+
+
+@router.get("/formats")
+def dashboard_formats() -> dict[str, list[dict[str, Any]]]:
+    """Campos do painel Formato por tipo de item, no mesmo formato dos formulários das ferramentas."""
+    return describe_formats()

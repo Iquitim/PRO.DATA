@@ -1,6 +1,6 @@
 // Dashboard em página de tamanho fixo (spec 014): modo Visualizar e modo Editar (canvas com encaixe,
-// guias, seleção múltipla), Organizar com layouts prontos e imagem PNG. Os cartões de visual também
-// são usados pelo painel de insights.
+// guias, seleção múltipla), painel Formato, textos/imagens/formas, Organizar com layouts prontos e
+// imagem PNG. Os cartões de visual também são usados pelo painel de insights.
 
 import { api } from './api.js';
 import { renderChart, withTooltip } from './charts.js';
@@ -9,6 +9,7 @@ import {
 } from './dash_model.js';
 import { renderPng, savePng, stamp } from './dash_export.js';
 import { button, debounce, fmt, h } from './dom.js';
+import { renderFields } from './fields.js';
 import { icon } from './icons.js';
 import { inspect, mutate, on, select, store } from './store.js';
 import { confirmDialog, openDialog, showMenu, toast, toastError } from './ui.js';
@@ -24,6 +25,9 @@ const ui = { mode: 'view', zoom: null, selected: new Set(), scale: 1 };
 let els = {};
 let gesture = null;
 let syncing = null;
+let formats = null; // campos do painel Formato por tipo (GET /api/dashboard/formats)
+let clip = { items: [], pastes: 0 };
+const PANEL_W = 312;
 
 export function initDashboard(el, opts) {
   root = el;
@@ -41,29 +45,50 @@ export function goToNode(id) {
   inspect(id);
 }
 
-export function kpiTile(w, { compact = false, className = '' } = {}) {
+// ------------------------------------------------------------------ cartões (formato: RF-1411..RF-1413)
+
+/** Fundo, borda, cantos e sombra do cartão. */
+function cardStyle(f = {}) {
+  return {
+    background: f.background || null,
+    border: f.border === false ? '0' : null,
+    borderColor: f.border !== false && f.border_color ? f.border_color : null,
+    borderRadius: f.radius !== undefined ? `${f.radius}px` : null,
+    boxShadow: f.shadow ? 'var(--shadow-md)' : null,
+  };
+}
+
+const titleStyle = (f) => ({ fontSize: f.title_size ? `${f.title_size}px` : null, textAlign: f.title_align === 'center' ? 'center' : null });
+
+export function kpiTile(w, { compact = false, className = '', fmt: f = {} } = {}) {
   const exact = `${w.prefix || ''}${fmt.number(w.value, w.decimals ?? 0)}${w.suffix || ''}`;
   const shown = Math.abs(w.value) >= 1e6 ? `${w.prefix || ''}${fmt.compact(w.value)}${w.suffix || ''}` : exact;
-  return h('article', { class: ['kpi', compact && 'compact', className], tabindex: 0, onclick: () => ui.mode === 'view' && goToNode(w.node_id) },
-    h('div', { class: 'kpi-label' }, w.title),
-    h('div', { class: 'kpi-value', title: exact }, shown),
-    h('div', { class: 'kpi-foot' },
-      `${AGG_LABELS[w.metric] || w.metric}${w.column && w.metric !== 'count' ? ` de ${w.column}` : ''} · ${fmt.int(w.row_count)} linhas`));
+  return h('article', {
+    class: ['kpi', compact && 'compact', className, f.align === 'center' && 'centered'], tabindex: 0, style: cardStyle(f),
+    onclick: () => ui.mode === 'view' && goToNode(w.node_id),
+  },
+  f.show_title === false ? null : h('div', { class: 'kpi-label', style: titleStyle(f) }, f.title || w.title),
+  h('div', { class: 'kpi-value', title: exact, style: { fontSize: f.value_size ? `${f.value_size}px` : null, color: f.value_color || null } }, shown),
+  f.show_footer === false ? null : h('div', { class: 'kpi-foot' },
+    `${AGG_LABELS[w.metric] || w.metric}${w.column && w.metric !== 'count' ? ` de ${w.column}` : ''} · ${fmt.int(w.row_count)} linhas`));
 }
 
 /**
  * Cartão de gráfico. `w`: {node_id, title, subtitle?, chart_type, series, x_column, y_column, agg}.
- * Clicar no título leva ao nó de origem. `actions`: botões extras no cabeçalho.
+ * Clicar no título leva ao nó de origem. `actions`: botões extras no cabeçalho; `fmt`: formato do visual.
  */
-export function chartCard(w, { width, height = 260, className = '', actions = [] } = {}) {
-  const card = h('article', { class: ['chart-card', className] });
+export function chartCard(w, { width, height = 260, className = '', actions = [], fmt: f = {} } = {}) {
+  const card = h('article', { class: ['chart-card', className], style: cardStyle(f) });
   const asTable = tableMode.has(w.node_id);
   const subtitle = w.subtitle || (w.agg === 'count'
     ? `Contagem por ${w.x_column}` : `${AGG_LABELS[w.agg] || w.agg} de ${w.y_column} por ${w.x_column}`);
-  const redraw = () => card.replaceWith(chartCard(w, { width, height, className, actions }));
-  card.append(h('header', { class: 'chart-head' },
-    h('button', { type: 'button', class: 'chart-title', title: 'Ir para o nó', onclick: () => goToNode(w.node_id) },
-      h('h3', {}, w.title), h('p', { class: 'muted' }, subtitle)),
+  const redraw = () => card.replaceWith(chartCard(w, { width, height, className, actions, fmt: f }));
+  const showTitle = f.show_title !== false;
+  const showSub = f.show_subtitle !== false;
+  card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
+    showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: 'Ir para o nó', style: titleStyle(f), onclick: () => goToNode(w.node_id) },
+      showTitle ? h('h3', { style: { fontSize: f.title_size ? `${f.title_size}px` : null } }, f.title || w.title) : null,
+      showSub ? h('p', { class: 'muted' }, subtitle) : null) : h('span', { class: 'grow' }),
     h('div', { class: 'chart-actions' }, actions,
       button({ icon: asTable ? 'chart' : 'table', title: asTable ? 'Ver gráfico' : 'Ver tabela', size: 'sm', variant: 'ghost',
         onClick: () => { if (asTable) tableMode.delete(w.node_id); else tableMode.add(w.node_id); redraw(); } }))));
@@ -75,7 +100,7 @@ export function chartCard(w, { width, height = 260, className = '', actions = []
       h('thead', {}, h('tr', {}, h('th', {}, w.x_column), h('th', { class: 'num' }, w.y_column || 'contagem'))),
       h('tbody', {}, w.series.map((s) => h('tr', {}, h('td', {}, s.label), h('td', { class: 'num' }, fmt.number(s.value))))))));
   } else {
-    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series, Math.max(220, width - 34), height));
+    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series, Math.max(220, width - 34), height, f));
     card.append(body);
     withTooltip(card, body);
   }
@@ -86,29 +111,76 @@ export function chartCard(w, { width, height = 260, className = '', actions = []
 
 const dash = () => store.workflow?.dashboard;
 const itemById = (id) => dash()?.items.find((i) => i.id === id);
+const nodeOf = (nodeId) => store.workflow.nodes.find((k) => k.id === nodeId);
 const nodeLabel = (nodeId) => {
-  const n = store.workflow.nodes.find((k) => k.id === nodeId);
+  const n = nodeOf(nodeId);
   return n?.label || store.tools[n?.type]?.name || nodeId;
 };
-const CHART_CHROME = 82; // padding + cabeçalho do cartão: o resto da altura é do gráfico
+const newId = () => `d_${Math.random().toString(36).slice(2, 8)}`;
+
+/** Altura do cabeçalho do cartão: o resto da altura do item é do gráfico. */
+function chartChrome(f) {
+  const title = f.show_title === false ? 0 : Math.round((f.title_size || 14) * 1.45);
+  const sub = f.show_subtitle === false ? 0 : 18;
+  return 30 + (title || sub ? title + sub + 12 : 24);
+}
 
 function visualEl(item, w, { editing, exporting }) {
-  const node = store.workflow.nodes.find((n) => n.id === item.node_id);
+  const node = nodeOf(item.node_id);
+  const f = item.format || {};
   if (!w) {
     if (!editing) return null;
     return h('article', { class: 'dash-placeholder' }, icon(node?.type === 'bi.kpi_card' ? 'gauge' : 'chart', 22),
       h('strong', {}, nodeLabel(item.node_id)),
       h('span', {}, node?.disabled ? 'Caixa desativada no fluxo' : 'Execute o fluxo para ver este visual'));
   }
-  if (w.widget_type === 'kpi') return kpiTile(w, { className: 'fill' });
+  if (w.widget_type === 'kpi') return kpiTile(w, { className: 'fill', fmt: f });
   const actions = exporting || editing ? [] : [button({ icon: 'download', title: 'Baixar imagem deste visual (PNG)', size: 'sm', variant: 'ghost', onClick: () => exportVisual(item) })];
-  return chartCard(w, { width: item.w, height: Math.max(80, item.h - CHART_CHROME), className: 'fill', actions });
+  return chartCard(w, { width: item.w, height: Math.max(80, item.h - chartChrome(f)), className: 'fill', actions, fmt: f });
+}
+
+/** Texto, imagem e forma (RF-1440..RF-1442). O texto entra como texto puro, nunca como HTML. */
+function freeEl(item, { editing }) {
+  const f = item.format || {};
+  if (item.kind === 'text') {
+    return h('div', {
+      class: 'dash-text',
+      style: {
+        fontSize: `${f.size || 16}px`, fontWeight: f.bold ? '700' : null, fontStyle: f.italic ? 'italic' : null,
+        color: f.color || null, textAlign: f.align || null, background: f.background || null,
+        justifyContent: { middle: 'center', bottom: 'flex-end' }[f.vertical] || null,
+      },
+    }, h('span', {}, item.content || (editing ? 'Texto vazio' : '')));
+  }
+  if (item.kind === 'image') {
+    if (!item.content) return editing ? h('div', { class: 'dash-placeholder' }, icon('file', 22), h('span', {}, 'Escolha uma imagem no painel Formato')) : null;
+    return h('img', {
+      class: 'dash-image', src: item.content, alt: '', draggable: false,
+      style: { objectFit: f.fit || 'contain', opacity: f.opacity !== undefined ? f.opacity / 100 : null, borderRadius: f.radius ? `${f.radius}px` : null },
+    });
+  }
+  if (item.kind === 'shape') {
+    const opacity = f.opacity !== undefined ? f.opacity / 100 : null;
+    if (f.shape === 'line') {
+      const horizontal = item.w >= item.h;
+      return h('div', { class: ['dash-line', horizontal ? 'h' : 'v'], style: { opacity } },
+        h('span', { style: { [horizontal ? 'borderTopWidth' : 'borderLeftWidth']: `${f.stroke_width ?? 1}px`, borderColor: f.stroke || null } }));
+    }
+    return h('div', {
+      class: 'dash-shape',
+      style: {
+        background: f.fill || null, opacity, borderRadius: `${f.radius ?? 12}px`,
+        borderWidth: `${f.stroke_width ?? 1}px`, borderColor: f.stroke || null,
+      },
+    });
+  }
+  return null;
 }
 
 const HANDLES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
 function itemEl(item, widgets, opts) {
-  const content = item.kind === 'visual' ? visualEl(item, widgets[item.node_id], opts) : null;
+  const content = item.kind === 'visual' ? visualEl(item, widgets[item.node_id], opts) : freeEl(item, opts);
   if (!content) return null;
   return h('div', {
     class: ['dash-item', `kind-${item.kind}`, opts.editing && ui.selected.has(item.id) && 'selected'],
@@ -126,6 +198,8 @@ function pageEl({ editing = false, exporting = false } = {}) {
   }, d.items.map((item) => itemEl(item, widgets, { editing, exporting })));
 }
 
+const menuAt = (items) => (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, items()); };
+
 function headEl() {
   const editing = ui.mode === 'edit';
   const d = dash();
@@ -136,16 +210,13 @@ function headEl() {
   const brand = h('div', { class: 'dash-brand' },
     h('img', { class: 'dash-logo', src: '/static/brand/protege-escudo.svg', alt: 'Grupo Protege' }),
     h('div', {}, h('div', { class: 'dash-org' }, 'Grupo Protege'), h('h1', {}, store.workflow?.name || 'Dashboard'),
-      h('p', { class: 'muted' }, editing ? 'Editando o layout · arraste, redimensione e use Organizar' : status)));
+      h('p', { class: 'muted' }, editing ? 'Editando o layout · arraste, redimensione, formate e use Organizar' : status)));
   if (!d) return h('header', { class: 'dash-head' }, brand);
   const actions = editing ? [
+    button({ icon: 'plus', label: 'Inserir', title: 'Texto, imagem, logo ou forma', onClick: menuAt(insertItems) }),
     button({ icon: 'wand', label: 'Organizar', title: 'Organizar automaticamente ou escolher um layout pronto', onClick: openOrganize }),
-    button({ icon: 'columns', label: 'Alinhar', title: 'Alinhar e distribuir as selecionadas', disabled: ui.selected.size < 2,
-      onClick: (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, alignItems()); } }),
-    button({ icon: 'eye', label: `Fora da página (${d.hidden.length})`, title: 'Visuais removidos da página', disabled: !d.hidden.length,
-      onClick: (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, hiddenItems()); } }),
-    button({ icon: 'settings', label: 'Página', title: 'Tamanho e fundo da página',
-      onClick: (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, pageItems()); } }),
+    button({ icon: 'columns', label: 'Alinhar', title: 'Alinhar e distribuir as selecionadas', disabled: ui.selected.size < 2, onClick: menuAt(alignItems) }),
+    button({ icon: 'eye', label: `Fora da página (${d.hidden.length})`, title: 'Visuais removidos da página', disabled: !d.hidden.length, onClick: menuAt(hiddenItems) }),
     h('div', { class: 'divider-v' }),
     button({ icon: 'zoom-out', title: 'Diminuir zoom', variant: 'ghost', onClick: () => setZoom(ui.scale / 1.2) }),
     h('span', { class: 'dash-zoom muted' }, `${Math.round(ui.scale * 100)}%`),
@@ -154,7 +225,7 @@ function headEl() {
     h('div', { class: 'divider-v' }),
     button({ icon: 'check', label: 'Concluir', variant: 'primary', onClick: () => setMode('view') }),
   ] : [
-    button({ icon: 'edit', label: 'Editar layout', title: 'Mover, redimensionar e organizar os visuais', onClick: () => setMode('edit') }),
+    button({ icon: 'edit', label: 'Editar layout', title: 'Mover, redimensionar, formatar e organizar os visuais', onClick: () => setMode('edit') }),
     button({ icon: 'download', label: 'Baixar imagem', title: 'Baixar o dashboard em PNG', onClick: () => exportPage().catch((err) => toastError(err, 'Não foi possível gerar a imagem')) }),
     button({ icon: 'refresh', label: 'Atualizar dados', variant: 'primary', onClick: () => handlers.run() }),
   ];
@@ -185,30 +256,279 @@ export function render() {
     root.replaceChildren(headEl(), h('div', { class: 'empty big' }, 'Montando o dashboard…'));
     return;
   }
-  if (!d.items.length && !biNodes().length) {
+  const editing = ui.mode === 'edit';
+  if (!d.items.length && !biNodes().length && !editing) {
     root.replaceChildren(headEl(), h('div', { class: 'empty big' }, icon('dashboard', 28),
       h('strong', {}, 'Nenhum visual publicado'),
       h('span', {}, 'Adicione nós Chart ou KPI Card (categoria BI e indicadores) ao fluxo e execute.')));
     return;
   }
-  const editing = ui.mode === 'edit';
-  const fit = Math.max(0.2, (root.clientWidth - 48) / PAGE_W);
+  if (editing && !formats) {
+    api.dashboardFormats().then((f) => { formats = f; render(); }).catch((err) => toastError(err, 'Não foi possível carregar o painel Formato'));
+  }
+  const fit = Math.max(0.2, (root.clientWidth - 48 - (editing ? PANEL_W + 16 : 0)) / PAGE_W);
   ui.scale = editing && ui.zoom ? ui.zoom : Math.min(fit, 1.5);
   const page = pageEl({ editing });
   page.style.transform = `scale(${ui.scale})`;
   page.style.setProperty('--inv', String(1 / ui.scale)); // alças e guias com o mesmo tamanho em qualquer zoom
   const sheet = h('div', { class: 'dash-sheet', style: { width: `${PAGE_W * ui.scale}px`, height: `${pageHeight(d.page) * ui.scale}px` } }, page);
+  const previous = els;
   els = { page, sheet, guides: [], marquee: null };
   if (editing) {
     page.addEventListener('pointerdown', onDown);
     page.addEventListener('pointermove', onMove);
     page.addEventListener('pointerup', onUp);
     page.addEventListener('pointercancel', () => { gesture = null; render(); });
+    page.addEventListener('dblclick', onDoubleClick);
   }
   page.addEventListener('contextmenu', onContextMenu);
   const scroll = root.scrollTop;
-  root.replaceChildren(headEl(), sheet);
+  if (editing) {
+    // Enquanto se digita no painel, só a página e o cabeçalho são refeitos: tirar o painel do lugar
+    // (mesmo para recolocá-lo) tiraria o foco do campo a cada letra.
+    const key = [...ui.selected].join(',');
+    const keep = previous.panel?.isConnected && previous.panelKey === key && previous.panel.contains(document.activeElement);
+    els.panelKey = key;
+    if (keep) {
+      Object.assign(els, { panel: previous.panel, stage: previous.stage });
+      els.stage.replaceChildren(sheet);
+      root.firstElementChild.replaceWith(headEl());
+    } else {
+      els.panel = panelEl();
+      els.stage = h('div', { class: 'dash-stage' }, sheet);
+      root.replaceChildren(headEl(), h('div', { class: 'dash-workspace' }, els.stage, els.panel));
+    }
+  } else {
+    root.replaceChildren(headEl(), sheet);
+  }
   root.scrollTop = scroll;
+}
+
+// ------------------------------------------------------------------ painel Formato (RF-1410)
+
+const KIND_LABELS = { text: 'Texto', image: 'Imagem', shape: 'Forma' };
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const hex = (v) => (/^#[0-9a-f]{6}$/i.test(v) ? v : null);
+
+/** Campos que mostram/escondem outros (show_if): mudar um deles refaz o painel. */
+const controlling = (fields) => new Set(fields.flatMap((f) => Object.keys(f.show_if || {})));
+
+function panelEl() {
+  const d = dash();
+  const sel = d.items.filter((i) => ui.selected.has(i.id));
+  const body = !formats ? h('p', { class: 'muted' }, 'Carregando…')
+    : sel.length === 1 ? itemPanel(sel[0])
+      : sel.length > 1 ? multiPanel(sel)
+        : pagePanel(d);
+  return h('aside', { class: 'dash-panel', style: { width: `${PANEL_W}px` } }, body);
+}
+
+function formatKind(item) {
+  if (item.kind !== 'visual') return item.kind;
+  return widgetsByNode()[item.node_id]?.widget_type === 'kpi' || nodeOf(item.node_id)?.type === 'bi.kpi_card' ? 'kpi' : 'chart';
+}
+
+function itemPanel(item) {
+  const kind = formatKind(item);
+  const fields = formats[kind] || [];
+  const ctrl = controlling(fields);
+  const widget = widgetsByNode()[item.node_id];
+  const f = item.format || {};
+  const surface = hex(f.background) || hex(cssVar('--surface'));
+  const onChange = ([name], value) => {
+    if (ctrl.has(name)) els.panelKey = null;
+    commitLayout((dd) => {
+      const it = dd.items.find((i) => i.id === item.id);
+      if (it) it.format = { ...it.format, [name]: value };
+    }, { key: `fmt:${item.id}:${name}` });
+  };
+  const ctx = {
+    categories: widget?.series?.map((s) => s.label) || [],
+    contrastFor: (name) => {
+      if (['color', 'category_colors'].includes(name) && kind === 'chart') return { against: surface, min: 3, what: 'o fundo do cartão' };
+      if (name === 'value_color') return { against: surface, min: 4.5, what: 'o fundo do cartão' };
+      if (name === 'color' && kind === 'text') return { against: hex(f.background) || hex(dash().page.background) || hex(cssVar('--bg')), min: 4.5, what: 'o fundo' };
+      return null;
+    },
+    defaultColor: (name, i = 0) => {
+      if (['color', 'category_colors'].includes(name) && kind === 'chart') return hex(cssVar(`--series-${(i % 8) + 1}`));
+      if (['color', 'value_color'].includes(name)) return hex(cssVar('--text'));
+      if (['background', 'fill'].includes(name)) return hex(cssVar('--surface'));
+      return hex(cssVar('--border-strong'));
+    },
+  };
+  const title = item.kind === 'visual' ? (widget?.title || nodeLabel(item.node_id)) : KIND_LABELS[item.kind];
+  return h('div', {},
+    h('header', { class: 'dash-panel-head' },
+      h('span', { class: 'dash-panel-kicker' }, item.kind === 'visual' ? (kind === 'kpi' ? 'KPI' : 'Gráfico') : 'Elemento'),
+      h('strong', {}, title)),
+    item.kind === 'visual' ? h('div', { class: 'dash-panel-note' },
+      h('span', { class: 'muted' }, 'Dados, ordenação e limite de categorias ficam na caixa do fluxo.'),
+      button({ icon: 'workflow', label: 'Editar dados', size: 'sm', onClick: () => goToNode(item.node_id) })) : null,
+    item.kind === 'text' ? textContentField(item) : null,
+    item.kind === 'image' ? imageField(item) : null,
+    renderFields(fields, f, onChange, ctx));
+}
+
+function textContentField(item) {
+  return h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'dash-text' }, 'Texto'),
+    h('textarea', {
+      id: 'dash-text', class: 'input', rows: 4,
+      oninput: (e) => commitLayout((d) => { d.items.find((i) => i.id === item.id).content = e.target.value; }, { key: `txt:${item.id}` }),
+    }, item.content || ''));
+}
+
+function imageField(item) {
+  return h('div', { class: 'field' }, h('label', { class: 'field-label' }, 'Imagem'),
+    h('div', { class: 'color-row' },
+      button({ icon: 'upload', label: item.content ? 'Trocar imagem' : 'Escolher imagem', size: 'sm', onClick: () => pickImage().then((img) => {
+        if (img) commitLayout((d) => { d.items.find((i) => i.id === item.id).content = img.data; });
+      }) }),
+      button({ icon: 'image', label: 'Logo Protege', size: 'sm', variant: 'ghost', onClick: () => logoImage().then((img) => {
+        commitLayout((d) => { d.items.find((i) => i.id === item.id).content = img.data; });
+      }) })),
+    h('p', { class: 'field-help' }, 'PNG, JPG ou SVG até 1 MB. A imagem fica dentro do arquivo do fluxo.'));
+}
+
+function multiPanel(sel) {
+  return h('div', {},
+    h('header', { class: 'dash-panel-head' }, h('span', { class: 'dash-panel-kicker' }, 'Seleção'), h('strong', {}, `${sel.length} itens selecionados`)),
+    h('div', { class: 'dash-panel-actions' }, alignItems().map((a) => button({ icon: a.icon, label: a.label, size: 'sm', variant: 'ghost', disabled: a.disabled, onClick: a.onSelect }))),
+    h('p', { class: 'muted' }, 'Ctrl+C / Ctrl+V copiam textos, imagens e formas. Delete tira da página.'));
+}
+
+function pagePanel(d) {
+  const fields = [
+    { name: 'size', title: 'Tamanho', widget: 'select', default: '16:9', options: PAGE_SIZES.map(([value, label]) => ({ value, label: value === 'free' ? label : `${label} · ${PAGE_W}×${pageHeight({ size: value })}` })) },
+    { name: 'height', title: 'Altura (px)', widget: 'number', default: 900, min: 400, max: 20000, step: 8, show_if: { size: ['free'] } },
+    { name: 'background', title: 'Fundo', widget: 'color', default: '' },
+  ];
+  return h('div', {},
+    h('header', { class: 'dash-panel-head' }, h('span', { class: 'dash-panel-kicker' }, 'Página'), h('strong', {}, 'Nada selecionado')),
+    renderFields(fields, d.page, ([name], value) => {
+      if (name === 'size') els.panelKey = null;
+      commitLayout((dd) => {
+        dd.page = { ...dd.page, [name]: value };
+        if (name === 'size' && value === 'free') dd.page.height = pageHeight(d.page);
+      }, { key: `page:${name}` });
+    }, { defaultColor: () => hex(cssVar('--bg')) }),
+    h('p', { class: 'muted' }, 'Clique num visual para formatá-lo. Shift+arrastar seleciona vários; Alt solta o encaixe.'));
+}
+
+// ------------------------------------------------------------------ inserir (RF-1440..RF-1442)
+
+function insertItems() {
+  return [
+    { label: 'Título', icon: 'edit', onSelect: () => insert({ kind: 'text', w: 800, h: 64, content: store.workflow.name || 'Título', format: { size: 30, bold: true } }, { header: true }) },
+    { label: 'Texto', icon: 'list', onSelect: () => insert({ kind: 'text', w: 480, h: 120, content: 'Escreva aqui', format: {} }) },
+    'separator',
+    { label: 'Imagem…', icon: 'upload', onSelect: () => pickImage().then((img) => img && insert({ kind: 'image', ...fitBox(img, 360), content: img.data, format: {} })) },
+    { label: 'Logo do Grupo Protege', icon: 'image', onSelect: () => logoImage().then((img) => insert({ kind: 'image', ...fitBox(img, 120), content: img.data, format: {} })) },
+    'separator',
+    { label: 'Retângulo (fundo de seção)', icon: 'group', onSelect: () => insert({ kind: 'shape', w: 760, h: 400, format: { shape: 'rect' } }, { back: true }) },
+    { label: 'Linha divisória', icon: 'columns', onSelect: () => insert({ kind: 'shape', w: 1520, h: 16, format: { shape: 'line' } }) },
+  ];
+}
+
+const fitBox = (img, max) => {
+  const k = Math.min(1, max / Math.max(img.width, img.height));
+  return { w: Math.max(48, Math.round((img.width * k) / GRID) * GRID), h: Math.max(48, Math.round((img.height * k) / GRID) * GRID) };
+};
+
+/** Primeiro espaço livre a partir de `top` (de cima para baixo, da esquerda para a direita). */
+function freeSpot(w, h, top) {
+  const taken = dash().items;
+  const fits = (x, y) => !taken.some((o) => overlaps({ x: x - 16, y: y - 16, w: w + 32, h: h + 32 }, o));
+  for (let y = top; y < top + 4000; y += GRID) {
+    for (let x = 40; x + w <= PAGE_W - 40; x += GRID) if (fits(x, y)) return { x, y };
+  }
+  return { x: Math.round((PAGE_W - w) / 2 / GRID) * GRID, y: top };
+}
+
+/**
+ * Novo item no primeiro espaço livre perto do topo visível, selecionado. Formas de fundo vão para trás,
+ * no topo visível, porque costumam ficar atrás de outros itens. Um título (`header`) entra no topo
+ * visível e empurra para baixo o que estiver dali em diante, abrindo espaço.
+ */
+function insert(item, { back = false, header = false } = {}) {
+  const top = els.sheet ? Math.max(0, (root.getBoundingClientRect().top - els.sheet.getBoundingClientRect().top) / ui.scale) : 0;
+  const start = Math.round((top + 40) / GRID) * GRID;
+  const spot = back || header ? { x: 40, y: start } : freeSpot(item.w, item.h, start);
+  const placed = { id: newId(), node_id: null, ...item, ...spot };
+  commitLayout((d) => {
+    if (header) for (const i of d.items) if (i.y + i.h > start) i.y += item.h + 16;
+    if (back) d.items.unshift(placed); else d.items.push(placed);
+  });
+  ui.selected = new Set([placed.id]);
+  render();
+}
+
+const SVG_FORBIDDEN = /<\s*script|<\s*foreignObject|<\s*iframe|<\s*object|<\s*embed|\son\w+\s*=|javascript:|(?:xlink:)?href\s*=\s*["']\s*(?!#|data:image\/)/i;
+
+const readAsDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+
+const naturalSize = (src) => new Promise((resolve) => {
+  const img = new Image();
+  img.onload = () => resolve({ width: img.naturalWidth || 320, height: img.naturalHeight || 240 });
+  img.onerror = () => resolve({ width: 320, height: 240 });
+  img.src = src;
+});
+
+/** Escolhe uma imagem do computador. Mesmas regras do servidor: PNG/JPG/SVG sem código, até 1 MB. */
+function pickImage() {
+  return new Promise((resolve) => {
+    const input = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/svg+xml', hidden: true });
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      input.remove();
+      if (!file) { resolve(null); return; }
+      try {
+        if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.type)) throw new Error('Use uma imagem PNG, JPG ou SVG.');
+        if (file.size > 1024 * 1024) throw new Error('A imagem passa de 1 MB. Reduza o tamanho antes de inserir.');
+        if (file.type === 'image/svg+xml' && SVG_FORBIDDEN.test(await file.text())) throw new Error('O SVG contém scripts ou links externos e não pode ser usado.');
+        const data = await readAsDataUrl(file);
+        resolve({ data, ...(await naturalSize(data)) });
+      } catch (err) {
+        toastError(err, 'Imagem não aceita');
+        resolve(null);
+      }
+    });
+    document.body.append(input);
+    input.click();
+  });
+}
+
+async function logoImage() {
+  const blob = await (await fetch('/static/brand/protege-escudo.svg')).blob();
+  const data = await readAsDataUrl(new Blob([blob], { type: 'image/svg+xml' }));
+  return { data, width: 191, height: 241 };
+}
+
+// ------------------------------------------------------------------ copiar, colar, duplicar (RF-1404)
+
+function copySelection() {
+  const free = dash().items.filter((i) => ui.selected.has(i.id) && i.kind !== 'visual');
+  if (!free.length) {
+    if (ui.selected.size) toast('Visuais vêm das caixas de BI: para repetir um, duplique a caixa no fluxo.');
+    return false;
+  }
+  clip = { items: free.map((i) => structuredClone(i)), pastes: 0 };
+  return true;
+}
+
+function pasteClip() {
+  if (!clip.items.length) return;
+  clip.pastes += 1;
+  const shift = GRID * 2 * clip.pastes;
+  const copies = clip.items.map((i) => ({ ...structuredClone(i), id: newId(), x: i.x + shift, y: i.y + shift }));
+  commitLayout((d) => { d.items.push(...copies); });
+  ui.selected = new Set(copies.map((c) => c.id));
+  render();
 }
 
 // ------------------------------------------------------------------ edição: gestos
@@ -219,10 +539,18 @@ const toPage = (e) => {
 };
 const elOf = (id) => els.page.querySelector(`.dash-item[data-id="${id}"]`);
 
+/** Seleção mudou: destaca os itens e troca o painel Formato. */
 function refreshSelection() {
   for (const el of els.page.querySelectorAll('.dash-item')) el.classList.toggle('selected', ui.selected.has(el.dataset.id));
   const align = root.querySelector('.dash-actions [aria-label^="Alinhar"]');
   if (align) align.disabled = ui.selected.size < 2;
+  const key = [...ui.selected].join(',');
+  if (els.panel && els.panelKey !== key) {
+    const panel = panelEl();
+    els.panel.replaceWith(panel);
+    els.panel = panel;
+    els.panelKey = key;
+  }
 }
 
 function onDown(e) {
@@ -251,6 +579,7 @@ function onDown(e) {
     gesture = { type: 'marquee', start: p, base: new Set(ui.selected), moved: false };
   }
   refreshSelection();
+  document.activeElement?.blur?.();
   els.page.setPointerCapture(e.pointerId);
   e.preventDefault();
 }
@@ -307,11 +636,22 @@ function onUp() {
   }
 }
 
+/** Duplo clique num texto leva ao campo de texto do painel. */
+function onDoubleClick(e) {
+  const el = e.target.closest('.dash-item.kind-text');
+  if (!el) return;
+  ui.selected = new Set([el.dataset.id]);
+  refreshSelection();
+  const area = els.panel?.querySelector('#dash-text');
+  area?.focus();
+  area?.select();
+}
+
 /** Uma alteração de layout = um passo de desfazer; a página cresce se algo passou do fim (RF-1463). */
 function commitLayout(fn, opts = {}) {
   let grew = false;
   mutate((wf) => { fn(wf.dashboard); grew = growToFit(wf.dashboard); }, opts);
-  if (grew) toast('Os visuais passaram do fim da página: a altura passou a ser livre.');
+  if (grew) toast('Os itens passaram do fim da página: a altura passou a ser livre.');
 }
 
 // ------------------------------------------------------------------ encaixe e guias
@@ -366,8 +706,8 @@ function snapBox(box, others, free) {
   };
 }
 
-const MIN_W = 96;
-const MIN_H = 64;
+const MIN_W = 48;
+const MIN_H = 16;
 
 function resizeRect(r, dir, dx, dy, others, free) {
   const t = targets(others);
@@ -413,11 +753,17 @@ function onContextMenu(e) {
     visual ? { label: 'Baixar imagem (PNG)', icon: 'download', onSelect: () => exportVisual(item) } : null,
   ];
   if (ui.mode === 'edit') {
+    const free = !visual;
     items.push('separator',
+      free ? { label: 'Copiar', icon: 'copy', shortcut: 'Ctrl+C', onSelect: copySelection } : null,
+      free ? { label: 'Duplicar', icon: 'copy', shortcut: 'Ctrl+D', onSelect: () => copySelection() && pasteClip() } : null,
+      clip.items.length ? { label: 'Colar', icon: 'clipboard', shortcut: 'Ctrl+V', onSelect: pasteClip } : null,
       { label: 'Trazer para frente', icon: 'arrow-up', onSelect: () => reorder(true) },
       { label: 'Enviar para trás', icon: 'arrow-down', onSelect: () => reorder(false) });
     if (ui.selected.size > 1) items.push('separator', ...alignItems());
-    items.push('separator', { label: ui.selected.size > 1 ? 'Remover selecionados da página' : 'Remover da página', icon: 'trash', danger: true, shortcut: 'Del', onSelect: removeSelected });
+    items.push('separator', {
+      label: visual || ui.selected.size > 1 ? 'Remover da página' : 'Excluir', icon: 'trash', danger: true, shortcut: 'Del', onSelect: removeSelected,
+    });
   }
   showMenu(e.clientX, e.clientY, items.filter(Boolean));
 }
@@ -425,13 +771,13 @@ function onContextMenu(e) {
 function alignItems() {
   const n = ui.selected.size;
   return [
-    { label: 'Alinhar à esquerda', icon: 'chevron-left', onSelect: () => align('left') },
-    { label: 'Centralizar na horizontal', icon: 'columns', onSelect: () => align('hcenter') },
-    { label: 'Alinhar à direita', icon: 'chevron-right', onSelect: () => align('right') },
-    { label: 'Alinhar ao topo', icon: 'chevron-up', onSelect: () => align('top') },
-    { label: 'Centralizar na vertical', icon: 'columns', onSelect: () => align('vmiddle') },
-    { label: 'Alinhar à base', icon: 'chevron-down', onSelect: () => align('bottom') },
-    { label: 'Mesma largura e altura', icon: 'fit', onSelect: () => align('size') },
+    { label: 'Alinhar à esquerda', icon: 'chevron-left', disabled: n < 2, onSelect: () => align('left') },
+    { label: 'Centralizar na horizontal', icon: 'columns', disabled: n < 2, onSelect: () => align('hcenter') },
+    { label: 'Alinhar à direita', icon: 'chevron-right', disabled: n < 2, onSelect: () => align('right') },
+    { label: 'Alinhar ao topo', icon: 'chevron-up', disabled: n < 2, onSelect: () => align('top') },
+    { label: 'Centralizar na vertical', icon: 'columns', disabled: n < 2, onSelect: () => align('vmiddle') },
+    { label: 'Alinhar à base', icon: 'chevron-down', disabled: n < 2, onSelect: () => align('bottom') },
+    { label: 'Mesma largura e altura', icon: 'fit', disabled: n < 2, onSelect: () => align('size') },
     { label: 'Distribuir na horizontal', icon: 'columns', disabled: n < 3, onSelect: () => distribute('x') },
     { label: 'Distribuir na vertical', icon: 'list', disabled: n < 3, onSelect: () => distribute('y') },
   ];
@@ -476,7 +822,7 @@ function reorder(front) {
   });
 }
 
-/** Visuais saem da página mas a caixa continua no fluxo (RF-1407). */
+/** Visuais saem da página mas a caixa continua no fluxo (RF-1407); textos, imagens e formas são excluídos. */
 function removeSelected() {
   if (!ui.selected.size) return;
   commitLayout((d) => {
@@ -484,6 +830,7 @@ function removeSelected() {
     d.items = d.items.filter((i) => !ui.selected.has(i.id));
   });
   ui.selected.clear();
+  render();
 }
 
 function hiddenItems() {
@@ -496,43 +843,20 @@ function hiddenItems() {
   }));
 }
 
-function pageItems() {
-  const page = dash().page;
-  return [
-    ...PAGE_SIZES.map(([size, label]) => ({
-      label: `${label}${size === 'free' ? '' : ` · ${PAGE_W}×${pageHeight({ size })}`}`,
-      icon: page.size === size ? 'check' : null,
-      onSelect: () => commitLayout((d) => { d.page = { ...d.page, size, height: size === 'free' ? pageHeight(d.page) : d.page.height }; }),
-    })),
-    'separator',
-    { label: 'Cor de fundo…', icon: 'palette', onSelect: backgroundDialog },
-  ];
-}
-
-function backgroundDialog() {
-  const current = dash().page.background;
-  const input = h('input', { type: 'color', class: 'input', value: current || '#f4f6f8', 'aria-label': 'Cor de fundo' });
-  const { close } = openDialog({
-    title: 'Fundo da página',
-    size: 'sm',
-    body: h('div', { class: 'field' }, h('label', { class: 'field-label' }, 'Cor'), input,
-      h('p', { class: 'field-help' }, 'Padrão: acompanha o tema claro ou escuro.')),
-    actions: [
-      button({ label: 'Usar o padrão', onClick: () => { commitLayout((d) => { d.page = { ...d.page, background: '' }; }); close(); } }),
-      button({ label: 'Aplicar', variant: 'primary', onClick: () => { commitLayout((d) => { d.page = { ...d.page, background: input.value }; }); close(); } }),
-    ],
-  });
-}
-
 /** Atalhos do modo Editar. Devolve true se tratou a tecla. */
 export function handleDashboardKey(e) {
   if (store.view !== 'dashboard' || ui.mode !== 'edit' || !dash()) return false;
   const mod = e.ctrlKey || e.metaKey;
-  if (mod && e.key.toLowerCase() === 'a') {
+  const key = e.key.toLowerCase();
+  if (mod && key === 'a') {
     ui.selected = new Set(dash().items.map((i) => i.id));
     refreshSelection();
     return true;
   }
+  if (mod && key === 'c') return copySelection() || true;
+  if (mod && key === 'x') { if (copySelection()) removeSelected(); return true; }
+  if (mod && key === 'v') { pasteClip(); return true; }
+  if (mod && key === 'd') { if (copySelection()) pasteClip(); return true; }
   if (mod) return false;
   if (e.key === 'Escape') { ui.selected.clear(); refreshSelection(); return true; }
   if (!ui.selected.size) return false;
@@ -560,7 +884,8 @@ const TEMPLATE_INFO = {
 async function openOrganize() {
   const d = dash();
   const visuals = d.items.filter((i) => i.kind === 'visual');
-  const chosen = ui.selected.size ? visuals.filter((i) => ui.selected.has(i.id)) : visuals;
+  const picked = visuals.filter((i) => ui.selected.has(i.id));
+  const chosen = picked.length ? picked : visuals;
   if (!chosen.length) { toast('Selecione visuais ou adicione caixas de BI ao fluxo.'); return; }
   const obstacles = d.items.filter((i) => !chosen.includes(i)).map(rectOf);
   let result;
@@ -576,10 +901,10 @@ async function openOrganize() {
   }
   const kinds = Object.fromEntries(chosen.map((i) => [i.id, hintFor(i.node_id).kind]));
   const { close } = openDialog({
-    title: ui.selected.size ? `Organizar ${chosen.length} visual(is) selecionado(s)` : 'Organizar o dashboard',
+    title: picked.length ? `Organizar ${chosen.length} visual(is) selecionado(s)` : 'Organizar o dashboard',
     size: 'lg',
     body: h('div', {},
-      h('p', { class: 'muted organize-help' }, 'Escolha um layout. Textos, imagens e visuais não selecionados ficam onde estão. Ctrl+Z desfaz.'),
+      h('p', { class: 'muted organize-help' }, 'Escolha um layout. Textos, imagens, formas e visuais não selecionados ficam onde estão. Ctrl+Z desfaz.'),
       h('div', { class: 'organize-grid' }, Object.entries(TEMPLATE_INFO).map(([key, [label, desc]]) => h('button', {
         type: 'button', class: 'organize-option',
         onclick: () => { close(); applyArrangement(result[key]); },

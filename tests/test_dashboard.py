@@ -178,3 +178,50 @@ def test_arrange_route_returns_all_templates(client: TestClient) -> None:
     assert set(res.json()) == set(TEMPLATES)
     res = client.post("/api/dashboard/place", json={"items": body["items"][:1]})
     assert res.status_code == 200 and set(res.json()) == {"v0"}
+
+
+# ------------------------------------------------------------------ formato (fase 2)
+
+
+def test_formats_are_described_for_every_kind(client: TestClient) -> None:
+    res = client.get("/api/dashboard/formats")
+    assert res.status_code == 200
+    data = res.json()
+    assert set(data) == {"chart", "kpi", "text", "image", "shape"}
+    widgets = {f["name"]: f["widget"] for f in data["chart"]}
+    assert widgets["color"] == "color" and widgets["category_colors"] == "category_colors"
+    labels = {o["value"] for f in data["chart"] if f["name"] == "data_labels" for o in f["options"]}
+    assert labels == {"none", "max", "max_min"}  # nunca um número em cada ponto
+
+
+def test_format_keeps_only_what_differs_from_default() -> None:
+    wf = _wf(
+        {
+            "items": [
+                {
+                    "id": "a",
+                    "node_id": "c1",
+                    "format": {"palette": "single", "color": "#AABBCC", "title_size": 14},
+                },
+                {"id": "t", "kind": "text", "content": "x" * 6000, "format": {"size": 16, "bold": True}},
+            ]
+        }
+    )
+    assert wf.dashboard is not None
+    chart, text = wf.dashboard.items
+    assert chart.format == {"palette": "single", "color": "#aabbcc"}
+    assert text.format == {"bold": True} and len(text.content) == 5000
+
+
+@pytest.mark.parametrize("bad", ["red", "#12345", "#zzzzzz", "#fff;background:url(x)"])
+def test_colors_only_accept_hex(bad: str) -> None:
+    with pytest.raises(ValidationError, match="Cor inválida"):
+        _wf({"items": [{"id": "t", "kind": "text", "format": {"color": bad}}]})
+
+
+def test_category_colors_drop_invalid_entries() -> None:
+    wf = _wf(
+        {"items": [{"id": "a", "node_id": "c1", "format": {"category_colors": {"SP": "#112233", "RJ": ""}}}]}
+    )
+    assert wf.dashboard is not None
+    assert wf.dashboard.items[0].format == {"category_colors": {"SP": "#112233"}}

@@ -437,7 +437,69 @@ function object(field, value, set, _ctx, id) {
   }, JSON.stringify(value ?? field.default, null, 2));
 }
 
+// ------------------------------------------------------------------ formato do dashboard (spec 014)
+
+const luminance = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/** Contraste WCAG entre duas cores #rrggbb. */
+export function contrast(a, b) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Aviso quando a cor some no fundo: 3:1 para marcas, 4,5:1 para texto (ctx.contrastFor). */
+function contrastNote(value, check) {
+  if (!value || !check?.against) return null;
+  const ratio = contrast(value, check.against);
+  if (ratio >= check.min) return null;
+  return h('p', { class: 'field-warn' }, icon('alert', 13),
+    ` Contraste baixo com ${check.what} (${ratio.toFixed(1).replace('.', ',')}:1). ${check.min > 3 ? 'O texto pode ficar ilegível.' : 'Mantenha rótulos ou a tabela para não depender só da cor.'}`);
+}
+
+function color(field, value, set, ctx, id) {
+  const note = h('div', {}, contrastNote(value, ctx.contrastFor?.(field.name)));
+  const input = h('input', {
+    id, type: 'color', class: 'color-input', value: value || ctx.defaultColor?.(field.name) || '#888888',
+    oninput: (e) => { set(e.target.value); note.replaceChildren(contrastNote(e.target.value, ctx.contrastFor?.(field.name)) || ''); },
+  });
+  return h('div', { class: 'stack-xs' },
+    h('div', { class: 'color-row' }, input,
+      h('span', { class: 'mono muted' }, value || 'padrão do tema'),
+      value ? button({ label: 'Padrão', size: 'sm', variant: 'ghost', onClick: () => set('') }) : null),
+    note);
+}
+
+function optionalNumber(field, value, set, _ctx, id) {
+  return h('input', {
+    id, class: 'input', type: 'number', step: 'any', value: value ?? '', placeholder: 'Automático',
+    onchange: (e) => set(e.target.value === '' ? null : Number(e.target.value)),
+  });
+}
+
+/** Cor por categoria: uma linha por valor do eixo X do visual (ctx.categories). */
+function categoryColors(field, value, set, ctx) {
+  const map = { ...(value || {}) };
+  const cats = ctx.categories || [];
+  if (!cats.length) return h('p', { class: 'field-help' }, 'Execute o fluxo para listar as categorias.');
+  return h('div', { class: 'category-colors' }, cats.map((cat, i) => {
+    const note = h('div', {}, contrastNote(map[cat], ctx.contrastFor?.(field.name)));
+    return h('div', { class: 'category-color' },
+      h('input', {
+        type: 'color', class: 'color-input', value: map[cat] || ctx.defaultColor?.(field.name, i) || '#888888', 'aria-label': `Cor de ${cat}`,
+        oninput: (e) => { map[cat] = e.target.value; set({ ...map }); note.replaceChildren(contrastNote(e.target.value, ctx.contrastFor?.(field.name)) || ''); },
+      }),
+      h('span', { class: 'ellipsis', title: cat }, cat),
+      map[cat] ? button({ icon: 'x', title: 'Voltar à cor da paleta', size: 'sm', variant: 'ghost', onClick: () => { delete map[cat]; set({ ...map }); } }) : null,
+      note);
+  }));
+}
+
 const WIDGETS = {
+  color, optional_number: optionalNumber, category_colors: categoryColors,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
   list, select_columns: selectColumns, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
 };

@@ -100,4 +100,5 @@ export const api = {
 
   arrangeDashboard: (body) => request('POST', '/api/dashboard/arrange', body),
   placeDashboard: (body) => request('POST', '/api/dashboard/place', body),
+  dashboardFormats: () => request('GET', '/api/dashboard/formats'),
 };

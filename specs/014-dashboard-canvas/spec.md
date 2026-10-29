@@ -1,6 +1,6 @@
 # Spec 014 — Dashboard em canvas, visuais personalizáveis e exportação
 
-Status: Em implementação (fase 1 concluída) · Criada: 2026-10-29 · Versão alvo: 0.3.0
+Status: Em implementação (fases 1 e 2 concluídas) · Criada: 2026-10-29 · Versão alvo: 0.3.0
 
 ## Contexto
 
@@ -67,7 +67,7 @@ modo de edição em canvas — como o fluxo — onde se decide *onde* e *como* m
 | RF-1410 | Selecionar um item no modo Editar abre o painel **Formato**. Ele é gerado a partir de um modelo declarado por tipo de item, como os formulários do Inspector. |
 | RF-1411 | Cartão: título (texto, tamanho, alinhamento, mostrar ou ocultar), subtítulo, fundo, borda, cantos e sombra. |
 | RF-1412 | Cores: paleta da marca (padrão), outra paleta categórica validada, uma cor única, ou uma cor por categoria ou série. Cores escolhidas fora da paleta validada mostram um aviso de contraste. |
-| RF-1413 | Gráficos: legenda (posição ou oculta), rótulos de dados (sim/não, formato, casas decimais, prefixo e sufixo), eixos (título, mínimo e máximo, linhas de grade), ordenação e limite de categorias. |
+| RF-1413 | Gráficos: legenda (mostrar ou ocultar), rótulos de dados (nenhum, maior valor, ou maior e menor; nunca um número em cada ponto, os demais ficam no tooltip), formato dos números (compacto ou completo, casas decimais, prefixo e sufixo), eixos (título, mínimo e máximo, linhas de grade). Ordenação e limite de categorias continuam na caixa do fluxo, porque mudam os dados; o painel leva até ela. |
 | RF-1414 | Formatação condicional nas tabelas e big numbers: cor do valor por faixa (ex.: < 0 vermelho, ≥ meta verde). |
 
 ### Big number rico
@@ -86,7 +86,7 @@ modo de edição em canvas — como o fluxo — onde se decide *onde* e *como* m
 | RF-1430 | O Chart aceita uma **segunda dimensão** (coluna de série): colunas e barras empilhadas, agrupadas ou 100%; linhas múltiplas; área e área empilhada. Limite de 8 séries; as demais viram "Outras". |
 | RF-1431 | Dispersão: X e Y numéricos, cor por categoria opcional, amostra de até 2.000 pontos, informada no rodapé quando há amostragem. |
 | RF-1432 | Funil (etapas ordenadas pela categoria ou pelo valor) e medidor (valor contra meta e faixa máxima). |
-| RF-1435 | **Pareto**: colunas em ordem decrescente e uma linha de percentual acumulado num segundo eixo (0–100%), com linha de referência configurável (padrão 80%). As categorias até a referência ficam destacadas. Acumulado calculado no motor. Aceita soma ou contagem. |
+| RF-1435 | **Pareto**: colunas em ordem decrescente e o percentual acumulado como linha com rótulos diretos (sem segundo eixo Y: gráfico de dois eixos engana a leitura), com linha de referência configurável (padrão 80%). As categorias até a referência ficam destacadas. Acumulado calculado no motor. Aceita soma ou contagem. |
 | RF-1436 | Nova ferramenta **Venn** (BI): diagrama de 2 ou 3 conjuntos com a contagem de cada região e o percentual do total. Os conjuntos podem vir de 2 ou 3 colunas verdadeiro/falso, ou de uma coluna de chave (ex.: cliente) + uma coluna de grupo (ex.: produto), escolhendo 2 ou 3 valores. Nesse caso, conta chaves distintas. |
 | RF-1437 | Com 2 conjuntos, as áreas dos círculos e da interseção são proporcionais às contagens. Com 3, os círculos têm tamanho fixo e só os números indicam a proporção, e o rodapé do visual diz isso. O modo tabela mostra todas as regiões. |
 | RF-1433 | Nova ferramenta **Table** (BI): tabela formatada no dashboard com as colunas escolhidas, totais opcionais, até 500 linhas e formatação condicional (RF-1414). |
