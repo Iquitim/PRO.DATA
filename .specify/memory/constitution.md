@@ -4,7 +4,7 @@ Princípios não negociáveis do projeto. Toda spec, plano e PR deve ser compat�
 com eles; quando um princípio precisar mudar, altere este arquivo primeiro, em PR
 separado, com justificativa.
 
-Versão: 1.2.0 · Ratificada: 2026-10-28 · Emendada: 2026-10-29 (princípio IV: cofre do SO, conectores somente leitura; destinos escolhidos pelo usuário — spec 009)
+Versão: 1.3.0 · Ratificada: 2026-10-28 · Emendada: 2026-10-29 (princípio IV: cofre do SO, conectores somente leitura; destinos escolhidos pelo usuário — spec 009; imagens PNG do dashboard — spec 014)
 
 ## I. Spec antes do código (SDD)
 
@@ -38,8 +38,8 @@ exceto widgets especializados reutilizáveis.
 
 - Nenhum caminho de arquivo vindo do cliente é usado sem ser resolvido e
   confinado ao diretório de dados (`resolve_inside`). Exceção única: destinos
-  escolhidos explicitamente pelo usuário — a pasta do Output Data e arquivos de
-  fluxo `.prodata.json` — desde que o caminho seja absoluto, o diretório já
+  escolhidos explicitamente pelo usuário — a pasta do Output Data, arquivos de
+  fluxo `.prodata.json` e imagens `.png` exportadas do dashboard — desde que o caminho seja absoluto, o diretório já
   exista, a extensão seja fixa e o nome do arquivo seja saneado.
 - Uploads têm lista de extensões permitidas e tamanho máximo.
 - Segredos (senhas de banco, chaves de API) nunca são salvos em workflows,

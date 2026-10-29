@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from prodata.domain.dashboard import Dashboard
+
 ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
 
 
@@ -52,6 +54,8 @@ class Workflow(BaseModel):
     containers: list[Container] = Field(default_factory=list)
     nodes: list[Node] = Field(default_factory=list)
     edges: list[Edge] = Field(default_factory=list)
+    # Layout do dashboard (spec 014). Ausente em fluxos antigos: a interface monta um automático.
+    dashboard: Dashboard | None = None
 
     @model_validator(mode="after")
     def _check_references(self) -> Workflow:
@@ -65,6 +69,8 @@ class Workflow(BaseModel):
                 raise ValueError(f"Conexão '{e.id}' referencia nó inexistente.")
             if e.source == e.target:
                 raise ValueError(f"Conexão '{e.id}' liga um nó a ele mesmo.")
+        if self.dashboard:
+            self.dashboard.prune(known)
         return self
 
     def node(self, node_id: str) -> Node:

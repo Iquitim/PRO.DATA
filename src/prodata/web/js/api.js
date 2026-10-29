@@ -97,4 +97,7 @@ export const api = {
   results: (wfId, nodeId, anchor, params) =>
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}?${new URLSearchParams(params)}`),
   validateFormula: (expression, columns) => request('POST', '/api/formula/validate', { expression, columns }),
+
+  arrangeDashboard: (body) => request('POST', '/api/dashboard/arrange', body),
+  placeDashboard: (body) => request('POST', '/api/dashboard/place', body),
 };

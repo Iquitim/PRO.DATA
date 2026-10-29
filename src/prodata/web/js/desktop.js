@@ -53,6 +53,19 @@ export async function chooseOpenFile(start = '') {
   return askPath({ title: 'Abrir fluxo de arquivo', label: 'Arquivo', placeholder: 'D:\\Fluxos\\vendas.prodata.json' });
 }
 
+/**
+ * Salva um PNG (data URI). No desktop abre o "Salvar como" do Windows e devolve o caminho;
+ * no navegador, baixa o arquivo. Devolve null se o usuário cancelar.
+ */
+export async function savePng(name, dataUrl) {
+  if (native()) return call('save_png', name, dataUrl);
+  const a = h('a', { href: dataUrl, download: `${name.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'dashboard'}.png` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  return a.download;
+}
+
 /** Mostra o arquivo no Explorer (só no desktop). */
 export async function reveal(path) {
   return native() ? call('reveal', path) : false;

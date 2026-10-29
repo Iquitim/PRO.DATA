@@ -35,9 +35,11 @@ export function withTooltip(card, chart) {
     if (!mark) { tip.hidden = true; return; }
     tip.hidden = false;
     tip.innerHTML = mark.dataset.tip;
+    // O cartão pode estar dentro de uma página escalada (dashboard, spec 014): converte para px do cartão.
     const r = card.getBoundingClientRect();
-    const x = Math.max(4, Math.min(e.clientX - r.left + 12, r.width - tip.offsetWidth - 8));
-    tip.style.transform = `translate(${x}px, ${Math.max(4, e.clientY - r.top - tip.offsetHeight - 10)}px)`;
+    const k = card.offsetWidth ? r.width / card.offsetWidth : 1;
+    const x = Math.max(4, Math.min((e.clientX - r.left) / k + 12, card.offsetWidth - tip.offsetWidth - 8));
+    tip.style.transform = `translate(${x}px, ${Math.max(4, (e.clientY - r.top) / k - tip.offsetHeight - 10)}px)`;
   });
   chart.addEventListener('pointerleave', () => { tip.hidden = true; });
   card.append(tip);
@@ -143,7 +145,8 @@ export function donutChart(series, width, height = 200) {
     slices = [...slices.slice(0, MAX_SLICES - 1), { label: 'Outros', value: rest }];
   }
   const total = slices.reduce((acc, s) => acc + s.value, 0) || 1;
-  const size = Math.min(200, height);
+  // Acompanha o cartão (dashboard redimensionável, spec 014), deixando metade da largura para a legenda.
+  const size = Math.max(120, Math.min(height, width * 0.45, 360));
   const r = size * 0.43;
   const inner = size * 0.27;
   const cx = size / 2;

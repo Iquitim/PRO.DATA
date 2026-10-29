@@ -6,8 +6,10 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -114,6 +116,19 @@ class DesktopApi:
             file_types=(_WORKFLOW_FILTER, "Todos os arquivos (*.*)"),
         )
 
+    def save_png(self, suggested: str, data: str) -> str | None:
+        """Imagem do dashboard (spec 014, RF-1452): "Salvar como" do Windows e grava o PNG escolhido."""
+        import webview
+
+        chosen = self._dialog(
+            webview.FileDialog.SAVE, save_filename=png_name(suggested), file_types=(_PNG_FILTER,)
+        )
+        if not chosen:
+            return None
+        path = write_png(chosen, data)
+        log.info("Imagem do dashboard salva em %s", path)
+        return str(path)
+
     def set_dirty(self, dirty: bool) -> None:
         """A página avisa se há abas com alterações não salvas (usado ao fechar a janela)."""
         self._dirty = bool(dirty)
@@ -146,6 +161,32 @@ class DesktopApi:
 
 # O pywebview só aceita letras, dígitos e espaços na descrição do filtro: "PRO.DATA" quebrava o diálogo.
 _WORKFLOW_FILTER = "Fluxos PRODATA (*.prodata.json)"
+_PNG_FILTER = "Imagem PNG (*.png)"
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+_PNG_MAX_BYTES = 64 * 1024 * 1024
+
+
+def png_name(name: str) -> str:
+    """Nome de arquivo saneado, sempre terminando em .png (constituição IV)."""
+    stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", Path(name.replace("\\", "/")).name)
+    stem = re.sub(r"\s+", " ", stem).strip(" .")
+    stem = re.sub(r"\.png$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
+    return f"{stem or 'dashboard'}.png"
+
+
+def write_png(raw_path: str, data: str) -> Path:
+    """Grava o PNG no destino escolhido: caminho absoluto, pasta existente, extensão fixa."""
+    path = Path(raw_path)
+    if not path.is_absolute():
+        raise ValueError("Escolha a pasta e o nome da imagem.")
+    path = path.with_name(png_name(path.name))
+    if not path.parent.is_dir():
+        raise ValueError(f"A pasta não existe: {path.parent}")
+    raw = base64.b64decode(data.split(",", 1)[-1], validate=True)
+    if not raw.startswith(_PNG_SIGNATURE) or len(raw) > _PNG_MAX_BYTES:
+        raise ValueError("A imagem gerada é inválida.")
+    path.write_bytes(raw)
+    return path
 
 
 def main() -> None:

@@ -6,7 +6,7 @@ import {
   addContainerAtCenter, currentZoom, fitView, initCanvas, NODE_W, pointerWorld, render as renderCanvas, zoomBy,
 } from './canvas.js';
 import { copySelection, cutSelection, paste } from './clipboard.js';
-import { initDashboard, render as renderDashboard } from './dashboard.js';
+import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
 import { refreshConnections, refreshQueries, renderConnectionsSection, renderQueriesSection } from './connections.js';
 import { enableFileDropOnCanvas, refreshDatasets, renderDatasetsPanel } from './datasets.js';
 import { basename, chooseOpenFile, chooseSaveFile, dirname } from './desktop.js';
@@ -503,6 +503,11 @@ function setupShortcuts() {
     if (mod && key === 's') { e.preventDefault(); if (e.shiftKey) saveAs(); else save(); return; }
     if (mod && key === 'o') { e.preventDefault(); openDialogList(); return; }
     if (isTyping(e.target) || document.querySelector('dialog[open]')) return;
+    // No dashboard, as teclas mexem no layout (spec 014); atalhos do fluxo (Delete, Ctrl+D...) não valem.
+    if (store.view === 'dashboard') {
+      if (handleDashboardKey(e)) { e.preventDefault(); return; }
+      if (!(mod && (key === 'z' || key === 'y'))) return;
+    }
     if (mod && key === 'z') { e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
     if (mod && key === 'y') { e.preventDefault(); redo(); return; }
     if (mod && key === 'a' && store.view === 'designer') { e.preventDefault(); selectMany(store.workflow.nodes.map((n) => n.id)); return; }

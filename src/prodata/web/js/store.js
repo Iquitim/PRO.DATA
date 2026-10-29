@@ -84,6 +84,16 @@ export function mutate(fn, { key = null, affects = [], structural = false } = {}
   emit('dirty', isDirty());
 }
 
+/**
+ * Ajuste automático que não é ação do usuário (ex.: layout do dashboard montado ao abrir um fluxo antigo):
+ * fica fora do desfazer e não marca como "não salvo" um fluxo que estava salvo.
+ */
+export function silently(fn) {
+  const wasDirty = isDirty();
+  fn(store.workflow);
+  if (!wasDirty) store.savedSnapshot = snapshot();
+}
+
 /** Para gestos contínuos (arrastar): registra um passo de desfazer agora e confirma no fim. */
 export function checkpoint() {
   history.undo.push(snapshot());
