@@ -525,7 +525,7 @@ export function vennChart(w, width, height, opts) {
     const mid = (i, j, f) => [cx + ((centers[i][0] + centers[j][0]) / 2 - cx) * f, cy + ((centers[i][1] + centers[j][1]) / 2 - cy) * f];
     labels = [
       regionLabel([0], ...out(0, 1.75)), regionLabel([1], ...out(1, 1.75)), regionLabel([2], ...out(2, 1.75)),
-      regionLabel([0, 1], ...mid(0, 1, 1.9)), regionLabel([0, 2], ...mid(0, 2, 1.9)), regionLabel([1, 2], ...mid(1, 2, 1.9)),
+      regionLabel([0, 1], ...mid(0, 1, 2.2)), regionLabel([0, 2], ...mid(0, 2, 2.2)), regionLabel([1, 2], ...mid(1, 2, 2.2)),
       regionLabel([0, 1, 2], cx, cy),
     ];
   }

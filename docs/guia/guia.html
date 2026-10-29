@@ -80,6 +80,8 @@
   .callout.warn { background: var(--amber-weak); color: #6e4206; }
   .callout > strong:first-child { display: block; margin-bottom: 2pt; }
   figure.narrow { max-width: 72%; margin-left: auto; margin-right: auto; }
+  .side-figure { align-items: center; }
+  .side-figure figure { margin: 0; }
 
   table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 6pt 0 10pt; break-inside: auto; }
   th { text-align: left; font-weight: 650; color: var(--ink-2); background: var(--soft); }
@@ -125,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.2.2 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.3.0 · Windows</span><span>Outubro de 2026</span></div>
   </div>
 </section>
 
@@ -137,7 +139,7 @@
   <p>Em vez de fórmulas espalhadas por várias abas, você monta um <strong>fluxo</strong>: caixas ligadas por linhas, em que cada caixa faz uma coisa (ler um arquivo, limpar, filtrar, juntar, calcular, resumir, gerar um gráfico). O fluxo fica salvo, pode ser executado de novo com dados novos em segundos e mostra o resultado de <strong>cada etapa</strong>, então dá para ver exatamente de onde veio cada número.</p>
 
   <div class="stat-row">
-    <div class="stat"><b>26</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
+    <div class="stat"><b>28</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
     <div class="stat"><b>6</b><span>formatos de arquivo + PostgreSQL e SQL Server</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
     <div class="stat"><b>100%</b><span>local: funciona offline, os dados ficam na sua máquina</span></div>
@@ -158,12 +160,13 @@
     <div><span>4</span>Trazendo dados</div>
     <div><span>5</span>Montando o fluxo</div>
     <div><span>6</span>Explorando os resultados</div>
-    <div><span>7</span>Indicadores e dashboard</div>
-    <div><span>8</span>Organização e personalização</div>
-    <div><span>9</span>Segurança e privacidade</div>
-    <div><span>10</span>Instalação e requisitos</div>
-    <div><span>11</span>Escopo e limitações</div>
-    <div><span>12</span>Atalhos e perguntas frequentes</div>
+    <div><span>7</span>Indicadores e visuais</div>
+    <div><span>8</span>Montando o dashboard</div>
+    <div><span>9</span>Organização e personalização</div>
+    <div><span>10</span>Segurança e privacidade</div>
+    <div><span>11</span>Instalação e requisitos</div>
+    <div><span>12</span>Escopo e limitações</div>
+    <div><span>13</span>Atalhos e perguntas frequentes</div>
   </div>
 </section>
 
@@ -193,7 +196,7 @@
 <section class="chapter">
   <div class="eyebrow">2 · Interface</div>
   <h2>Conhecendo a tela</h2>
-  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 8).</p>
+  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 9).</p>
   <figure>
     <div class="frame">
       <img src="img/overview.png" alt="Tela principal do PRO.DATA">
@@ -226,11 +229,11 @@
     <div class="step"><div><h4>Monte o fluxo</h4><p>Arraste ferramentas para o canvas e ligue umas às outras: limpar, filtrar, calcular colunas, juntar tabelas, resumir. Soltar uma caixa em cima de uma ligação existente a encaixa no meio automaticamente.</p></div></div>
     <div class="step"><div><h4>Configure cada caixa</h4><p>Ao clicar numa caixa, a aba <strong>Configurar</strong> abre com um formulário próprio dela. Colunas aparecem em listas; expressões são validadas enquanto você digita.</p></div></div>
     <div class="step"><div><h4>Execute e confira</h4><p>Clique em <strong>Executar</strong>. Cada caixa ganha um indicador de status e mostra o número de linhas. Clique em qualquer saída para ver os dados que passaram por ali.</p></div></div>
-    <div class="step"><div><h4>Apresente</h4><p>Caixas de BI publicam indicadores e gráficos no painel de gráficos e no <strong>Dashboard</strong>. Salve o fluxo e, no mês seguinte, basta trocar o arquivo e executar de novo.</p></div></div>
+    <div class="step"><div><h4>Apresente</h4><p>Caixas de BI publicam indicadores e gráficos no <strong>Dashboard</strong>, onde você monta a página do seu jeito e baixa a imagem para o e-mail ou a apresentação. No mês seguinte, basta trocar o arquivo e executar de novo.</p></div></div>
   </div>
   <figure>
     <div class="frame"><img src="img/flow-crop.png" alt="Fluxo completo"></div>
-    <figcaption>Um fluxo completo, organizado em três etapas: ingestão e preparação, junção e indicadores, e um modelo preditivo.</figcaption>
+    <figcaption>Um fluxo completo, organizado em quatro etapas: ingestão e preparação, junção e indicadores, um modelo preditivo e os visuais de vendas.</figcaption>
   </figure>
 </section>
 
@@ -266,7 +269,7 @@
 <section class="chapter">
   <div class="eyebrow">5 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
-  <p class="intro">26 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <p class="intro">28 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
     <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
@@ -291,7 +294,9 @@
     <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
     <tr><td class="tool">SQL</td><td>Para quem conhece SQL: consulta livre sobre os dados do fluxo.</td></tr>
     <tr><td colspan="2"><span class="tag">BI e indicadores</span></td></tr>
-    <tr><td class="tool">Chart · KPI Card</td><td>Gráficos (colunas, barras, linha, rosca) e indicadores para o Dashboard.</td></tr>
+    <tr><td class="tool">Chart</td><td>Colunas, barras, linha, rosca, empilhado, agrupado, 100%, área, Pareto, funil e dispersão.</td></tr>
+    <tr><td class="tool">KPI Card</td><td>Big number com variação contra meta ou período anterior e tendência, ou medidor.</td></tr>
+    <tr><td class="tool">Venn · Table</td><td>Interseções de 2 ou 3 grupos (ex.: clientes por produto) e tabela com totais e cores por faixa.</td></tr>
     <tr><td colspan="2"><span class="tag">Machine Learning</span></td></tr>
     <tr><td class="tool">Train/Test Split</td><td>Divide os dados em treino e teste.</td></tr>
     <tr><td class="tool">Model Trainer · Predictor</td><td>Treina modelos de classificação ou regressão e aplica a novos dados, com acurácia medida em dados de validação.</td></tr>
@@ -363,23 +368,82 @@
 <!-- ================================================================ 7. DASHBOARD -->
 <section class="chapter">
   <div class="eyebrow">7 · Apresentação</div>
-  <h2>Indicadores e dashboard</h2>
-  <p class="intro">Indicadores nascem dentro do fluxo. Quando os dados mudam, basta executar de novo.</p>
+  <h2>Indicadores e visuais</h2>
+  <p class="intro">Os números nascem dentro do fluxo: as caixas de BI calculam e o Dashboard mostra. Quando os dados mudam, basta executar de novo.</p>
+  <table>
+    <tr><th style="width:24%">Caixa</th><th>O que publica</th></tr>
+    <tr><td class="tool">KPI Card</td><td>Um número em destaque (soma, média, contagem…). Opcionalmente compara com uma <strong>meta</strong> ou com o <strong>período anterior</strong> (dia, semana, mês, trimestre ou ano), mostrando a variação com seta verde ou vermelha conforme "maior é melhor" ou "menor é melhor", e um <strong>minigráfico</strong> da tendência. Também pode virar um <strong>medidor</strong>.</td></tr>
+    <tr><td class="tool">Chart</td><td>Colunas, barras, linha e rosca; com uma <strong>2ª dimensão</strong>, colunas empilhadas, agrupadas ou 100%, várias linhas e áreas; e ainda <strong>Pareto</strong>, <strong>funil</strong> e <strong>dispersão</strong>.</td></tr>
+    <tr><td class="tool">Venn</td><td>Quantos estão em cada combinação de 2 ou 3 grupos — por exemplo, clientes que compraram Cloud, AutoML ou os dois.</td></tr>
+    <tr><td class="tool">Table</td><td>Uma tabela com as colunas escolhidas, ordenação, linha de totais e cores por faixa de valor.</td></tr>
+  </table>
+  <div class="grid-2">
+    <figure>
+      <div class="frame"><img src="img/dash-kpi.png" alt="Big number com variação e tendência"></div>
+      <figcaption>Faturamento do mês contra o mês anterior, com a tendência dos últimos meses.</figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="img/dash-venn.png" alt="Diagrama de Venn"></div>
+      <figcaption>Venn: 69 clientes contrataram os três produtos; 126 só o Cloud.</figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="img/dash-pareto.png" alt="Gráfico de Pareto"></div>
+      <figcaption>Pareto: cada coluna é a participação no total e a linha, o acumulado. As UFs destacadas somam 80%.</figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="img/dash-stacked.png" alt="Colunas empilhadas"></div>
+      <figcaption>Colunas empilhadas: faturamento por mês, dividido por produto.</figcaption>
+    </figure>
+  </div>
   <ul>
-    <li><strong>KPI Card</strong> calcula um número (soma, média, contagem…) e o apresenta em destaque.</li>
-    <li><strong>Chart</strong> gera gráficos de colunas, barras, linha ou rosca, com valores ao passar o mouse e opção de ver como tabela.</li>
-    <li>Cada <strong>Summarize</strong> do fluxo também vira, automaticamente, um gráfico no painel <strong>Gráficos e resumos</strong>.</li>
-    <li>Clicar em qualquer gráfico leva à caixa que o gerou — sempre dá para saber de onde veio o número.</li>
+    <li>Todo visual tem o botão <strong>Ver tabela</strong>, com os números exatos — o dado nunca depende só do desenho.</li>
+    <li>Passar o mouse mostra o valor de cada barra, ponto ou região. Clicar no título leva à caixa que gerou o visual.</li>
+    <li>Cada <strong>Summarize</strong> do fluxo também vira, automaticamente, um gráfico no painel <strong>Gráficos e resumos</strong>, abaixo do canvas.</li>
   </ul>
-  <figure>
-    <div class="frame"><img src="img/dashboard.png" alt="Dashboard"></div>
-    <figcaption>Dashboard do fluxo de demonstração: ARR consolidado, MRR por segmento e atingimento de meta por estado.</figcaption>
+  <figure class="narrow">
+    <div class="frame"><img src="img/dash-export.png" alt="Imagem PNG do dashboard"></div>
+    <figcaption>A imagem que sai do botão <strong>Baixar imagem</strong> no dashboard da demonstração, pronta para o e-mail ou a apresentação.</figcaption>
   </figure>
 </section>
 
-<!-- ================================================================ 8. ORGANIZAÇÃO -->
+<!-- ================================================================ 8. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">8 · Organização</div>
+  <div class="eyebrow">8 · Apresentação</div>
+  <h2>Montando o dashboard</h2>
+  <p class="intro">O fluxo define <strong>o que</strong> mostrar; o dashboard define <strong>onde e como</strong>. Mudar cores ou posições não executa nada de novo.</p>
+  <figure>
+    <div class="frame"><img src="img/dash-guides.png" alt="Dashboard no modo Editar, com guias de alinhamento"></div>
+    <figcaption>O dashboard da demonstração no modo Editar: ao arrastar um gráfico, as guias douradas mostram o alinhamento com os vizinhos.</figcaption>
+  </figure>
+  <h3>Editar o layout</h3>
+  <p>Clique em <strong>Editar layout</strong>. A página vira um canvas: arraste os visuais, redimensione pelas alças e eles se encaixam numa grade, com guias quando se alinham a outro item ou ao centro da página (segure <kbd>Alt</kbd> para posicionar livremente). <kbd>Shift</kbd>+arrastar seleciona vários; o botão direito alinha, distribui e muda a camada; <kbd>Delete</kbd> tira o visual da página sem apagar a caixa do fluxo — ele fica em <strong>Fora da página</strong> e volta com um clique.</p>
+  <div class="grid-3">
+    <div class="card"><h4>Inserir</h4><p>Título (empurra o conteúdo para baixo), texto, imagem PNG/JPG/SVG até 1 MB, o logo do Grupo Protege, retângulos de fundo e linhas divisórias.</p></div>
+    <div class="card"><h4>Página</h4><p>16:9, A4 paisagem, A4 retrato ou altura livre, com cor de fundo. Se os visuais não couberem, a página cresce e o PRO.DATA avisa.</p></div>
+    <div class="card"><h4>Baixar imagem</h4><p>Gera um PNG em alta resolução da página — ou de um visual só, pelo botão do cartão — no tema claro ou escuro que estiver na tela.</p></div>
+  </div>
+  <div class="two-col side-figure">
+    <div>
+      <h3>Organizar com um clique</h3>
+      <p>O botão <strong>Organizar</strong> mostra os seus visuais em seis arranjos — Automático, KPIs no topo com 2 ou 3 colunas, Destaque, KPIs na lateral e Relatório — e aplica o escolhido.</p>
+      <p>Textos, imagens e o que não estiver selecionado ficam onde estão; um <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz.</p>
+    </div>
+    <figure>
+      <div class="frame"><img src="img/dash-organize.png" alt="Galeria de layouts"></div>
+      <figcaption>Cada opção é desenhada com os visuais do próprio dashboard.</figcaption>
+    </figure>
+  </div>
+  <h3>Formatar cada visual</h3>
+  <p>Com um item selecionado, o painel <strong>Formato</strong> ajusta título, fundo, borda, cantos e sombra; cores (paleta da marca, paleta alternativa, uma cor ou uma cor por categoria — com aviso quando a cor some no fundo); rótulos de dados, formato dos números, legenda e eixos; e, em tabelas e KPIs, <strong>cores por faixa</strong> (bom, atenção, crítico, sempre com ícone).</p>
+  <figure>
+    <div class="frame"><img src="img/dash-edit.png" alt="Modo Editar com o painel Formato"></div>
+    <figcaption>O Pareto selecionado e o painel Formato à direita.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================ 9. ORGANIZAÇÃO -->
+<section class="chapter">
+  <div class="eyebrow">9 · Organização</div>
   <h2>Organização e personalização</h2>
   <h3>Caixas de organização</h3>
   <p>Agrupe as etapas do fluxo em caixas com nome, descrição e cor (paleta <em>Organização</em>, botão <strong>Etapa</strong> ou tecla <kbd>G</kbd>). Arrastar o título move a caixa junto com tudo o que está dentro. Cada caixa tem um <strong>interruptor</strong>: desligada, as caixas de dentro deixam de executar — útil para pausar uma parte do processo sem apagar nada.</p>
@@ -419,7 +483,7 @@
 
 <!-- ================================================================ 9. SEGURANÇA -->
 <section class="chapter">
-  <div class="eyebrow">9 · Confiança</div>
+  <div class="eyebrow">10 · Confiança</div>
   <h2>Segurança e privacidade</h2>
   <div class="grid-2">
     <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador. Nenhum dado é enviado para a internet; o programa funciona offline.</p></div>
@@ -433,12 +497,12 @@
 
 <!-- ================================================================ 10. INSTALAÇÃO -->
 <section class="chapter">
-  <div class="eyebrow">10 · Primeiros passos</div>
+  <div class="eyebrow">11 · Primeiros passos</div>
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.2.2-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.2.2-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.3.0-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.3.0-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
   </div>
   <h3>Requisitos</h3>
   <table>
@@ -450,7 +514,7 @@
   </table>
   <h3>Primeira execução</h3>
   <div class="steps">
-    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 11): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
+    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 12): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
     <div class="step"><div><h4>Explore o exemplo</h4><p>O fluxo de demonstração já vem pronto e executado. Clique nas caixas, abra o Dashboard, experimente os filtros.</p></div></div>
     <div class="step"><div><h4>Comece o seu</h4><p>Botão <strong>Novo fluxo</strong>, envie um arquivo na aba Dados e arraste-o para o canvas.</p></div></div>
   </div>
@@ -458,20 +522,20 @@
 
 <!-- ================================================================ 11. ESCOPO E LIMITAÇÕES -->
 <section class="chapter">
-  <div class="eyebrow">11 · Transparência</div>
+  <div class="eyebrow">12 · Transparência</div>
   <h2>Escopo e limitações</h2>
   <p class="intro">O que esta versão faz, o que não faz e onde ela tem limites — para você decidir com clareza.</p>
   <div class="two-col">
     <div>
       <h3>Incluído nesta versão</h3>
       <ul class="scope-in">
-        <li>Fluxos visuais com 26 ferramentas</li>
+        <li>Fluxos visuais com 28 ferramentas</li>
         <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
         <li>Consultas a PostgreSQL e SQL Server (tabela ou SQL)</li>
         <li>Exportação para Excel, CSV, Parquet, JSON e Arrow, em qualquer pasta</li>
         <li>Abas, copiar/colar e editor de fórmulas com autocompletar</li>
         <li>Perfil de qualidade e filtros exploratórios</li>
-        <li>Gráficos, KPIs e Dashboard</li>
+        <li>Dashboard em canvas com 15 tipos de visual e imagem PNG</li>
         <li>Modelos de classificação e regressão</li>
         <li>Execução incremental e ponto de cache</li>
         <li>Aplicativo de desktop para Windows, offline</li>
@@ -487,6 +551,7 @@
         <li>Versões para macOS e Linux</li>
         <li>Atualização automática do programa</li>
         <li>Publicar dashboards na web</li>
+        <li>Dashboard em PDF, com várias páginas ou com filtros que cruzam os gráficos</li>
       </ul>
     </div>
   </div>
@@ -496,13 +561,14 @@
     <tr><td class="tool">Volume de dados</td><td>As tabelas são carregadas inteiras na memória do computador. O limite prático depende da RAM disponível; bases muito grandes (dezenas de milhões de linhas) ainda não foram validadas e podem exigir uma máquina com mais memória.</td></tr>
     <tr><td class="tool">Modelos de ML</td><td>Ficam em memória e são treinados novamente quando o programa é reaberto (sem impacto no resultado, só no tempo da primeira execução).</td></tr>
     <tr><td class="tool">Aviso do Windows</td><td>O instalador ainda não é assinado digitalmente; por isso o SmartScreen mostra "Editor desconhecido" na primeira execução.</td></tr>
+    <tr><td class="tool">Visuais com muitos dados</td><td>A dispersão desenha uma amostra fixa de até 2.000 pontos (e avisa no rodapé); gráficos mostram até 50 categorias e 8 séries, somando o restante em "Outros". No Venn de 3 grupos os círculos são ilustrativos — os números trazem a proporção.</td></tr>
     <tr><td class="tool">Filtros exploratórios</td><td>São lembrados enquanto o programa está aberto e não são salvos com o fluxo (por definição, são exploração; use "Criar nó Filter" para torná-los permanentes).</td></tr>
   </table>
 </section>
 
 <!-- ================================================================ 12. ATALHOS E FAQ -->
 <section class="chapter">
-  <div class="eyebrow">12 · Referência rápida</div>
+  <div class="eyebrow">13 · Referência rápida</div>
   <h2>Atalhos e perguntas frequentes</h2>
   <h3>Atalhos de teclado</h3>
   <table>
@@ -516,6 +582,8 @@
     <tr><td><kbd>Shift</kbd>+clique · <kbd>Ctrl</kbd>+<kbd>A</kbd> · <kbd>?</kbd></td><td>Selecionar várias caixas · todas · lista de atalhos</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>Espaço</kbd></td><td>Sugestões no editor de fórmulas</td></tr>
     <tr><td>Duplo clique no canvas</td><td>Adicionar ferramenta no ponto clicado</td></tr>
+    <tr><td>Dashboard, modo Editar: setas · <kbd>Shift</kbd>+setas</td><td>Mover a seleção 1 px · 8 px (<kbd>Alt</kbd> ao arrastar solta o encaixe)</td></tr>
+    <tr><td>Dashboard, modo Editar: <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>D</kbd> · <kbd>Delete</kbd></td><td>Copiar, colar, duplicar textos e imagens · tirar da página</td></tr>
   </table>
   <h3>Perguntas frequentes</h3>
   <div class="avoid"><h4>Preciso saber programar?</h4><p>Não. Tudo é feito por arrastar, ligar e preencher formulários. Quem conhece SQL ou fórmulas tem recursos extras, mas eles são opcionais.</p></div>
@@ -524,6 +592,7 @@
   <div class="avoid"><h4>Como atualizo um relatório mensal?</h4><p>Envie o arquivo novo com o mesmo nome (o PRO.DATA pergunta se deve substituir) e clique em Executar. O fluxo inteiro roda de novo com os dados atualizados.</p></div>
   <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
   <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na aba Dados.</p></div>
+  <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, clique em <strong>Baixar imagem</strong>: o PNG sai em alta resolução, pronto para colar no e-mail ou na apresentação. O layout fica salvo no arquivo do fluxo.</p></div>
   <div class="avoid"><h4>Desinstalar apaga meus fluxos?</h4><p>Não. Fluxos, arquivos e conexões ficam na sua pasta de dados e continuam lá para uma futura reinstalação.</p></div>
 </section>
 

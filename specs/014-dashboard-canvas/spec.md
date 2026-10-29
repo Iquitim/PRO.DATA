@@ -1,6 +1,6 @@
 # Spec 014 — Dashboard em canvas, visuais personalizáveis e exportação
 
-Status: Implementada (falta o fechamento: guia, versão 0.3.0 e instalador) · Criada: 2026-10-29 · Versão alvo: 0.3.0
+Status: Implementada · Criada: 2026-10-29 · Versão alvo: 0.3.0
 
 ## Contexto
 

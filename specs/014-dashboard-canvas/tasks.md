@@ -36,4 +36,4 @@ o PNG sobre os visuais de hoje; depois a formatação; por fim os tipos novos.
 
 - [x] T21 Testes Playwright: layout persiste, organizar sem sobreposição, PNG igual à tela (rodados localmente com o Chrome instalado; fora da CI, que não tem navegador)
 - [x] T22 Fluxo de demonstração com dashboard montado (big numbers com variação, Pareto, Venn, empilhado, texto e logo)
-- [ ] T23 README, guia (novo capítulo "Montando o dashboard" com prints), versão 0.3.0, build e release
+- [x] T23 README, guia (novo capítulo "Montando o dashboard" com prints), versão 0.3.0, build e release

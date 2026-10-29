@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from prodata.config import Settings
 from prodata.dashboard.layouts import (
     GRID,
     TEMPLATES,
@@ -225,3 +226,27 @@ def test_category_colors_drop_invalid_entries() -> None:
     )
     assert wf.dashboard is not None
     assert wf.dashboard.items[0].format == {"category_colors": {"SP": "#112233"}}
+
+
+# ------------------------------------------------------------------ demonstração (fase 3)
+
+
+def test_old_demo_is_upgraded_with_pareto_and_venn(settings: Settings) -> None:
+    from prodata.main import build_services
+    from prodata.samples.workflows import DEMO_WORKFLOW_ID, demo_workflow
+
+    old = demo_workflow()
+    old["nodes"] = [
+        n for n in old["nodes"] if n["id"] not in ("n_pareto", "n_venn", "n_kpi_mes", "n_stacked")
+    ]
+    old["edges"] = [e for e in old["edges"] if e["target"] in {n["id"] for n in old["nodes"]}]
+    old.pop("dashboard")
+    services = build_services(settings)
+    services.workflows.save(Workflow.model_validate(old))
+    upgraded = build_services(settings).workflows.get(DEMO_WORKFLOW_ID)
+    ids = {n.id for n in upgraded.nodes}
+    assert {"n_pareto", "n_venn"} <= ids and upgraded.dashboard is not None
+    # uma demonstração já atualizada (mesmo com mudanças do usuário) não é sobrescrita
+    upgraded.name = "Minha demonstração"
+    services.workflows.save(upgraded)
+    assert build_services(settings).workflows.get(DEMO_WORKFLOW_ID).name == "Minha demonstração"
