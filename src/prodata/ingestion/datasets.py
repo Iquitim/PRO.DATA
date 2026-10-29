@@ -26,6 +26,9 @@ class DatasetInfo(BaseModel):
 
 def resolve_inside(base: Path, name: str) -> Path:
     """Resolve ``name`` dentro de ``base``; recusa qualquer caminho que escape dele."""
+    # "\" é separador no Windows mas não no Linux: recusar em qualquer sistema mantém a regra igual.
+    if "\\" in name:
+        raise InvalidInputError(f"Nome de arquivo inválido: {name!r}")
     root = base.resolve()
     candidate = (root / name).resolve()
     if candidate.parent != root:
