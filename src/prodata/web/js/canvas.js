@@ -496,7 +496,8 @@ export function cacheActions(n) {
 // ------------------------------------------------------------------ gestos
 
 function onPointerDown(e) {
-  if (e.button === 2) return;
+  // A barra flutuante fica dentro do canvas: sem isto o pan capturaria o ponteiro e o clique não chegaria aos botões.
+  if (e.button === 2 || e.target.closest('.canvas-toolbar')) return;
   closeMenu();
   const target = e.target;
   const world = toWorld(e.clientX, e.clientY);
@@ -747,6 +748,7 @@ function renameNodeInInspector(id) {
 
 function onContextMenu(e) {
   e.preventDefault();
+  if (e.target.closest('.canvas-toolbar')) return;
   const world = toWorld(e.clientX, e.clientY);
   const pasteItem = (label = 'Colar aqui') => ({
     label, icon: 'clipboard', shortcut: 'Ctrl+V', disabled: !hasClipboard(), onSelect: () => paste(world),
@@ -931,7 +933,7 @@ export function initCanvas(root, opts = {}) {
   root.addEventListener('dragleave', () => highlightEdge(null));
   root.addEventListener('drop', onDrop);
   root.addEventListener('dblclick', (e) => {
-    if (!e.target.closest('.node, .container-box')) openQuickAdd(e.clientX, e.clientY, { to: toWorld(e.clientX, e.clientY) });
+    if (!e.target.closest('.node, .container-box, .canvas-toolbar')) openQuickAdd(e.clientX, e.clientY, { to: toWorld(e.clientX, e.clientY) });
   });
 
   on('workflow:loaded', (payload) => {
