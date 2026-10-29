@@ -1,0 +1,106 @@
+/* Identidade visual Grupo Protege (spec 011). Carregado depois de tokens/app: só sobrescreve.
+   Cores do site oficial: marinho #043154, marinho escuro #03223a, dourado #95793c, azul #095d9e.
+   Paleta de gráficos validada (CVD, contraste, luminosidade) nos dois temas. */
+
+:root {
+  --font: 'Open Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --brand-navy: #043154;
+  --brand-navy-deep: #03223a;
+  --brand-gold: #95793c;
+  --brand-gold-strong: #866c33; /* dourado com contraste para texto branco */
+  --brand-blue: #095d9e;
+  --brand-mist: #e5eaee;
+
+  --accent: #043154;
+  --accent-hover: #0a3f6a;
+  --accent-weak: #e6edf4;
+  --accent-text: #ffffff;
+  --focus: #095d9e;
+
+  --series-1: #1f6fb8;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #a9852f;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: #5b9bd5;
+    --accent-hover: #78afe0;
+    --accent-weak: #13283d;
+    --accent-text: #04182b;
+    --focus: #78afe0;
+
+    --series-1: #4a8fd6;
+    --series-2: #d95926;
+    --series-3: #14a08c;
+    --series-4: #b08a2a;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+  }
+}
+
+:root[data-theme="dark"] {
+  --accent: #5b9bd5;
+  --accent-hover: #78afe0;
+  --accent-weak: #13283d;
+  --accent-text: #04182b;
+  --focus: #78afe0;
+
+  --series-1: #4a8fd6;
+  --series-2: #d95926;
+  --series-3: #14a08c;
+  --series-4: #b08a2a;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+}
+
+/* ---------------------------------------------------------------- barra superior azul-marinho */
+.topbar {
+  background: var(--brand-navy);
+  border-bottom: 3px solid var(--brand-gold);
+  color: #fff;
+}
+.brand { gap: 10px; }
+.brand-logo { height: 34px; width: auto; display: block; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.brand-name { font-weight: 800; letter-spacing: .04em; font-size: 14px; }
+.brand-org { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #c9b27c; }
+
+.topbar .wf-name { color: #fff; }
+.topbar .wf-name:hover { border-color: rgb(255 255 255 / .25); }
+.topbar .wf-name:focus { background: rgb(255 255 255 / .1); border-color: #c9b27c; }
+.topbar .file-badge { background: rgb(255 255 255 / .12); color: #dbe5ef; }
+.topbar .dirty { background: #c9b27c; color: var(--brand-navy-deep); font-weight: 600; }
+
+.topbar .segmented { background: rgb(255 255 255 / .1); border-color: transparent; }
+.topbar .segment { color: #c8d6e5; }
+.topbar .segment:hover { color: #fff; }
+.topbar .segment[aria-selected="true"] { background: #fff; color: var(--brand-navy); }
+
+.topbar .btn-ghost { color: #c8d6e5; }
+.topbar .btn-ghost:hover:not(:disabled) { color: #fff; background: rgb(255 255 255 / .1); }
+.topbar .divider-v { background: rgb(255 255 255 / .2); }
+.topbar .btn-primary { background: var(--brand-gold-strong); border-color: var(--brand-gold-strong); color: #fff; }
+.topbar .btn-primary:hover:not(:disabled) { background: #74602d; border-color: #74602d; }
+
+/* abas de fluxo: detalhe dourado na aba ativa */
+.wf-tab.active::before { background: var(--brand-gold); }
+
+/* Dashboard: cabeçalho com a marca, para apresentações */
+.dash-brand { display: flex; align-items: center; gap: 14px; }
+.dash-logo { height: 44px; width: auto; }
+.dash-org { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-gold); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .dash-logo { content: url('../brand/protege-escudo-claro.svg'); }
+}
+:root[data-theme="dark"] .dash-logo { content: url('../brand/protege-escudo-claro.svg'); }

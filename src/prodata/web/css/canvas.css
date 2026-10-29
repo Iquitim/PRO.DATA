@@ -1,0 +1,185 @@
+/* Canvas do fluxo: nós, portas, fios e sobreposições. */
+
+.canvas {
+  position: relative; overflow: hidden; touch-action: none; cursor: default;
+  background-color: var(--canvas);
+  background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1.2px);
+}
+.canvas.panning { cursor: grabbing; }
+.canvas.file-over { box-shadow: inset 0 0 0 2px var(--accent); }
+.canvas-world { position: absolute; inset: 0 auto auto 0; width: 0; height: 0; transform-origin: 0 0; }
+.canvas-edges { position: absolute; overflow: visible; width: 1px; height: 1px; pointer-events: none; }
+.canvas-pills, .canvas-nodes, .canvas-containers { position: absolute; top: 0; left: 0; }
+
+.floating {
+  position: absolute; z-index: 10; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+}
+.canvas-toolbar { left: 12px; bottom: 12px; display: flex; align-items: center; padding: 3px; }
+.canvas-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--text-3); pointer-events: none; text-align: center; padding: 24px;
+}
+.canvas-empty strong { color: var(--text-2); font-size: 14px; }
+
+/* contêineres de etapa */
+.container-box {
+  position: absolute; pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--container-color) 35%, var(--border));
+  background: color-mix(in srgb, var(--container-color) var(--container-fill, 5%), transparent);
+  border-radius: var(--radius-lg);
+}
+.container-box.selected { border-color: var(--container-color); box-shadow: 0 0 0 2px color-mix(in srgb, var(--container-color) 25%, transparent); }
+.container-title {
+  display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px;
+  font-size: 12px; font-weight: 600; color: var(--text-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--container-color) 20%, var(--border));
+  pointer-events: auto; cursor: grab; user-select: none;
+}
+.container-title:hover { background: color-mix(in srgb, var(--container-color) 8%, transparent); }
+.container-title:active { cursor: grabbing; }
+.container-dot { width: 8px; height: 8px; border-radius: 2px; background: var(--container-color); flex-shrink: 0; }
+.container-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.container-desc { padding: 6px 12px 0; font-size: 11.5px; color: var(--text-3); pointer-events: none; white-space: pre-line; }
+.container-rename {
+  flex: 1; min-width: 0; height: 24px; padding: 0 6px; border: 1px solid var(--focus); border-radius: 4px;
+  background: var(--surface); font: inherit; color: var(--text); outline: none;
+}
+.container-resize {
+  position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; pointer-events: auto; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, color-mix(in srgb, var(--container-color) 50%, transparent) 50%);
+  border-bottom-right-radius: var(--radius-lg); opacity: 0.5;
+}
+.container-box:hover .container-resize, .container-box.selected .container-resize { opacity: 1; }
+
+/* nós: cartão horizontal com ícone, nome e resumo da configuração */
+.node { position: absolute; user-select: none; }
+.node-card {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: 10px;
+  padding: 0 12px 0 10px; border-radius: var(--radius-lg);
+  background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-sm);
+  cursor: grab; transition: box-shadow 0.12s, border-color 0.12s;
+}
+.node:hover .node-card { border-color: var(--text-3); box-shadow: var(--shadow-md); }
+.node.selected .node-card { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak), var(--shadow-md); }
+.node.status-disabled .node-card { opacity: 0.45; border-style: dashed; }
+.node.status-skipped .node-card { opacity: 0.55; }
+.node.status-error .node-card { border-color: var(--err); }
+
+.node-icon {
+  display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: var(--radius);
+  color: var(--cat); background: color-mix(in srgb, var(--cat) 13%, transparent);
+}
+.node-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.node-label { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-annot { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node.status-error .node-annot { color: var(--err); }
+
+.node-status {
+  position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: transparent;
+}
+.node.status-executed .node-status, .node.status-cached .node-status { background: var(--ok); }
+.node.status-pending .node-status { box-shadow: inset 0 0 0 1.5px var(--text-3); }
+.node.status-error .node-status { background: var(--err); }
+
+/* lixeira na própria caixa (spec 009): aparece ao passar o mouse ou com a caixa selecionada */
+.node-delete {
+  position: absolute; z-index: 3; top: -9px; right: -9px; width: 22px; height: 22px;
+  display: grid; place-items: center; padding: 0; border-radius: 50%;
+  background: var(--surface); color: var(--text-2); border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm); cursor: pointer; opacity: 0; transform: scale(.85);
+  transition: opacity .12s, transform .12s, color .12s, background .12s;
+}
+.node:hover .node-delete, .node.selected .node-delete, .node-delete:focus-visible { opacity: 1; transform: none; }
+.node-delete:hover { color: #fff; background: var(--err); border-color: var(--err); }
+
+/* portas */
+.port {
+  position: absolute; z-index: 2; width: 14px; height: 14px; margin-top: -7px;
+  display: grid; place-items: center; border-radius: 4px;
+  background: var(--surface); border: 1.5px solid var(--border-strong);
+  font: 700 8.5px var(--mono); color: var(--text-2); cursor: crosshair;
+  transition: transform 0.1s, background 0.1s, border-color 0.1s;
+}
+.port.in { left: -7px; }
+.port.out { right: -7px; }
+.port.model { border-style: dashed; }
+.port:hover { transform: scale(1.25); border-color: var(--accent); color: var(--accent); }
+.port.out.inspected, .port.in.inspected { background: var(--accent); border-color: var(--accent); color: #fff; }
+.port.can-drop { transform: scale(1.4); background: var(--ok); border-color: var(--ok); color: #fff; }
+.port.cannot-drop { background: var(--err); border-color: var(--err); color: #fff; }
+
+/* fios */
+.edge { pointer-events: auto; cursor: pointer; }
+.edge-hit { fill: none; stroke: transparent; stroke-width: 14px; }
+.edge-line { fill: none; stroke: var(--border-strong); stroke-width: 1.75px; transition: stroke 0.12s; }
+.edge.live .edge-line { stroke: color-mix(in srgb, var(--text-3) 70%, var(--border-strong)); }
+.edge.model .edge-line { stroke-dasharray: 5 4; }
+.edge:hover .edge-line { stroke: var(--text-2); }
+.edge.selected .edge-line { stroke: var(--accent); stroke-width: 2.5px; }
+.edge.drop-target .edge-line { stroke: var(--accent); stroke-width: 3px; stroke-dasharray: 6 4; }
+.edge-draft { fill: none; stroke: var(--accent); stroke-width: 2px; stroke-dasharray: 5 4; }
+
+.edge-pill {
+  position: absolute; transform: translate(-50%, -50%); z-index: 1;
+  padding: 0 6px; height: 17px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--border);
+  font: 500 10px/15px var(--mono); color: var(--text-2); cursor: pointer; white-space: nowrap;
+}
+.edge-pill:hover { border-color: var(--accent); color: var(--accent); }
+
+/* adicionar rápido */
+.quick-add {
+  position: fixed; z-index: 1000; width: 260px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+}
+.quick-list { display: flex; flex-direction: column; margin-top: 4px; max-height: 280px; overflow-y: auto; }
+.quick-item {
+  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 6px;
+  border: 0; border-radius: var(--radius-sm); background: none; text-align: left; cursor: pointer;
+}
+.quick-item .tool-icon { width: 24px; height: 24px; }
+.quick-item.active, .quick-item:hover { background: var(--surface-3); }
+
+/* interruptor liga/desliga da caixa (spec 007, RF-712) */
+.container-toggle {
+  position: relative; flex-shrink: 0; margin-left: auto; width: 28px; height: 16px; padding: 0;
+  border: 0; border-radius: 999px; background: var(--border-strong); cursor: pointer; transition: background 0.15s;
+}
+.container-toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; box-shadow: var(--shadow-sm); transition: transform 0.15s;
+}
+.container-toggle.on { background: var(--container-color); }
+.container-toggle.on::after { transform: translateX(12px); }
+.container-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.container-state {
+  flex-shrink: 0; padding: 0 6px; border-radius: 999px; font-size: 10.5px; font-weight: 500;
+  background: var(--surface-3); color: var(--text-3);
+}
+.container-box.off {
+  border-style: dashed; border-color: var(--border-strong);
+  background: repeating-linear-gradient(135deg, transparent 0 10px, color-mix(in srgb, var(--text-3) 6%, transparent) 10px 20px);
+}
+.container-box.off .container-title { color: var(--text-3); }
+.container-box.off .container-dot { background: var(--text-3); }
+
+/* ---------------------------------------------------------------- spec 012 */
+/* retângulo de seleção (Shift + arrastar no vazio) */
+.canvas-marquee {
+  position: absolute; z-index: 30; pointer-events: none; border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 3px;
+}
+.canvas-marquee[hidden] { display: none; }
+
+/* ponto de cache: selo dourado no canto inferior esquerdo da caixa */
+.node-cache {
+  position: absolute; z-index: 3; left: 8px; bottom: -9px; display: inline-flex; align-items: center; gap: 3px;
+  height: 17px; padding: 0 6px; border-radius: 999px; background: var(--brand-gold, #a9852f); color: #fff;
+  font: 700 9.5px var(--font); letter-spacing: .04em; text-transform: uppercase; box-shadow: var(--shadow-sm);
+}
+.node.cache-point .node-card { box-shadow: inset 0 -2px 0 var(--brand-gold, #a9852f), var(--shadow-sm); }
+/* antes de um ponto de cache: não executou nesta rodada */
+.node.status-held .node-card { opacity: .62; border-style: dashed; }
+.node.status-held .node-status { background: var(--brand-gold, #a9852f); }
+.port.in { cursor: pointer; }

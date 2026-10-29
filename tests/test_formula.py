@@ -1,0 +1,109 @@
+import polars as pl
+import pytest
+from fastapi.testclient import TestClient
+
+from prodata.engine import formula
+
+DF = pl.DataFrame(
+    {
+        "nome": ["  Ana ", "Bruno", None, "carla"],
+        "valor": [10.0, 3000.0, 7000.0, None],
+        "status": ["ATIVO", "INATIVO", "ATIVO", "ATIVO"],
+    }
+)
+
+
+def test_if_elseif_else() -> None:
+    out = formula.evaluate_columns(
+        DF,
+        [
+            {
+                "column": "tier",
+                "type": "String",
+                "expression": "IF [valor] >= 6000 THEN 'A' ELSEIF [valor] >= 3000 THEN 'B' ELSE 'C' ENDIF",
+            }
+        ],
+    )
+    assert out["tier"].to_list() == ["C", "B", "A", "C"]
+
+
+def test_double_quoted_strings_are_literals() -> None:
+    mask = formula.evaluate_mask(DF, 'Contains([status], "INAT")')
+    assert mask.to_list() == [False, True, False, False]
+
+
+def test_nested_functions() -> None:
+    out = formula.evaluate_columns(DF, [{"column": "n", "expression": "UpperCase(Trim([nome]))"}])
+    assert out["n"].to_list() == ["ANA", "BRUNO", None, "CARLA"]
+
+
+def test_negated_isnull_and_iif() -> None:
+    out = formula.evaluate_columns(
+        DF, [{"column": "tem_nome", "expression": "IIF(!IsNull([nome]), 'sim', 'nao')"}]
+    )
+    assert out["tem_nome"].to_list() == ["sim", "sim", "nao", "sim"]
+
+
+def test_keywords_inside_strings_are_preserved() -> None:
+    out = formula.evaluate_columns(DF, [{"column": "t", "expression": "'IF x THEN y == z!'"}])
+    assert out["t"][0] == "IF x THEN y == z!"
+
+
+def test_titlecase() -> None:
+    out = formula.evaluate_columns(DF, [{"column": "t", "expression": "TitleCase('joão DA silva')"}])
+    assert out["t"][0] == "João Da Silva"
+
+
+def test_formula_can_use_previous_formula() -> None:
+    out = formula.evaluate_columns(
+        DF,
+        [
+            {"column": "anual", "type": "Float64", "expression": "[valor] * 12"},
+            {"column": "dobro", "type": "Float64", "expression": "[anual] * 2"},
+        ],
+    )
+    assert out["dobro"][0] == 240.0
+
+
+def test_filter_mask_treats_null_as_false() -> None:
+    mask = formula.evaluate_mask(DF, "[valor] > 100 AND [status] == 'ATIVO'")
+    assert mask.to_list() == [False, False, True, False]
+
+
+def test_unknown_column_is_reported() -> None:
+    with pytest.raises(formula.FormulaError, match=r"\[inexistente\]"):
+        formula.evaluate_mask(DF, "[inexistente] > 1")
+
+
+def test_validate() -> None:
+    cols = [{"name": "valor", "type": "Float64"}]
+    assert formula.validate("Round([valor] * 12, 2)", cols)["valid"]
+    result = formula.validate("[valor] +* 2", cols)
+    assert not result["valid"] and result["error"]
+
+
+def test_documented_examples_are_valid() -> None:
+    """Spec 010 (RF-1011): o assistente só oferece exemplos que funcionam."""
+    for doc in formula.FUNCTION_DOCS:
+        result = formula.validate(doc.example, formula.SAMPLE_SCHEMA)
+        assert result["valid"], (doc.name, result["error"])
+
+
+def test_not_equal_operators() -> None:
+    cols = [{"name": "uf", "type": "String"}]
+    for op in ("!=", "<>"):
+        assert formula.validate(f"[uf] {op} 'SP'", cols)["valid"]
+
+
+def test_catalog_lists_documented_functions(client: TestClient) -> None:
+    catalog = client.get("/api/catalog").json()
+    names = {f["name"] for f in catalog["formula_functions"]}
+    assert {"IIF", "Round", "Contains"} <= names
+    assert "ENDIF" in catalog["formula_keywords"]["control"]
+
+
+def test_incomplete_expression_has_friendly_message() -> None:
+    cols = [{"name": "valor", "type": "Float64"}]
+    assert "incompleta" in formula.validate("Round([valor], ", cols)["error"]
+    assert "incompleta" in formula.validate("IF [valor] > 1 THEN 2", cols)["error"]
+    assert "perto de" in formula.validate("[valor] > > 2", cols)["error"]

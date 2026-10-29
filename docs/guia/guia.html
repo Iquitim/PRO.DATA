@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>PRO.DATA — Guia do Produto · Grupo Protege</title>
+<style>
+  /* Identidade Grupo Protege: Open Sans, azul-marinho #043154 e dourado #95793c. */
+  @font-face { font-family: 'Open Sans'; font-weight: 300 800; src: url('../../src/prodata/web/fonts/open-sans-latin-wght-normal.woff2') format('woff2-variations'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2190-2193, U+2212; }
+  @font-face { font-family: 'Open Sans'; font-weight: 300 800; src: url('../../src/prodata/web/fonts/open-sans-latin-ext-wght-normal.woff2') format('woff2-variations'); unicode-range: U+0100-02BA, U+1E00-1EFF; }
+  @font-face { font-family: 'JetBrains Mono'; font-weight: 100 800; src: url('../../src/prodata/web/fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations'); }
+
+  :root {
+    --blue: #043154; --blue-dark: #03223a; --blue-weak: #e6edf4;
+    --gold: #95793c; --gold-strong: #7d6532; --gold-soft: #c9b27c;
+    --ink: #1b1b19; --ink-2: #4a4a44; --ink-3: #85857d;
+    --line: #e4e4df; --paper: #ffffff; --soft: #f6f6f3;
+    --green: #1a7f4f; --green-weak: #e6f4ec; --amber: #a3620a; --amber-weak: #fbf0de; --red: #c8302f; --red-weak: #fbeaea;
+  }
+  @page { size: A4; margin: 18mm 17mm 20mm 17mm;
+    @bottom-left { content: "PRO.DATA · Grupo Protege · Guia do Produto"; font: 500 8pt 'Open Sans'; color: #9a9a92; }
+    @bottom-right { content: counter(page); font: 600 8pt 'Open Sans'; color: #9a9a92; }
+  }
+  @page cover { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 10pt/1.55 'Open Sans', sans-serif; color: var(--ink); background: var(--paper); }
+  h1, h2, h3, h4 { margin: 0; line-height: 1.2; letter-spacing: -0.01em; }
+  p { margin: 0 0 8pt; }
+  ul { margin: 0 0 8pt; padding-left: 14pt; }
+  li { margin-bottom: 3pt; }
+  code, kbd { font-family: 'JetBrains Mono', monospace; font-size: 8.5pt; }
+  kbd { padding: 1pt 4pt; border: 1px solid #cfcfc8; border-bottom-width: 2px; border-radius: 3pt; background: var(--soft); }
+  strong { font-weight: 650; }
+
+  /* ---------- capa ---------- */
+  .cover { page: cover; height: 297mm; position: relative; overflow: hidden; color: #fff;
+    background: linear-gradient(160deg, #03223a 0%, #043154 55%, #0a4a7a 100%); break-after: page; }
+  .cover::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4mm; background: var(--gold); }
+  .cover-inner { position: absolute; inset: 0; padding: 26mm 22mm; display: flex; flex-direction: column; }
+  .brand { display: flex; align-items: center; gap: 12pt; }
+  .brand img { height: 46pt; width: auto; }
+  .brand-name { font-weight: 800; font-size: 15pt; letter-spacing: 0.05em; line-height: 1.1; }
+  .brand-org { font-weight: 700; font-size: 8.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-soft); }
+  .cover .rule { width: 34mm; height: 3pt; margin-top: 10pt; background: var(--gold-soft); border-radius: 2pt; }
+  .cover h1 { margin-top: 34mm; font-size: 40pt; font-weight: 750; letter-spacing: -0.02em; }
+  .cover .lead { margin-top: 8pt; font-size: 15pt; line-height: 1.4; max-width: 140mm; opacity: 0.95; }
+  .cover .shot { margin-top: auto; border-radius: 8pt; overflow: hidden; box-shadow: 0 18pt 40pt rgb(0 0 0 / 0.35); border: 1px solid rgb(255 255 255 / 0.25); }
+  .cover .shot img { display: block; width: 100%; }
+  .cover .meta { margin-top: 10mm; display: flex; justify-content: space-between; font-size: 9pt; opacity: 0.85; }
+
+  /* ---------- estrutura ---------- */
+  .chapter { break-before: page; }
+  .eyebrow { font-size: 8pt; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-strong); margin-bottom: 4pt; }
+  h2 { font-size: 21pt; font-weight: 720; margin-bottom: 8pt; }
+  h3 { font-size: 12.5pt; font-weight: 680; margin: 14pt 0 5pt; }
+  h4 { font-size: 10.5pt; font-weight: 650; margin: 0 0 3pt; }
+  .intro { font-size: 11.5pt; color: var(--ink-2); margin-bottom: 12pt; }
+  .muted { color: var(--ink-3); }
+  .avoid { break-inside: avoid; }
+  code, kbd { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+  tr { break-inside: avoid; }
+
+  figure { margin: 10pt 0 12pt; break-inside: avoid; }
+  figure .frame { border: 1px solid var(--line); border-radius: 6pt; overflow: hidden; box-shadow: 0 4pt 14pt rgb(20 20 15 / 0.08); position: relative; }
+  figure img { display: block; width: 100%; }
+  figcaption { margin-top: 5pt; font-size: 8.5pt; color: var(--ink-3); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9pt; }
+  .card { border: 1px solid var(--line); border-radius: 7pt; padding: 10pt 11pt; background: var(--paper); break-inside: avoid; }
+  .card p { margin: 0; color: var(--ink-2); font-size: 9.3pt; }
+  .card .ic { width: 22pt; height: 22pt; border-radius: 6pt; display: grid; place-items: center; background: var(--blue-weak); color: var(--blue); margin-bottom: 6pt; }
+  .card .ic svg { width: 13pt; height: 13pt; }
+
+  .callout { border-radius: 7pt; padding: 9pt 11pt; margin: 10pt 0; font-size: 9.3pt; break-inside: avoid; }
+  .callout.tip { background: var(--blue-weak); color: var(--blue); }
+  .callout.ok { background: var(--green-weak); color: #145c3a; }
+  .callout.warn { background: var(--amber-weak); color: #6e4206; }
+  .callout > strong:first-child { display: block; margin-bottom: 2pt; }
+  figure.narrow { max-width: 72%; margin-left: auto; margin-right: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 6pt 0 10pt; break-inside: auto; }
+  th { text-align: left; font-weight: 650; color: var(--ink-2); background: var(--soft); }
+  th, td { padding: 5pt 7pt; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr { break-inside: avoid; }
+  td.tool { white-space: nowrap; font-weight: 600; }
+  .tag { display: inline-block; padding: 0 5pt; border-radius: 99pt; font-size: 7.5pt; font-weight: 600; background: var(--soft); color: var(--ink-2); }
+
+  /* passos */
+  .steps { counter-reset: step; display: grid; gap: 7pt; margin: 6pt 0 10pt; }
+  .step { display: grid; grid-template-columns: 24pt 1fr; gap: 9pt; align-items: start; break-inside: avoid; }
+  .step::before { counter-increment: step; content: counter(step); width: 24pt; height: 24pt; border-radius: 50%; background: var(--blue); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 10pt; }
+  .step p { margin: 0; color: var(--ink-2); }
+
+  /* tour com marcadores */
+  .marker { position: absolute; width: 18pt; height: 18pt; margin: -9pt 0 0 -9pt; border-radius: 50%; background: var(--gold); color: #fff; font-weight: 750; font-size: 9pt; display: grid; place-items: center; box-shadow: 0 0 0 2.5pt #fff, 0 3pt 8pt rgb(0 0 0 / 0.3); }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt 14pt; margin-top: 8pt; }
+  .legend div { display: grid; grid-template-columns: 16pt 1fr; gap: 7pt; font-size: 9.2pt; }
+  .legend b { width: 16pt; height: 16pt; border-radius: 50%; background: var(--gold); color: #fff; font-size: 8pt; display: grid; place-items: center; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; }
+  .scope-in li::marker { content: "✓  "; color: var(--green); font-weight: 700; }
+  .scope-out li::marker { content: "–  "; color: var(--ink-3); font-weight: 700; }
+  .toc { columns: 2; column-gap: 16pt; font-size: 10pt; }
+  .toc div { display: flex; gap: 8pt; padding: 4pt 0; border-bottom: 1px dotted var(--line); break-inside: avoid; }
+  .toc span:first-child { color: var(--blue); font-weight: 700; width: 16pt; }
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin: 10pt 0; }
+  .stat { border: 1px solid var(--line); border-radius: 7pt; padding: 9pt 10pt; }
+  .stat b { display: block; font-size: 16pt; font-weight: 720; color: var(--blue); letter-spacing: -0.02em; }
+  .stat span { font-size: 8.5pt; color: var(--ink-2); }
+</style>
+</head>
+<body>
+
+<!-- ================================================================ CAPA -->
+<section class="cover">
+  <div class="cover-inner">
+    <div class="brand">
+      <img src="../../src/prodata/web/brand/protege-escudo-claro.svg" alt="Grupo Protege">
+      <div><div class="brand-name">PRO.DATA</div><div class="brand-org">Grupo Protege</div></div>
+    </div>
+    <h1>Guia do Produto</h1>
+    <div class="rule"></div>
+    <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
+    <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
+    <div class="meta"><span>Versão 0.2.0 · Windows</span><span>Outubro de 2026</span></div>
+  </div>
+</section>
+
+<!-- ================================================================ SUMÁRIO / O QUE É -->
+<section>
+  <div class="eyebrow">Visão geral</div>
+  <h2>O que é o PRO.DATA</h2>
+  <p class="intro">O PRO.DATA é um programa para quem trabalha com dados no dia a dia — analistas, controladoria, comercial, operações — e quer sair da planilha frágil sem precisar virar programador.</p>
+  <p>Em vez de fórmulas espalhadas por várias abas, você monta um <strong>fluxo</strong>: caixas ligadas por linhas, em que cada caixa faz uma coisa (ler um arquivo, limpar, filtrar, juntar, calcular, resumir, gerar um gráfico). O fluxo fica salvo, pode ser executado de novo com dados novos em segundos e mostra o resultado de <strong>cada etapa</strong>, então dá para ver exatamente de onde veio cada número.</p>
+
+  <div class="stat-row">
+    <div class="stat"><b>22</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
+    <div class="stat"><b>6</b><span>formatos de arquivo + PostgreSQL e SQL Server</span></div>
+    <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
+    <div class="stat"><b>100%</b><span>local: funciona offline, os dados ficam na sua máquina</span></div>
+  </div>
+
+  <h3>Para quem é</h3>
+  <div class="grid-3">
+    <div class="card"><h4>Analistas de negócio</h4><p>Que hoje cruzam planilhas manualmente todo mês e querem automatizar sem depender de TI.</p></div>
+    <div class="card"><h4>Times de dados</h4><p>Que precisam de uma ferramenta visual para prototipar e documentar transformações rapidamente.</p></div>
+    <div class="card"><h4>Gestores</h4><p>Que querem indicadores confiáveis e rastreáveis, do arquivo de origem até o gráfico.</p></div>
+  </div>
+
+  <h3>Neste guia</h3>
+  <div class="toc">
+    <div><span>1</span>Por que usar o PRO.DATA</div>
+    <div><span>2</span>Conhecendo a tela</div>
+    <div><span>3</span>Como funciona, em 5 passos</div>
+    <div><span>4</span>Trazendo dados</div>
+    <div><span>5</span>Montando o fluxo</div>
+    <div><span>6</span>Explorando os resultados</div>
+    <div><span>7</span>Indicadores e dashboard</div>
+    <div><span>8</span>Organização e personalização</div>
+    <div><span>9</span>Segurança e privacidade</div>
+    <div><span>10</span>Instalação e requisitos</div>
+    <div><span>11</span>Escopo e limitações</div>
+    <div><span>12</span>Atalhos e perguntas frequentes</div>
+  </div>
+</section>
+
+<!-- ================================================================ 1. POR QUE -->
+<section class="chapter">
+  <div class="eyebrow">1 · Benefícios</div>
+  <h2>Por que usar o PRO.DATA</h2>
+  <p class="intro">Seis motivos práticos, do primeiro arquivo ao dashboard.</p>
+  <div class="grid-2">
+    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></div>
+      <h4>Visual, sem programação</h4><p>Arraste ferramentas, ligue as caixas e configure por listas e formulários. As colunas aparecem para escolher — nada de digitar nomes e errar.</p></div>
+    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      <h4>Rápido de verdade</h4><p>Motor colunar moderno (Polars e DuckDB). O fluxo de demonstração inteiro roda em meio segundo; reexecutar sem mudanças leva milissegundos, porque só o que mudou é recalculado.</p></div>
+    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M9 15l2 2 4-4"/></svg></div>
+      <h4>Feito para dados brasileiros</h4><p>CSV com ponto e vírgula, vírgula decimal e acentos de sistemas antigos (Windows-1252) são reconhecidos sozinhos. Abre e funciona.</p></div>
+    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <h4>Seus dados ficam com você</h4><p>Tudo roda no seu computador, sem nuvem e sem internet. Senhas de banco ficam no cofre do Windows. Conexões com banco são somente leitura.</p></div>
+    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></svg></div>
+      <h4>Do dado ao dashboard</h4><p>Indicadores e gráficos nascem dentro do próprio fluxo e se atualizam a cada execução. Sem exportar para outra ferramenta.</p></div>
+    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <h4>Transparente e auditável</h4><p>Clique em qualquer caixa e veja os dados que saíram dela, com perfil de qualidade de cada coluna. Erros aparecem na própria caixa, com o motivo.</p></div>
+  </div>
+  <div class="callout tip"><strong>Em resumo</strong>O PRO.DATA troca o "copiar, colar e torcer" das planilhas por um processo visual, repetível e verificável — que roda em segundos e cabe no seu notebook.</div>
+</section>
+
+<!-- ================================================================ 2. TELA -->
+<section class="chapter">
+  <div class="eyebrow">2 · Interface</div>
+  <h2>Conhecendo a tela</h2>
+  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 8).</p>
+  <figure>
+    <div class="frame">
+      <img src="img/overview.png" alt="Tela principal do PRO.DATA">
+      <span class="marker" style="left:15%;top:2.4%">1</span>
+      <span class="marker" style="left:10%;top:9.6%">2</span>
+      <span class="marker" style="left:47%;top:38%">3</span>
+      <span class="marker" style="left:73%;top:9.6%">4</span>
+      <span class="marker" style="left:26%;top:71.3%">5</span>
+      <span class="marker" style="left:92%;top:2.4%">6</span>
+    </div>
+    <figcaption>Tela principal com o fluxo de demonstração "Pipeline 360° de clientes".</figcaption>
+  </figure>
+  <div class="legend">
+    <div><b>1</b><span><strong>Barra superior</strong> — nome do fluxo, alternância Designer/Dashboard, abrir, salvar e tema.</span></div>
+    <div><b>2</b><span><strong>Ferramentas · Dados · Configurar</strong> — a paleta de ferramentas, seus arquivos e conexões, e a configuração da caixa selecionada.</span></div>
+    <div><b>3</b><span><strong>Canvas</strong> — onde o fluxo é montado. Arraste caixas, ligue saídas a entradas, agrupe em etapas.</span></div>
+    <div><b>4</b><span><strong>Resultados</strong> — a tabela da caixa selecionada, com perfil de qualidade, filtros e log de execução.</span></div>
+    <div><b>5</b><span><strong>Gráficos e resumos</strong> — indicadores e gráficos produzidos pelo fluxo, atualizados a cada execução.</span></div>
+    <div><b>6</b><span><strong>Executar</strong> — roda o fluxo (atalho <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). Só o que mudou é recalculado.</span></div>
+  </div>
+</section>
+
+<!-- ================================================================ 3. COMO FUNCIONA -->
+<section class="chapter">
+  <div class="eyebrow">3 · Fluxo de trabalho</div>
+  <h2>Como funciona, em 5 passos</h2>
+  <p class="intro">Do arquivo bruto ao indicador pronto para a reunião.</p>
+  <div class="steps">
+    <div class="step"><div><h4>Traga os dados</h4><p>Arraste um arquivo (CSV, Excel, Parquet, JSON) para a aba <strong>Dados</strong> ou crie ali uma consulta a um banco PostgreSQL ou SQL Server. O PRO.DATA mostra uma prévia e detecta formato, separadores e acentos sozinho.</p></div></div>
+    <div class="step"><div><h4>Monte o fluxo</h4><p>Arraste ferramentas para o canvas e ligue umas às outras: limpar, filtrar, calcular colunas, juntar tabelas, resumir. Soltar uma caixa em cima de uma ligação existente a encaixa no meio automaticamente.</p></div></div>
+    <div class="step"><div><h4>Configure cada caixa</h4><p>Ao clicar numa caixa, a aba <strong>Configurar</strong> abre com um formulário próprio dela. Colunas aparecem em listas; expressões são validadas enquanto você digita.</p></div></div>
+    <div class="step"><div><h4>Execute e confira</h4><p>Clique em <strong>Executar</strong>. Cada caixa ganha um indicador de status e mostra o número de linhas. Clique em qualquer saída para ver os dados que passaram por ali.</p></div></div>
+    <div class="step"><div><h4>Apresente</h4><p>Caixas de BI publicam indicadores e gráficos no painel de gráficos e no <strong>Dashboard</strong>. Salve o fluxo e, no mês seguinte, basta trocar o arquivo e executar de novo.</p></div></div>
+  </div>
+  <figure>
+    <div class="frame"><img src="img/flow-crop.png" alt="Fluxo completo"></div>
+    <figcaption>Um fluxo completo, organizado em três etapas: ingestão e preparação, junção e indicadores, e um modelo preditivo.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================ 4. DADOS -->
+<section class="chapter">
+  <div class="eyebrow">4 · Entrada de dados</div>
+  <h2>Trazendo dados</h2>
+  <h3>Arquivos</h3>
+  <p>Envie arquivos pela aba <strong>Dados</strong> (clicando ou arrastando) ou solte-os direto no canvas. Antes de usar, a <strong>prévia</strong> mostra o que foi detectado e as primeiras linhas — e qualquer ajuste aparece na hora.</p>
+  <figure>
+    <div class="frame"><img src="img/preview-crop.png" alt="Prévia de arquivo com detecção automática"></div>
+    <figcaption>Um CSV no padrão brasileiro (ponto e vírgula, vírgula decimal, Windows-1252) reconhecido sem nenhuma configuração.</figcaption>
+  </figure>
+  <table>
+    <tr><th>Formato</th><th>Detalhes</th></tr>
+    <tr><td class="tool">CSV / TXT / TSV</td><td>Detecta separador (<code>,</code> <code>;</code> tabulação <code>|</code>), codificação (UTF-8, Windows-1252, ISO-8859-1) e separador decimal. Permite pular linhas, definir valores nulos e cabeçalho.</td></tr>
+    <tr><td class="tool">Excel</td><td><code>.xlsx</code>, <code>.xls</code>, <code>.xlsm</code>, com escolha da aba.</td></tr>
+    <tr><td class="tool">Parquet · Arrow</td><td>Formatos analíticos de alto desempenho.</td></tr>
+    <tr><td class="tool">JSON · JSON Lines</td><td>Lista de registros ou um registro por linha (detectado automaticamente).</td></tr>
+    <tr><td class="tool">Tabela digitada</td><td>A ferramenta <em>Text Input</em> oferece uma grade para digitar ou colar do Excel (tabelas de-para, metas, parâmetros).</td></tr>
+  </table>
+
+  <h3>Bancos de dados</h3>
+  <p>Cadastre conexões com <strong>PostgreSQL</strong> e <strong>SQL Server</strong> e teste com um clique. Depois, na própria aba <strong>Dados</strong>, crie <strong>consultas de banco</strong>: escolha uma tabela da lista ou escreva o SQL, veja a prévia e dê um nome. A consulta fica ao lado dos arquivos e é usada exatamente como eles: arraste para o canvas ou escolha no <em>Input Data</em>, a mesma ferramenta que lê arquivos.</p>
+  <figure class="narrow">
+    <div class="frame"><img src="img/connection-crop.png" alt="Cadastro de conexão com banco de dados"></div>
+    <figcaption>A senha vai para o Gerenciador de Credenciais do Windows — nunca para arquivos do projeto.</figcaption>
+  </figure>
+  <div class="callout ok"><strong>Seguro por padrão</strong>As conexões são somente leitura: apenas consultas de leitura (<code>SELECT</code>/<code>WITH</code>) são aceitas, e comandos que alteram dados são recusados antes de chegar ao banco. Por padrão, cada execução consulta o banco de novo; a opção "Reaproveitar resultado" evita consultas repetidas quando os dados não mudam.</div>
+</section>
+
+<!-- ================================================================ 5. FLUXO -->
+<section class="chapter">
+  <div class="eyebrow">5 · Ferramentas</div>
+  <h2>Montando o fluxo</h2>
+  <p class="intro">22 ferramentas em seis famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <table>
+    <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
+    <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
+    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da aba Dados: arquivos (com detecção automática de formato) ou consultas de banco.</td></tr>
+    <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
+    <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
+    <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher.</td></tr>
+    <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
+    <tr><td class="tool">Select</td><td>Escolhe, renomeia e muda o tipo das colunas.</td></tr>
+    <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
+    <tr><td class="tool">Formula</td><td>Cria colunas calculadas (SE/ENTÃO, texto, matemática, datas).</td></tr>
+    <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
+    <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
+    <tr><td class="tool">Sort · Sample</td><td>Ordena; tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
+    <tr><td colspan="2"><span class="tag">Combinar e transformar</span></td></tr>
+    <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R.</td></tr>
+    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, contagens, mínimo e máximo.</td></tr>
+    <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
+    <tr><td class="tool">SQL</td><td>Para quem conhece SQL: consulta livre sobre os dados do fluxo.</td></tr>
+    <tr><td colspan="2"><span class="tag">BI e indicadores</span></td></tr>
+    <tr><td class="tool">Chart · KPI Card</td><td>Gráficos (colunas, barras, linha, rosca) e indicadores para o Dashboard.</td></tr>
+    <tr><td colspan="2"><span class="tag">Machine Learning</span></td></tr>
+    <tr><td class="tool">Train/Test Split</td><td>Divide os dados em treino e teste.</td></tr>
+    <tr><td class="tool">Model Trainer · Predictor</td><td>Treina modelos de classificação ou regressão e aplica a novos dados, com acurácia medida em dados de validação.</td></tr>
+    <tr><td colspan="2"><span class="tag">Enriquecimento de texto</span></td></tr>
+    <tr><td class="tool">Prompt Column · Text Extractor</td><td>Classificam e extraem sinais de textos livres (ex.: sentimento e tópico de chamados). Ver limitações no capítulo 11.</td></tr>
+  </table>
+
+  <h3>Configurando uma caixa</h3>
+  <p>Clique na caixa e a aba <strong>Configurar</strong> abre ao lado, com um formulário só dela. Na direita, a tabela já mostra o resultado — no exemplo, as três saídas do Join com a contagem de cada uma.</p>
+  <figure>
+    <div class="frame"><img src="img/join.png" alt="Configuração do Join"></div>
+    <figcaption>As chaves de junção são escolhidas em listas que já conhecem as colunas de cada lado.</figcaption>
+  </figure>
+  <div class="callout tip"><strong>Dica</strong>Soltar uma ferramenta em cima de uma ligação existente encaixa a caixa no meio, já conectada, e abre espaço empurrando o restante do fluxo. <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz qualquer alteração.</div>
+
+  <div class="avoid">
+  <h3>Escrevendo fórmulas</h3>
+  <div style="display:grid; grid-template-columns: 1fr 44%; gap: 14pt; align-items: start">
+    <div>
+      <p>As caixas <em>Formula</em> e <em>Filter</em> têm um editor feito para quem não programa:</p>
+      <ul>
+        <li><strong>Cores</strong> separam colunas, funções, IF/THEN/ELSE, operadores lógicos (AND, OR, NOT), comparações, textos e números. Coluna inexistente e parêntese sem par ficam sublinhados em vermelho.</li>
+        <li><strong>Autocompletar</strong>: comece a digitar e o PRO.DATA sugere funções; digite <code>[</code> e ele lista as colunas. <kbd>Enter</kbd> aceita; <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> mostra tudo.</li>
+        <li><strong>Dica da função</strong>: dentro dos parênteses aparece o que cada argumento espera.</li>
+        <li><strong>Assistente</strong>: botões <em>Coluna</em>, <em>Função</em> (33 funções com descrição e exemplo) e operadores. Diferente é <code>!=</code>.</li>
+      </ul>
+    </div>
+    <figure style="margin:0"><div class="frame"><img src="img/formula-crop.png" alt="Editor de fórmulas com sugestões"></div><figcaption>Sugestão de função enquanto se digita, com descrição e exemplo.</figcaption></figure>
+  </div>
+  </div>
+
+  <div class="avoid">
+  <h3>Editando com agilidade</h3>
+  <div style="display:grid; grid-template-columns: 1fr 44%; gap: 14pt; align-items: start">
+    <ul>
+      <li><strong>Lixeira na caixa</strong>: passe o mouse sobre uma caixa e clique no ícone de lixeira (ou use <kbd>Delete</kbd>).</li>
+      <li><strong>Copiar e colar</strong>: <kbd>Ctrl</kbd>+<kbd>C</kbd> e <kbd>Ctrl</kbd>+<kbd>V</kbd> copiam uma caixa — ou uma etapa inteira, com as ligações internas. Dá para colar em outro fluxo.</li>
+      <li><strong>Botão direito</strong>: configurar, executar até ali, copiar, recortar, colar, duplicar, renomear, desativar e excluir. Num fio, insere uma ferramenta no meio; no espaço vazio, cola ou cria caixas.</li>
+      <li><strong>Várias caixas</strong>: <kbd>Shift</kbd> + clique (ou <kbd>Shift</kbd> + arrastar no vazio) seleciona várias; arraste para mover todas, alinhe, distribua, agrupe numa caixa de organização ou tire delas.</li>
+      <li><strong>Ver o que entra</strong>: clique numa porta de entrada para ver, na tabela, os dados que chegam por ela.</li>
+    </ul>
+    <figure style="margin:0"><div class="frame"><img src="img/menu-crop.png" alt="Menu do botão direito numa caixa"></div><figcaption>Menu do botão direito numa caixa.</figcaption></figure>
+  </div>
+  </div>
+</section>
+
+<!-- ================================================================ 6. RESULTADOS -->
+<section class="chapter">
+  <div class="eyebrow">6 · Análise</div>
+  <h2>Explorando os resultados</h2>
+  <p class="intro">Cada caixa guarda o resultado da última execução. Clique nela — ou em uma de suas saídas — e a tabela mostra os dados correspondentes.</p>
+  <div class="grid-2">
+    <div>
+      <h3 style="margin-top:0">Filtros exploratórios</h3>
+      <p>Para investigar sem mexer no fluxo, use o botão <strong>Filtros</strong> da tabela, o funil no cabeçalho de cada coluna ou o botão direito sobre uma célula ("Filtrar = valor", "Excluir valor").</p>
+      <p>As condições viram etiquetas que você edita ou remove, e o contador mostra quantas linhas sobraram. Esses filtros <strong>não alteram o fluxo salvo</strong>.</p>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Perfil de qualidade</h3>
+      <p>A aba <strong>Perfil</strong> descreve cada coluna: percentual preenchido, vazio e nulo, valores distintos, mais frequentes e estatísticas (mínimo, média, mediana, máximo).</p>
+      <p>Com filtros ativos, o perfil considera só as linhas filtradas — ótimo para comparar grupos.</p>
+    </div>
+    <figure style="margin-top:0"><div class="frame"><img src="img/filters-crop.png" alt="Filtros exploratórios"></div>
+      <figcaption>"uf = SP" e "mrr_mensal ≥ 3000": 105 de 500 clientes.</figcaption></figure>
+    <figure style="margin-top:0"><div class="frame"><img src="img/profile-crop.png" alt="Perfil das colunas"></div>
+      <figcaption>Perfil da saída combinada do Join.</figcaption></figure>
+  </div>
+  <div class="callout ok"><strong>Da exploração para o processo</strong>Quando a investigação vira regra, o botão <strong>Criar nó Filter</strong> transforma os filtros em uma caixa Filter já conectada ao fluxo.</div>
+</section>
+
+<!-- ================================================================ 7. DASHBOARD -->
+<section class="chapter">
+  <div class="eyebrow">7 · Apresentação</div>
+  <h2>Indicadores e dashboard</h2>
+  <p class="intro">Indicadores nascem dentro do fluxo. Quando os dados mudam, basta executar de novo.</p>
+  <ul>
+    <li><strong>KPI Card</strong> calcula um número (soma, média, contagem…) e o apresenta em destaque.</li>
+    <li><strong>Chart</strong> gera gráficos de colunas, barras, linha ou rosca, com valores ao passar o mouse e opção de ver como tabela.</li>
+    <li>Cada <strong>Summarize</strong> do fluxo também vira, automaticamente, um gráfico no painel <strong>Gráficos e resumos</strong>.</li>
+    <li>Clicar em qualquer gráfico leva à caixa que o gerou — sempre dá para saber de onde veio o número.</li>
+  </ul>
+  <figure>
+    <div class="frame"><img src="img/dashboard.png" alt="Dashboard"></div>
+    <figcaption>Dashboard do fluxo de demonstração: ARR consolidado, MRR por segmento e atingimento de meta por estado.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================ 8. ORGANIZAÇÃO -->
+<section class="chapter">
+  <div class="eyebrow">8 · Organização</div>
+  <h2>Organização e personalização</h2>
+  <h3>Caixas de organização</h3>
+  <p>Agrupe as etapas do fluxo em caixas com nome, descrição e cor (paleta <em>Organização</em>, botão <strong>Etapa</strong> ou tecla <kbd>G</kbd>). Arrastar o título move a caixa junto com tudo o que está dentro. Cada caixa tem um <strong>interruptor</strong>: desligada, as caixas de dentro deixam de executar — útil para pausar uma parte do processo sem apagar nada.</p>
+  <div style="display:grid; grid-template-columns: 30% 1fr; gap: 12pt; align-items: start">
+    <figure style="margin:0"><div class="frame"><img src="img/container-crop.png" alt="Configuração da caixa de organização"></div><figcaption>Configurações da caixa.</figcaption></figure>
+    <div>
+      <ul>
+        <li><strong>Interruptor</strong> liga/desliga a etapa inteira.</li>
+        <li><strong>Descrição</strong> aparece no canvas, abaixo do título.</li>
+        <li><strong>Cor</strong> e intensidade do fundo, para diferenciar etapas.</li>
+        <li>Lista dos <strong>nós de dentro</strong> — clique para ir até eles.</li>
+        <li><strong>Ajustar aos nós de dentro</strong> redimensiona a caixa automaticamente.</li>
+      </ul>
+      <figure style="margin-top:6pt"><div class="frame"><img src="img/containerOff-crop.png" alt="Caixa desligada"></div><figcaption>Uma etapa desligada: tracejada, esmaecida e sem executar.</figcaption></figure>
+    </div>
+  </div>
+  <h3>Painéis do seu jeito</h3>
+  <p>Os três painéis — ferramentas/configuração, resultados e gráficos — podem ser arrastados pela alça <span class="muted">⠿</span> para a esquerda, a direita ou embaixo, ou ocultados. O botão <strong>Painéis</strong>, na barra superior, reexibe e restaura o padrão. O arranjo é lembrado.</p>
+  <figure class="narrow">
+    <div class="frame"><img src="img/layoutAlt.png" alt="Arranjo alternativo dos painéis"></div>
+    <figcaption>Um arranjo alternativo: resultados embaixo e gráficos empilhados à direita.</figcaption>
+  </figure>
+  <h3>Vários fluxos em abas</h3>
+  <p>Cada fluxo aberto ganha uma aba logo abaixo da barra superior, com seu próprio resultado e seu próprio desfazer. Um ponto laranja indica alterações não salvas. Ao fechar uma aba — ou o programa — com alterações, o PRO.DATA pergunta: <strong>Salvar</strong>, <strong>Não salvar</strong> ou <strong>Cancelar</strong>. As abas salvas reabrem sozinhas na próxima vez.</p>
+  <h3>Onde ficam seus arquivos</h3>
+  <p><strong>Salvar</strong> guarda o fluxo na biblioteca do PRO.DATA. <strong>Salvar como…</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) grava um arquivo <code>.prodata.json</code> na pasta que você escolher — do projeto, da rede ou do OneDrive — e daí em diante <kbd>Ctrl</kbd>+<kbd>S</kbd> salva nele. <strong>Abrir arquivo…</strong> abre fluxos de qualquer pasta, e os recentes ficam listados. No <em>Output Data</em>, o campo <strong>Pasta de destino</strong> abre o seletor de pastas do Windows; depois de executar, o botão "Mostrar na pasta" leva até o arquivo gerado.</p>
+  <div class="avoid">
+  <h3>Ponto de cache</h3>
+  <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: o resultado dela fica guardado (inclusive depois de fechar o programa) e as caixas anteriores deixam de executar — aparecem tracejadas, "em cache". Mudou algo antes do ponto? O cache se refaz sozinho. Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
+  <figure>
+    <div class="frame"><img src="img/cache-crop.png" alt="Ponto de cache no Join"></div>
+    <figcaption>Ponto de cache no Join: as caixas anteriores aparecem "em cache" e a tabela mostra o que chega pela entrada [R].</figcaption>
+  </figure>
+  </div>
+  <p class="muted">Também disponíveis: tema claro e escuro, desfazer/refazer, zoom e "ajustar à tela".</p>
+</section>
+
+<!-- ================================================================ 9. SEGURANÇA -->
+<section class="chapter">
+  <div class="eyebrow">9 · Confiança</div>
+  <h2>Segurança e privacidade</h2>
+  <div class="grid-2">
+    <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador. Nenhum dado é enviado para a internet; o programa funciona offline.</p></div>
+    <div class="card"><h4>Senhas no cofre do Windows</h4><p>Senhas de banco ficam no Gerenciador de Credenciais do Windows, criptografadas pelo sistema. Nunca aparecem em arquivos, fluxos ou mensagens de erro.</p></div>
+    <div class="card"><h4>Bancos somente leitura</h4><p>Comandos que alteram dados (<code>DELETE</code>, <code>UPDATE</code>, <code>DROP</code>…) são recusados antes de chegar ao banco. No PostgreSQL, a sessão é aberta em modo somente leitura.</p></div>
+    <div class="card"><h4>Gravação sob controle</h4><p>Fora da pasta de dados, o programa só grava onde você mandar: na pasta escolhida no Output Data ou no fluxo que você salvar. Nomes de arquivo maliciosos são neutralizados.</p></div>
+    <div class="card"><h4>Dados preservados</h4><p>Fluxos, arquivos e conexões ficam em <code>%LOCALAPPDATA%\PRO.DATA</code> e sobrevivem a atualizações e à desinstalação.</p></div>
+    <div class="card"><h4>Rastreabilidade</h4><p>Fluxos são salvos em JSON legível — dá para versionar, revisar e auditar cada regra aplicada aos dados.</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ 10. INSTALAÇÃO -->
+<section class="chapter">
+  <div class="eyebrow">10 · Primeiros passos</div>
+  <h2>Instalação e requisitos</h2>
+  <h3>Duas formas de usar</h3>
+  <div class="grid-2">
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.2.0-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.2.0-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+  </div>
+  <h3>Requisitos</h3>
+  <table>
+    <tr><th style="width:30%">Item</th><th>Requisito</th></tr>
+    <tr><td class="tool">Sistema</td><td>Windows 10 ou 11, 64 bits.</td></tr>
+    <tr><td class="tool">Componentes</td><td>WebView2 e .NET Framework 4.x — já presentes no Windows 11 e no Windows 10 atualizado. <strong>Não é preciso instalar Python.</strong></td></tr>
+    <tr><td class="tool">Espaço em disco</td><td>Cerca de 600 MB para o programa, mais o tamanho dos seus dados.</td></tr>
+    <tr><td class="tool">Memória</td><td>Os dados são processados em memória: reserve RAM compatível com o tamanho das suas tabelas (como regra prática, 3 a 5 vezes o tamanho dos arquivos).</td></tr>
+  </table>
+  <h3>Primeira execução</h3>
+  <div class="steps">
+    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 11): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
+    <div class="step"><div><h4>Explore o exemplo</h4><p>O fluxo de demonstração já vem pronto e executado. Clique nas caixas, abra o Dashboard, experimente os filtros.</p></div></div>
+    <div class="step"><div><h4>Comece o seu</h4><p>Botão <strong>Novo fluxo</strong>, envie um arquivo na aba Dados e arraste-o para o canvas.</p></div></div>
+  </div>
+</section>
+
+<!-- ================================================================ 11. ESCOPO E LIMITAÇÕES -->
+<section class="chapter">
+  <div class="eyebrow">11 · Transparência</div>
+  <h2>Escopo e limitações</h2>
+  <p class="intro">O que esta versão faz, o que não faz e onde ela tem limites — para você decidir com clareza.</p>
+  <div class="two-col">
+    <div>
+      <h3>Incluído nesta versão</h3>
+      <ul class="scope-in">
+        <li>Fluxos visuais com 22 ferramentas</li>
+        <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
+        <li>Consultas a PostgreSQL e SQL Server (tabela ou SQL)</li>
+        <li>Exportação para Excel, CSV, Parquet, JSON e Arrow, em qualquer pasta</li>
+        <li>Abas, copiar/colar e editor de fórmulas com autocompletar</li>
+        <li>Perfil de qualidade e filtros exploratórios</li>
+        <li>Gráficos, KPIs e Dashboard</li>
+        <li>Modelos de classificação e regressão</li>
+        <li>Execução incremental e ponto de cache</li>
+        <li>Aplicativo de desktop para Windows, offline</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Fora do escopo</h3>
+      <ul class="scope-out">
+        <li>Uso em equipe com login e permissões (é um app individual)</li>
+        <li>Agendamento automático de execuções</li>
+        <li>Gravar dados de volta no banco</li>
+        <li>Outros bancos (MySQL, Oracle) e fontes na nuvem</li>
+        <li>Versões para macOS e Linux</li>
+        <li>Atualização automática do programa</li>
+        <li>Publicar dashboards na web</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Limitações conhecidas</h3>
+  <table>
+    <tr><th style="width:30%">Limitação</th><th>O que significa na prática</th></tr>
+    <tr><td class="tool">Volume de dados</td><td>As tabelas são carregadas inteiras na memória do computador. O limite prático depende da RAM disponível; bases muito grandes (dezenas de milhões de linhas) ainda não foram validadas e podem exigir uma máquina com mais memória.</td></tr>
+    <tr><td class="tool">Enriquecimento de texto</td><td>As ferramentas <em>Prompt Column</em> e <em>Text Extractor</em> usam regras locais que <strong>simulam</strong> uma IA generativa — servem para demonstrar o processo, não substituem um modelo de linguagem real.</td></tr>
+    <tr><td class="tool">Modelos de ML</td><td>Ficam em memória e são treinados novamente quando o programa é reaberto (sem impacto no resultado, só no tempo da primeira execução).</td></tr>
+    <tr><td class="tool">Aviso do Windows</td><td>O instalador ainda não é assinado digitalmente; por isso o SmartScreen mostra "Editor desconhecido" na primeira execução.</td></tr>
+    <tr><td class="tool">Filtros exploratórios</td><td>São lembrados enquanto o programa está aberto e não são salvos com o fluxo (por definição, são exploração; use "Criar nó Filter" para torná-los permanentes).</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================ 12. ATALHOS E FAQ -->
+<section class="chapter">
+  <div class="eyebrow">12 · Referência rápida</div>
+  <h2>Atalhos e perguntas frequentes</h2>
+  <h3>Atalhos de teclado</h3>
+  <table>
+    <tr><th style="width:38%">Atalho</th><th>Ação</th></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Executar o fluxo (com <kbd>Shift</kbd>: só até a caixa selecionada)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd> · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> · <kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Salvar · salvar como · abrir fluxo</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> · <kbd>Ctrl</kbd>+<kbd>X</kbd> · <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copiar · recortar · colar caixa ou etapa</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Desfazer · refazer</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd> · <kbd>Delete</kbd></td><td>Duplicar · excluir a seleção</td></tr>
+    <tr><td><kbd>G</kbd> · <kbd>F</kbd></td><td>Nova caixa de organização · ajustar à tela</td></tr>
+    <tr><td><kbd>Shift</kbd>+clique · <kbd>Ctrl</kbd>+<kbd>A</kbd> · <kbd>?</kbd></td><td>Selecionar várias caixas · todas · lista de atalhos</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Espaço</kbd></td><td>Sugestões no editor de fórmulas</td></tr>
+    <tr><td>Duplo clique no canvas</td><td>Adicionar ferramenta no ponto clicado</td></tr>
+  </table>
+  <h3>Perguntas frequentes</h3>
+  <div class="avoid"><h4>Preciso saber programar?</h4><p>Não. Tudo é feito por arrastar, ligar e preencher formulários. Quem conhece SQL ou fórmulas tem recursos extras, mas eles são opcionais.</p></div>
+  <div class="avoid"><h4>Meus dados vão para a nuvem?</h4><p>Não. O PRO.DATA roda só no seu computador e funciona sem internet.</p></div>
+  <div class="avoid"><h4>Posso estragar meu banco de dados?</h4><p>Não. As conexões são somente leitura; comandos que alteram dados são bloqueados.</p></div>
+  <div class="avoid"><h4>Como atualizo um relatório mensal?</h4><p>Envie o arquivo novo com o mesmo nome (o PRO.DATA pergunta se deve substituir) e clique em Executar. O fluxo inteiro roda de novo com os dados atualizados.</p></div>
+  <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
+  <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na aba Dados.</p></div>
+  <div class="avoid"><h4>Desinstalar apaga meus fluxos?</h4><p>Não. Fluxos, arquivos e conexões ficam na sua pasta de dados e continuam lá para uma futura reinstalação.</p></div>
+</section>
+
+</body>
+</html>

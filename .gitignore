@@ -1,0 +1,31 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Ferramentas
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# Configuração local
+.env
+
+# Dados locais de execução (fluxos, arquivos, conexões, cache). Os dados de exemplo são
+# recriados ao iniciar; nada daqui vai para o repositório.
+storage/
+
+# Perfil temporário do Chrome usado por docs/guia/gerar_pdf.py
+docs/guia/.chrome-profile/
+
+# Gerados pelo build de desktop (packaging/build.py)
+packaging/prodata.ico
+packaging/version_info.txt
+packaging/wizard-*.bmp

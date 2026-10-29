@@ -1,0 +1,189 @@
+/* Tokens de design. Claro é o padrão; escuro segue o sistema e pode ser forçado com data-theme. */
+
+:root {
+  color-scheme: light;
+
+  --bg: #f5f5f3;
+  --surface: #ffffff;
+  --surface-2: #f8f8f6;
+  --surface-3: #efefec;
+  --canvas: #fafaf8;
+  --canvas-dot: #d9d9d4;
+  --border: #e4e4df;
+  --border-strong: #cfcfc8;
+
+  --text: #1b1b19;
+  --text-2: #57574f;
+  --text-3: #8b8b83;
+
+  --accent: #2a63d6;
+  --accent-hover: #2254bb;
+  --accent-weak: #e9effb;
+  --accent-text: #ffffff;
+  --focus: #2a63d6;
+
+  --ok: #1a7f4f;
+  --ok-weak: #e6f4ec;
+  --warn: #a3620a;
+  --warn-weak: #fbf0de;
+  --err: #c8302f;
+  --err-weak: #fbeaea;
+
+  /* Categorias de ferramenta: acento discreto no ícone, nunca no texto. */
+  --cat-inout: #1f8a5b;
+  --cat-prep: #2a63d6;
+  --cat-transform: #6d4fc9;
+  --cat-bi: #b7740f;
+  --cat-ml: #138496;
+  --cat-genai: #b8457e;
+
+  /* Paleta categórica de gráficos (ordem fixa, validada para daltonismo). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+  --chart-grid: #e7e7e2;
+
+  --q-ok: #1a7f4f;
+  --q-empty: #d99a1b;
+  --q-null: #c8302f;
+
+  --shadow-sm: 0 1px 2px rgb(20 20 15 / 0.06);
+  --shadow-md: 0 4px 14px rgb(20 20 15 / 0.08), 0 1px 3px rgb(20 20 15 / 0.06);
+  --shadow-lg: 0 16px 40px rgb(20 20 15 / 0.16), 0 2px 8px rgb(20 20 15 / 0.08);
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  --topbar-h: 48px;
+  --statusbar-h: 26px;
+  --left-w: 300px;
+  --right-w: 460px;
+  --dock-h: 280px;
+
+  /* sintaxe de fórmulas (spec 010) */
+  --fx-col: #0f766e; --fx-col-bg: #e6f5f2;
+  --fx-fn: #7c3aed; --fx-kw: #1d4ed8; --fx-logic: #c2410c; --fx-cmp: #b45309;
+  --fx-op: #475569; --fx-str: #15803d; --fx-num: #be185d; --fx-const: #0369a1;
+  --fx-d0: #57574f; --fx-d1: #2a63d6; --fx-d2: #b7740f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111112;
+    --surface: #18181a;
+    --surface-2: #1e1e21;
+    --surface-3: #26262a;
+    --canvas: #141416;
+    --canvas-dot: #2c2c31;
+    --border: #2a2a2e;
+    --border-strong: #3a3a40;
+    --text: #ececea;
+    --text-2: #a8a8a2;
+    --text-3: #75756f;
+    --accent: #4f86ea;
+    --accent-hover: #6696ee;
+    --accent-weak: #1b2a45;
+    --focus: #6696ee;
+    --ok: #3fb67b;
+    --ok-weak: #15291f;
+    --warn: #e0a23c;
+    --warn-weak: #2e2414;
+    --err: #ec6463;
+    --err-weak: #331a1a;
+    --cat-inout: #3fb67b;
+    --cat-prep: #5b8ff0;
+    --cat-transform: #9b82ea;
+    --cat-bi: #e0a23c;
+    --cat-ml: #2fb3c4;
+    --cat-genai: #e07aac;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --chart-grid: #2a2a2e;
+    --q-ok: #3fb67b;
+    --q-empty: #e0a23c;
+    --q-null: #ec6463;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 14px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6);
+
+    --fx-col: #2dd4bf; --fx-col-bg: #0f2e2a;
+    --fx-fn: #c4b5fd; --fx-kw: #93c5fd; --fx-logic: #fdba74; --fx-cmp: #fcd34d;
+    --fx-op: #cbd5e1; --fx-str: #86efac; --fx-num: #f9a8d4; --fx-const: #7dd3fc;
+    --fx-d0: #c8c8c0; --fx-d1: #93c5fd; --fx-d2: #fcd34d;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111112;
+  --surface: #18181a;
+  --surface-2: #1e1e21;
+  --surface-3: #26262a;
+  --canvas: #141416;
+  --canvas-dot: #2c2c31;
+  --border: #2a2a2e;
+  --border-strong: #3a3a40;
+  --text: #ececea;
+  --text-2: #a8a8a2;
+  --text-3: #75756f;
+  --accent: #4f86ea;
+  --accent-hover: #6696ee;
+  --accent-weak: #1b2a45;
+  --focus: #6696ee;
+  --ok: #3fb67b;
+  --ok-weak: #15291f;
+  --warn: #e0a23c;
+  --warn-weak: #2e2414;
+  --err: #ec6463;
+  --err-weak: #331a1a;
+  --cat-inout: #3fb67b;
+  --cat-prep: #5b8ff0;
+  --cat-transform: #9b82ea;
+  --cat-bi: #e0a23c;
+  --cat-ml: #2fb3c4;
+  --cat-genai: #e07aac;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --chart-grid: #2a2a2e;
+  --q-ok: #3fb67b;
+  --q-empty: #e0a23c;
+  --q-null: #ec6463;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 14px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.6);
+
+  --fx-col: #2dd4bf; --fx-col-bg: #0f2e2a;
+  --fx-fn: #c4b5fd; --fx-kw: #93c5fd; --fx-logic: #fdba74; --fx-cmp: #fcd34d;
+  --fx-op: #cbd5e1; --fx-str: #86efac; --fx-num: #f9a8d4; --fx-const: #7dd3fc;
+  --fx-d0: #c8c8c0; --fx-d1: #93c5fd; --fx-d2: #fcd34d;
+}
+
+[data-category="inout"] { --cat: var(--cat-inout); }
+[data-category="prep"] { --cat: var(--cat-prep); }
+[data-category="transform"] { --cat: var(--cat-transform); }
+[data-category="bi"] { --cat: var(--cat-bi); }
+[data-category="ml"] { --cat: var(--cat-ml); }
+[data-category="genai"] { --cat: var(--cat-genai); }
+[data-category="org"] { --cat: #64748b; }

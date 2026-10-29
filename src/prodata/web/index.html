@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PRO.DATA · Grupo Protege</title>
+  <meta name="description" content="Pipelines de dados visuais: ingestão, preparação, junção, BI e Machine Learning." />
+  <link rel="icon" type="image/svg+xml" href="/static/brand/protege-escudo.svg" />
+  <link rel="preload" href="/static/fonts/open-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/static/css/fonts.css" />
+  <link rel="stylesheet" href="/static/css/tokens.css" />
+  <link rel="stylesheet" href="/static/css/app.css" />
+  <link rel="stylesheet" href="/static/css/canvas.css" />
+  <link rel="stylesheet" href="/static/css/data.css" />
+  <link rel="stylesheet" href="/static/css/dashboard.css" />
+  <link rel="stylesheet" href="/static/css/brand.css" />
+</head>
+<body data-view="designer">
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="/static/brand/protege-escudo-claro.svg" alt="Grupo Protege" />
+      <div class="brand-text"><span class="brand-name">PRO.DATA</span><span class="brand-org">Grupo Protege</span></div>
+    </div>
+    <div class="wf-title">
+      <input id="wfName" class="wf-name" aria-label="Nome do fluxo" spellcheck="false" />
+      <span id="dirtyBadge" class="dirty" hidden title="Alterações não salvas (Ctrl+S)">não salvo</span>
+      <span id="fileBadge" class="file-badge" hidden></span>
+    </div>
+    <nav id="viewSwitch" class="segmented" role="tablist" aria-label="Visualização">
+      <button type="button" class="segment" role="tab" data-view="designer" aria-selected="true">Designer</button>
+      <button type="button" class="segment" role="tab" data-view="dashboard" aria-selected="false">Dashboard</button>
+    </nav>
+    <div id="topActions" class="topbar-actions"></div>
+  </header>
+
+  <nav id="wfTabs" class="wf-tabs" role="tablist" aria-label="Fluxos abertos"></nav>
+
+  <main class="workspace">
+    <div id="slot-left" class="slot slot-side" data-slot="left"></div>
+    <div class="resizer resizer-v" data-resize="left" aria-hidden="true"></div>
+
+    <section class="center">
+      <div id="canvas" class="canvas" aria-label="Canvas do fluxo">
+        <div class="canvas-world">
+          <div class="canvas-containers"></div>
+          <svg class="canvas-edges"></svg>
+          <div class="canvas-pills"></div>
+          <div class="canvas-nodes"></div>
+        </div>
+        <div class="canvas-empty" hidden>
+          <strong>Canvas vazio</strong>
+          <span>Arraste uma ferramenta da paleta ou um arquivo da aba Dados. Duplo clique adiciona uma ferramenta.</span>
+        </div>
+        <div id="canvasToolbar" class="canvas-toolbar floating"></div>
+      </div>
+      <div class="resizer resizer-h" data-resize="dock" aria-hidden="true"></div>
+      <div id="slot-bottom" class="slot slot-bottom" data-slot="bottom"></div>
+    </section>
+
+    <div class="resizer resizer-v" data-resize="right" aria-hidden="true"></div>
+    <div id="slot-right" class="slot slot-side" data-slot="right"></div>
+
+    <section id="dashboard" class="dashboard" aria-label="Dashboard"></section>
+    <div id="panelDropTargets" class="panel-drop-targets" aria-hidden="true"></div>
+
+    <!-- Painéis: o layout.js os distribui entre as posições (ou os mantém ocultos aqui). -->
+    <div id="panelStore" hidden>
+      <aside id="leftPanel" class="panel" data-panel="explorer" aria-label="Ferramentas, dados e configuração"></aside>
+      <aside id="results" class="panel" data-panel="results" aria-label="Resultados"></aside>
+      <section id="insights" class="panel insights" data-panel="insights" aria-label="Gráficos e resumos"></section>
+    </div>
+  </main>
+
+  <footer id="statusbar" class="statusbar"></footer>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <!-- modulepreload: o servidor insere aqui a pré-carga de todos os módulos JS -->
+  <script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
