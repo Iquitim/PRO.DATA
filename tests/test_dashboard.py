@@ -187,7 +187,7 @@ def test_formats_are_described_for_every_kind(client: TestClient) -> None:
     res = client.get("/api/dashboard/formats")
     assert res.status_code == 200
     data = res.json()
-    assert set(data) == {"chart", "kpi", "text", "image", "shape"}
+    assert set(data) == {"chart", "kpi", "table", "text", "image", "shape"}
     widgets = {f["name"]: f["widget"] for f in data["chart"]}
     assert widgets["color"] == "color" and widgets["category_colors"] == "category_colors"
     labels = {o["value"] for f in data["chart"] if f["name"] == "data_labels" for o in f["options"]}

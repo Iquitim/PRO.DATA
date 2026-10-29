@@ -21,8 +21,11 @@ export const widgetsByNode = () => Object.fromEntries(liveWidgets().map((w) => [
 export function hintFor(nodeId, widgets = widgetsByNode()) {
   const n = store.workflow.nodes.find((k) => k.id === nodeId);
   const w = widgets[nodeId];
-  if (n?.type === 'bi.kpi_card' || w?.widget_type === 'kpi') return { kind: 'kpi' };
-  if (w?.widget_type === 'table') return { kind: 'table' };
+  if (n?.type === 'bi.kpi_card' || w?.widget_type === 'kpi') {
+    return (w?.display || n?.config?.display) === 'gauge' ? { kind: 'chart', chart_type: 'gauge' } : { kind: 'kpi' };
+  }
+  if (n?.type === 'bi.table' || w?.widget_type === 'table') return { kind: 'table' };
+  if (n?.type === 'bi.venn' || w?.widget_type === 'venn') return { kind: 'chart', chart_type: 'venn' };
   return { kind: 'chart', chart_type: w?.chart_type || n?.config?.chart_type || 'bar', categories: w?.series?.length || 0 };
 }
 

@@ -19,10 +19,10 @@ localmente.
   arquivos do projeto.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo
   pode ser salvo e aberto de qualquer pasta (*Salvar como…* / *Abrir arquivo…*).
-- **26 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
+- **28 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
   Text To Columns, Record ID e Running Total), combinação e transformação (Join
   com saídas L/J/R, Cross Tab, Transpose, Append Fields, Summarize, Union, SQL via
-  DuckDB), BI e Machine Learning (scikit-learn).
+  DuckDB), BI (Chart, KPI Card, Venn e Table) e Machine Learning (scikit-learn).
 - **Ponto de cache** (como o "Cache and Run" do Alteryx): congela o resultado de
   uma caixa — inclusive em disco — e dispensa tudo o que vem antes dela até alguma
   caixa anterior mudar. Ideal para consultas a banco e arquivos grandes.
@@ -35,8 +35,16 @@ localmente.
   arquivo de origem mudaram.
 - **Perfil de dados** em toda saída: barra de qualidade (preenchido/vazio/nulo),
   histogramas e estatísticas por coluna.
-- **Dashboard** com KPIs e gráficos publicados pelos nós de BI, e um painel de
-  **gráficos e resumos** abaixo do canvas (BI + gráfico automático de cada Summarize).
+- **Dashboard em canvas**: página de tamanho fixo (16:9, A4 ou altura livre) onde
+  os visuais se arrastam e redimensionam com encaixe e guias; **Organizar** com
+  layout automático e 5 layouts prontos; painel **Formato** (cores, rótulos,
+  eixos, cartão); textos, imagens, logo e formas; **imagem PNG** da página ou de um
+  visual. O layout fica gravado no arquivo do fluxo.
+- **Visuais**: colunas, barras, linhas, rosca, empilhado, agrupado, 100%, área,
+  Pareto, funil, dispersão, Venn (2 conjuntos proporcionais ou 3), medidor, tabela
+  com cores por faixa e big number com variação contra meta ou período anterior e
+  minigráfico de tendência. Um painel de **gráficos e resumos** abaixo do canvas
+  mostra os mesmos visuais e um gráfico automático de cada Summarize.
 - **Exploração sem mexer no fluxo**: filtros por coluna na tabela de resultados
   (texto, número, data, nulos), com perfil recalculado e opção de virar um nó Filter.
 - **Organização**: caixas de etapa com nome, descrição, cor e interruptor
@@ -129,6 +137,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [011](specs/011-planilhas-identidade/spec.md) | Abas e recorte de planilhas (pular linhas/colunas); identidade visual Grupo Protege |
 | [012](specs/012-selecao-cache-portas/spec.md) | Seleção múltipla, ponto de cache e dados de entrada por porta; remove o assistente de fluxo |
 | [013](specs/013-ferramentas-desempenho/spec.md) | Select com Todas/Nenhuma/Inverter, 6 ferramentas novas (Cross Tab, Transpose, Text To Columns, Record ID, Running Total, Append Fields), remove a IA generativa, canvas mais responsivo |
+| [014](specs/014-dashboard-canvas/spec.md) | Dashboard em canvas (arrastar, redimensionar, guias, Organizar com layouts prontos), painel Formato, textos/imagens/formas, PNG, big number com variação e tendência, empilhados, Pareto, Venn, funil, dispersão, medidor e Table |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

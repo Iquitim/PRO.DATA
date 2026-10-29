@@ -2,7 +2,7 @@
 // gráfico automático para cada Summarize executado.
 
 import { api } from './api.js';
-import { AGG_LABELS, chartCard, goToNode, kpiTile } from './dashboard.js';
+import { AGG_LABELS, goToNode, kpiTile, visualCard } from './dashboard.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { icon } from './icons.js';
 import { panelControls } from './layout.js';
@@ -100,7 +100,7 @@ export async function render() {
     if (!w) continue;
     if (w.widget_type === 'kpi') cards.push(kpiTile(w, { compact: true }));
     else if (w.kind === 'totals') cards.push(totalsCard(w));
-    else cards.push(chartCard(w, { width, height: chartHeight, className: 'insight' }));
+    else cards.push(visualCard(w, { width, height: chartHeight, className: 'insight' }));
   }
 
   count.hidden = !cards.length;

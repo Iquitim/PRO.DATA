@@ -12,7 +12,7 @@ def test_demo_runs_cleanly(runner: WorkflowRunner, demo: Workflow) -> None:
     join = report.node_results["n_join"].anchors
     assert {"L", "J", "R"} <= join.keys()
     assert join["J"].row_count > 0 and join["R"].row_count > 0
-    assert {w["widget_type"] for w in report.bi_widgets} == {"chart", "kpi"}
+    assert {w["widget_type"] for w in report.bi_widgets} == {"chart", "kpi", "venn"}
 
 
 def test_second_run_uses_cache(runner: WorkflowRunner, demo: Workflow) -> None:

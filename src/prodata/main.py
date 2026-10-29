@@ -26,7 +26,7 @@ from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
 from prodata.nodes import REGISTRY
 from prodata.samples.datasets import ensure_sample_datasets
-from prodata.samples.workflows import DEMO_WORKFLOW_ID, demo_workflow
+from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, demo_workflow
 from prodata.services.workflows import WorkflowRepository
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -59,8 +59,9 @@ def build_services(settings: Settings) -> Services:
 
 
 def _uses_removed_tools(workflow: Workflow) -> bool:
-    """Demonstração antiga (ex.: com as ferramentas de IA generativa removidas na spec 013)."""
-    return any(n.type not in REGISTRY for n in workflow.nodes)
+    """Demonstração antiga: usa ferramentas removidas (spec 013) ou é anterior ao Pareto e ao Venn (spec 014)."""
+    ids = {n.id for n in workflow.nodes}
+    return any(n.type not in REGISTRY for n in workflow.nodes) or not ids.intersection(DEMO_V3_NODES)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

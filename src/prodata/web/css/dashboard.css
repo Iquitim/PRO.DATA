@@ -239,3 +239,62 @@
 .dash-line.h > span { width: 100%; border-top: 1px solid var(--border-strong); }
 .dash-line.v > span { height: 100%; border-left: 1px solid var(--border-strong); }
 .dash-page.editing .dash-item.kind-text .dash-text:empty::after { content: 'Texto vazio'; color: var(--text-3); }
+
+/* Fase 3: visuais novos (spec 014) */
+:root { --status-good: #0ca30c; --status-warning: #fab219; --status-critical: #d03b3b; }
+.multi-chart { display: flex; flex-direction: column; gap: 6px; }
+.legend-row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; min-height: 22px; font-size: 12px; color: var(--text-2); }
+.legend-row li { display: flex; align-items: center; gap: 6px; }
+.line-swatch { height: 3px !important; width: 14px !important; border-radius: 2px; }
+.chart .seg { stroke: var(--surface); stroke-width: 1; }
+.chart .area.strong { opacity: 0.35; }
+.chart .threshold { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; }
+.chart .scatter-dot { stroke: var(--surface); stroke-width: 1.5; fill-opacity: 0.85; }
+.chart .scatter-dot:hover { stroke: var(--text); }
+.chart .venn-set { fill-opacity: 0.22; stroke-width: 2; }
+.chart .venn-count { fill: var(--text); font-size: 18px; font-weight: 600; }
+.venn-region { cursor: default; }
+.chart-foot { margin: 0; font-size: 11.5px; }
+.chart .gauge-track { fill: none; stroke: var(--border); stroke-width: 18; stroke-linecap: round; }
+.chart .gauge-value { fill: none; stroke: var(--series-1); stroke-width: 18; stroke-linecap: round; }
+.chart .gauge-target { stroke: var(--text); stroke-width: 3; stroke-linecap: round; }
+.chart .gauge-text { fill: var(--text); font-size: 26px; font-weight: 600; }
+.chart.sparkline .line { stroke-width: 1.75; }
+
+/* big number: valor, variação e minigráfico */
+.kpi-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
+.kpi-row .kpi-value { margin: 6px 0 8px; }
+.kpi-delta {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 12px; color: var(--text-2);
+  background: color-mix(in srgb, var(--delta, var(--text-3)) 12%, transparent);
+}
+.kpi-delta .icon, .kpi-delta > span:first-child { color: var(--delta, var(--text-3)); }
+.kpi-delta b { color: var(--text); font-variant-numeric: tabular-nums; }
+.status-good { --delta: var(--status-good); }
+.status-critical { --delta: var(--status-critical); }
+.status-neutral { --delta: var(--text-3); }
+.kpi-spark { margin: 2px 0 6px; }
+.kpi-gauge { display: flex; justify-content: center; }
+.kpi-label { display: flex; align-items: center; gap: 6px; }
+.kpi.rule-good { box-shadow: inset 4px 0 0 var(--status-good); }
+.kpi.rule-warning { box-shadow: inset 4px 0 0 var(--status-warning); }
+.kpi.rule-critical { box-shadow: inset 4px 0 0 var(--status-critical); }
+.kpi.rule-good .kpi-label .icon { color: var(--status-good); }
+.kpi.rule-warning .kpi-label .icon { color: #b8830f; }
+.kpi.rule-critical .kpi-label .icon { color: var(--status-critical); }
+
+/* tabela do dashboard */
+.table-card .table-wrap { flex: 1; min-height: 0; overflow: auto; max-height: none; }
+.dash-table tbody tr:nth-child(even) td { background: var(--surface-2); }
+.table-card.plain .dash-table tbody tr:nth-child(even) td { background: none; }
+.table-card.dense .dash-table td, .table-card.dense .dash-table th { padding-top: 2px; padding-bottom: 2px; }
+.dash-table tfoot td { font-weight: 700; border-top: 2px solid var(--border-strong); position: sticky; bottom: 0; background: var(--surface); }
+.dash-table td .icon { vertical-align: -2px; margin-right: 4px; }
+.dash-table td.cell-good { background: color-mix(in srgb, var(--status-good) 14%, transparent) !important; }
+.dash-table td.cell-warning { background: color-mix(in srgb, var(--status-warning) 20%, transparent) !important; }
+.dash-table td.cell-critical { background: color-mix(in srgb, var(--status-critical) 14%, transparent) !important; }
+.dash-table td.cell-good .icon { color: var(--status-good); }
+.dash-table td.cell-warning .icon { color: #b8830f; }
+.dash-table td.cell-critical .icon { color: var(--status-critical); }
+.kpi.fill { overflow: hidden; }
+.kpi.fill .kpi-row .kpi-value { margin: 2px 0 4px; }

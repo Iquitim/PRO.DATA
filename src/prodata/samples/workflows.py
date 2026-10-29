@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import base64
+from pathlib import Path
 from typing import Any
 
+from prodata.dashboard.layouts import LayoutItem, Rect, VisualHint, arrange
+from prodata.domain.dashboard import DashPage
+
 DEMO_WORKFLOW_ID = "demo_pipeline_360"
+# Caixas criadas na v0.3 (spec 014): sem elas, a demonstração salva é de uma versão anterior.
+DEMO_V3_NODES = ("n_pareto", "n_venn")
+LOGO = Path(__file__).resolve().parents[1] / "web" / "brand" / "protege-escudo.svg"
 
 # Colunas do canvas para cartões de 188 px com 60 px de folga (spec 004, RF-403).
 COL = [40 + 248 * i for i in range(9)]
@@ -39,6 +47,7 @@ def demo_workflow() -> dict[str, Any]:
             _container("c_prep", "1 · Ingestão e preparação", "#3b82f6", 20, 20, 972, 260),
             _container("c_bi", "2 · Junção, metas e indicadores", "#8b5cf6", 1010, 20, 1222, 420),
             _container("c_ml", "3 · Modelo de inadimplência", "#06b6d4", 1010, 460, 1222, 140),
+            _container("c_vendas", "4 · Vendas no dashboard", "#f59e0b", 20, 300, 972, 300),
         ],
         "nodes": [
             _node("n_clientes", "io.input_data", "Clientes", 0, 70, dataset="clientes_enterprise.csv"),
@@ -171,6 +180,58 @@ def demo_workflow() -> dict[str, Any]:
                 agg="sum",
             ),
             _node(
+                "n_pareto",
+                "bi.chart",
+                "Pareto por UF",
+                6,
+                300,
+                title="Pareto do MRR por UF",
+                chart_type="pareto",
+                x_column="uf",
+                y_column="mrr_mensal",
+                agg="sum",
+            ),
+            _node(
+                "n_kpi_mes",
+                "bi.kpi_card",
+                "Faturamento do mês",
+                1,
+                350,
+                title="Faturamento do mês",
+                column="valor_bruto",
+                metric="sum",
+                prefix="R$ ",
+                compare="previous",
+                date_column="competencia",
+                period="month",
+                sparkline=True,
+            ),
+            _node(
+                "n_stacked",
+                "bi.chart",
+                "Vendas por mês",
+                2,
+                350,
+                title="Faturamento mensal por produto",
+                chart_type="stacked",
+                x_column="competencia",
+                y_column="valor_bruto",
+                series_column="produto",
+                agg="sum",
+                sort="label",
+            ),
+            _node(
+                "n_venn",
+                "bi.venn",
+                "Produtos por cliente",
+                1,
+                480,
+                title="Clientes por produto contratado",
+                key_column="id_cliente",
+                group_column="produto",
+                groups=["Cloud", "AutoML", "BI Pro"],
+            ),
+            _node(
                 "n_trainer",
                 "ml.automl_trainer",
                 "Treino",
@@ -224,5 +285,53 @@ def demo_workflow() -> dict[str, Any]:
             _edge("e15", "n_trainer", "M", "n_predictor", "M"),
             _edge("e16", "n_join", "J", "n_predictor", "D"),
             _edge("e17", "n_predictor", "out", "n_output"),
+            _edge("e18", "n_join", "J", "n_pareto"),
+            _edge("e19", "n_vendas", "out", "n_kpi_mes"),
+            _edge("e20", "n_vendas", "out", "n_stacked"),
+            _edge("e21", "n_vendas", "out", "n_venn"),
         ],
+        "dashboard": demo_dashboard(),
+    }
+
+
+def demo_dashboard() -> dict[str, Any]:
+    """Dashboard já montado: título, logo, big numbers no topo e gráficos em três colunas."""
+    visuals = [
+        ("n_kpi", VisualHint(kind="kpi")),
+        ("n_kpi_mes", VisualHint(kind="kpi")),
+        ("n_stacked", VisualHint(chart_type="stacked")),
+        ("n_pareto", VisualHint(chart_type="pareto")),
+        ("n_chart_uf", VisualHint(chart_type="bar")),
+        ("n_chart_seg", VisualHint(chart_type="donut")),
+        ("n_venn", VisualHint(chart_type="venn")),
+    ]
+    title = Rect(x=40, y=32, w=1200, h=56)
+    logo = Rect(x=1488, y=24, w=72, h=88)
+    page = DashPage(size="a4-landscape")
+    items = [LayoutItem(id=n, hint=hint, rect=Rect(y=i)) for i, (n, hint) in enumerate(visuals)]
+    result = arrange(items, page, "kpis-top-3", [title, logo])
+    logo_uri = "data:image/svg+xml;base64," + base64.b64encode(LOGO.read_bytes()).decode()
+    return {
+        "page": result.page.model_dump(),
+        "items": [
+            {
+                "id": "d_title",
+                "kind": "text",
+                **title.model_dump(),
+                "content": "Pipeline 360° de clientes",
+                "format": {"size": 30, "bold": True, "vertical": "middle"},
+            },
+            {"id": "d_logo", "kind": "image", **logo.model_dump(), "content": logo_uri, "format": {}},
+            *(
+                {
+                    "id": f"d_{n}",
+                    "kind": "visual",
+                    "node_id": n,
+                    **result.positions[n].model_dump(),
+                    "format": {},
+                }
+                for n, _ in visuals
+            ),
+        ],
+        "hidden": [],
     }

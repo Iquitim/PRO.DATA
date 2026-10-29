@@ -3,7 +3,7 @@
 // imagem PNG. Os cartões de visual também são usados pelo painel de insights.
 
 import { api } from './api.js';
-import { renderChart, withTooltip } from './charts.js';
+import { gaugeChart, renderChart, sparkline, withTooltip } from './charts.js';
 import {
   biNodes, ensureLayout, GRID, growToFit, hintFor, PAGE_SIZES, PAGE_W, pageHeight, rectOf, restoreVisual, widgetsByNode,
 } from './dash_model.js';
@@ -26,6 +26,7 @@ let els = {};
 let gesture = null;
 let syncing = null;
 let formats = null; // campos do painel Formato por tipo (GET /api/dashboard/formats)
+let loadingFormats = null;
 let clip = { items: [], pastes: 0 };
 const PANEL_W = 312;
 
@@ -60,28 +61,109 @@ function cardStyle(f = {}) {
 
 const titleStyle = (f) => ({ fontSize: f.title_size ? `${f.title_size}px` : null, textAlign: f.title_align === 'center' ? 'center' : null });
 
-export function kpiTile(w, { compact = false, className = '', fmt: f = {} } = {}) {
-  const exact = `${w.prefix || ''}${fmt.number(w.value, w.decimals ?? 0)}${w.suffix || ''}`;
-  const shown = Math.abs(w.value) >= 1e6 ? `${w.prefix || ''}${fmt.compact(w.value)}${w.suffix || ''}` : exact;
-  return h('article', {
-    class: ['kpi', compact && 'compact', className, f.align === 'center' && 'centered'], tabindex: 0, style: cardStyle(f),
+const STATUS_ICON = { good: 'check-circle', warning: 'alert', critical: 'alert' };
+const OPS = { lt: (a, b) => a < b, le: (a, b) => a <= b, gt: (a, b) => a > b, ge: (a, b) => a >= b, eq: (a, b) => a === b };
+
+/** Primeira regra de cor por faixa que vale para o valor (RF-1414). */
+function ruleFor(rules, value, column = null) {
+  if (typeof value !== 'number') return null;
+  for (const raw of rules || []) {
+    const r = { op: 'lt', value: 0, status: 'critical', column: '', ...raw };
+    if (column !== null && r.column !== column) continue;
+    if (OPS[r.op]?.(value, r.value)) return r.status;
+  }
+  return null;
+}
+
+/** Número do KPI no formato escolhido na caixa (automático, compacto, completo ou percentual). */
+function kpiNumber(w, v = w.value) {
+  const nf = w.number_format || 'auto';
+  const pct = nf === 'percent';
+  const n = pct ? v * 100 : v;
+  const affix = (s) => `${w.prefix || ''}${s}${pct ? '%' : ''}${w.suffix || ''}`;
+  const exact = affix(fmt.number(n, w.decimals ?? 0));
+  const compact = nf === 'compact' || (nf === 'auto' && Math.abs(n) >= 1e6);
+  return { exact, shown: compact ? affix(fmt.compact(n)) : exact };
+}
+
+/** Variação contra a meta ou o período anterior: seta + número + texto, com cor de status. */
+function deltaBadge(w) {
+  const c = w.compare;
+  if (!c) return null;
+  const up = c.delta > 0;
+  const text = c.delta_pct === null ? kpiNumber(w, Math.abs(c.delta)).shown : `${fmt.number(Math.abs(c.delta_pct), 1)}%`;
+  const state = c.good === null ? 'neutral' : c.good ? 'good' : 'critical';
+  return h('div', { class: ['kpi-delta', `status-${state}`], title: `Referência: ${kpiNumber(w, c.reference).exact}` },
+    c.delta === 0 ? h('span', {}, '=') : icon(up ? 'arrow-up' : 'arrow-down', 13),
+    h('b', {}, c.delta === 0 ? 'igual' : text),
+    h('span', {}, c.label));
+}
+
+export function kpiTile(w, { compact = false, className = '', fmt: f = {}, width = 260 } = {}) {
+  const { exact, shown } = kpiNumber(w);
+  const status = ruleFor(f.value_rules, w.value);
+  const label = f.show_title === false ? null : h('div', { class: 'kpi-label', style: titleStyle(f) },
+    status ? icon(STATUS_ICON[status], 13) : null, f.title || w.title, w.period_label ? h('span', { class: 'muted' }, ` · ${w.period_label}`) : null);
+  const foot = f.show_footer === false ? null : h('div', { class: 'kpi-foot' },
+    `${AGG_LABELS[w.metric] || w.metric}${w.column && w.metric !== 'count' ? ` de ${w.column}` : ''} · ${fmt.int(w.row_count)} linhas`);
+  const card = h('article', {
+    class: ['kpi', compact && 'compact', className, f.align === 'center' && 'centered', status && `rule-${status}`], tabindex: 0, style: cardStyle(f),
     onclick: () => ui.mode === 'view' && goToNode(w.node_id),
-  },
-  f.show_title === false ? null : h('div', { class: 'kpi-label', style: titleStyle(f) }, f.title || w.title),
-  h('div', { class: 'kpi-value', title: exact, style: { fontSize: f.value_size ? `${f.value_size}px` : null, color: f.value_color || null } }, shown),
-  f.show_footer === false ? null : h('div', { class: 'kpi-foot' },
-    `${AGG_LABELS[w.metric] || w.metric}${w.column && w.metric !== 'count' ? ` de ${w.column}` : ''} · ${fmt.int(w.row_count)} linhas`));
+  });
+  if (w.display === 'gauge' && !compact) {
+    const body = h('div', { class: 'kpi-gauge' }, gaugeChart(w, Math.max(160, width - 36), 200, shown));
+    card.append(...[label, body, deltaBadge(w), foot].filter(Boolean)); // append() nativo escreveria "null"
+    withTooltip(card, body);
+    return card;
+  }
+  const spark = !compact && w.trend?.length ? h('div', { class: 'kpi-spark' }, sparkline(w.trend, Math.max(80, width - 40), 32)) : null;
+  card.append(...[label,
+    h('div', { class: 'kpi-row' },
+      h('div', { class: 'kpi-value', title: exact, style: { fontSize: f.value_size ? `${f.value_size}px` : null, color: f.value_color || null } }, shown),
+      deltaBadge(w)),
+    spark, foot].filter(Boolean));
+  if (spark) withTooltip(card, spark);
+  return card;
+}
+
+const SUBTITLES = {
+  pareto: (w) => `Participação de cada ${w.x_column} e acumulado`,
+  scatter: (w) => `${w.y_column} × ${w.x_column}`,
+  funnel: (w) => `Etapas de ${w.x_column}`,
+};
+
+/** Linhas da tabela equivalente a cada visual (modo tabela: o dado nunca depende só do gráfico). */
+function tableData(w) {
+  if (w.widget_type === 'venn') {
+    return {
+      head: ['Região', 'Quantidade', '%'],
+      rows: w.regions.map((r) => [r.sets.map((i) => w.sets[i].name).join(' e ') + (r.sets.length < w.sets.length ? ' (só)' : ''), fmt.int(r.count), `${fmt.number(r.pct, 1)}%`]),
+    };
+  }
+  if (w.chart_type === 'scatter') {
+    const s = w.points?.[0]?.s !== undefined;
+    return { head: [...(s ? [w.series_column] : []), w.x_column, w.y_column], rows: (w.points || []).slice(0, 300).map((p) => [...(s ? [p.s] : []), fmt.number(p.x), fmt.number(p.y)]) };
+  }
+  if (w.series_names?.length) {
+    return { head: [w.x_column, ...w.series_names, 'Total'], rows: w.series.map((c) => [c.label, ...w.series_names.map((n) => fmt.number(c.values[n] || 0)), fmt.number(c.value)]) };
+  }
+  if (w.chart_type === 'pareto') {
+    return { head: [w.x_column, w.y_column || 'contagem', 'Acumulado'], rows: w.series.map((s) => [s.label, fmt.number(s.value), `${fmt.number(s.cum_pct, 1)}%`]) };
+  }
+  return { head: [w.x_column, w.y_column || 'contagem'], rows: w.series.map((s) => [s.label, fmt.number(s.value)]) };
 }
 
 /**
- * Cartão de gráfico. `w`: {node_id, title, subtitle?, chart_type, series, x_column, y_column, agg}.
- * Clicar no título leva ao nó de origem. `actions`: botões extras no cabeçalho; `fmt`: formato do visual.
+ * Cartão de gráfico. `w`: widget publicado pela caixa (Chart ou Venn). Clicar no título leva ao nó de
+ * origem. `actions`: botões extras no cabeçalho; `fmt`: formato do visual.
  */
 export function chartCard(w, { width, height = 260, className = '', actions = [], fmt: f = {} } = {}) {
   const card = h('article', { class: ['chart-card', className], style: cardStyle(f) });
   const asTable = tableMode.has(w.node_id);
-  const subtitle = w.subtitle || (w.agg === 'count'
-    ? `Contagem por ${w.x_column}` : `${AGG_LABELS[w.agg] || w.agg} de ${w.y_column} por ${w.x_column}`);
+  const subtitle = w.subtitle || (w.widget_type === 'venn' ? `${fmt.int(w.union)} em pelo menos um conjunto`
+    : SUBTITLES[w.chart_type]?.(w)
+      || (w.agg === 'count' ? `Contagem por ${w.x_column}` : `${AGG_LABELS[w.agg] || w.agg} de ${w.y_column} por ${w.x_column}`)
+      + (w.series_column ? ` e ${w.series_column}` : ''));
   const redraw = () => card.replaceWith(chartCard(w, { width, height, className, actions, fmt: f }));
   const showTitle = f.show_title !== false;
   const showSub = f.show_subtitle !== false;
@@ -93,18 +175,50 @@ export function chartCard(w, { width, height = 260, className = '', actions = []
       button({ icon: asTable ? 'chart' : 'table', title: asTable ? 'Ver gráfico' : 'Ver tabela', size: 'sm', variant: 'ghost',
         onClick: () => { if (asTable) tableMode.delete(w.node_id); else tableMode.add(w.node_id); redraw(); } }))));
 
-  if (!w.series.length) {
+  const empty = w.widget_type === 'venn' ? !w.union : !(w.series?.length || w.points?.length);
+  if (empty) {
     card.append(h('div', { class: 'empty' }, 'Sem dados para exibir.'));
   } else if (asTable) {
+    const t = tableData(w);
     card.append(h('div', { class: 'chart-body table-wrap' }, h('table', { class: 'data-table compact' },
-      h('thead', {}, h('tr', {}, h('th', {}, w.x_column), h('th', { class: 'num' }, w.y_column || 'contagem'))),
-      h('tbody', {}, w.series.map((s) => h('tr', {}, h('td', {}, s.label), h('td', { class: 'num' }, fmt.number(s.value))))))));
+      h('thead', {}, h('tr', {}, t.head.map((c, i) => h('th', { class: i ? 'num' : null }, c)))),
+      h('tbody', {}, t.rows.map((r) => h('tr', {}, r.map((v, i) => h('td', { class: i ? 'num' : null }, v))))))));
   } else {
-    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series, Math.max(220, width - 34), height, f));
+    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series || [], Math.max(220, width - 34), height, f, w));
     card.append(body);
     withTooltip(card, body);
   }
   return card;
+}
+
+/** Tabela formatada (ferramenta Table): totais, linhas alternadas e cores por faixa com ícone. */
+export function tableCard(w, { className = '', fmt: f = {}, actions = [] } = {}) {
+  const card = h('article', { class: ['chart-card', 'table-card', className, f.compact && 'dense', f.zebra === false && 'plain'], style: cardStyle(f) });
+  const showTitle = f.show_title !== false;
+  const showSub = f.show_subtitle !== false;
+  card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
+    showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: 'Ir para o nó', style: titleStyle(f), onclick: () => goToNode(w.node_id) },
+      showTitle ? h('h3', { style: { fontSize: f.title_size ? `${f.title_size}px` : null } }, f.title || w.title) : null,
+      showSub ? h('p', { class: 'muted' }, `${fmt.int(Math.min(w.rows.length, w.row_count))} de ${fmt.int(w.row_count)} linhas`) : null) : h('span', { class: 'grow' }),
+    h('div', { class: 'chart-actions' }, actions)));
+  const cellOf = (col, v) => {
+    const status = col.numeric ? ruleFor(f.rules, v, col.name) : null;
+    return h('td', { class: [col.numeric && 'num', status && `cell-${status}`] },
+      status ? icon(STATUS_ICON[status], 12) : null, col.numeric && typeof v === 'number' ? fmt.number(v) : (v ?? '—'));
+  };
+  card.append(h('div', { class: 'chart-body table-wrap' }, h('table', { class: 'data-table compact dash-table' },
+    h('thead', {}, h('tr', {}, w.columns.map((c) => h('th', { class: c.numeric ? 'num' : null }, c.name)))),
+    h('tbody', {}, w.rows.map((r) => h('tr', {}, r.map((v, i) => cellOf(w.columns[i], v))))),
+    w.totals ? h('tfoot', {}, h('tr', {}, w.columns.map((c, i) => h('td', { class: c.numeric ? 'num' : null },
+      c.numeric ? fmt.number(w.totals[c.name]) : i === 0 ? 'Total' : '')))) : null)));
+  return card;
+}
+
+/** Cartão certo para cada widget publicado (dashboard e painel de insights). */
+export function visualCard(w, opts = {}) {
+  if (w.widget_type === 'kpi') return kpiTile(w, opts);
+  if (w.widget_type === 'table') return tableCard(w, opts);
+  return chartCard(w, opts);
 }
 
 // ------------------------------------------------------------------ página
@@ -130,13 +244,12 @@ function visualEl(item, w, { editing, exporting }) {
   const f = item.format || {};
   if (!w) {
     if (!editing) return null;
-    return h('article', { class: 'dash-placeholder' }, icon(node?.type === 'bi.kpi_card' ? 'gauge' : 'chart', 22),
+    return h('article', { class: 'dash-placeholder' }, icon(store.tools[node?.type]?.icon || 'chart', 22),
       h('strong', {}, nodeLabel(item.node_id)),
       h('span', {}, node?.disabled ? 'Caixa desativada no fluxo' : 'Execute o fluxo para ver este visual'));
   }
-  if (w.widget_type === 'kpi') return kpiTile(w, { className: 'fill', fmt: f });
-  const actions = exporting || editing ? [] : [button({ icon: 'download', title: 'Baixar imagem deste visual (PNG)', size: 'sm', variant: 'ghost', onClick: () => exportVisual(item) })];
-  return chartCard(w, { width: item.w, height: Math.max(80, item.h - chartChrome(f)), className: 'fill', actions, fmt: f });
+  const actions = exporting || editing || w.widget_type === 'kpi' ? [] : [button({ icon: 'download', title: 'Baixar imagem deste visual (PNG)', size: 'sm', variant: 'ghost', onClick: () => exportVisual(item) })];
+  return visualCard(w, { width: item.w, height: Math.max(80, item.h - chartChrome(f)), className: 'fill', actions, fmt: f });
 }
 
 /** Texto, imagem e forma (RF-1440..RF-1442). O texto entra como texto puro, nunca como HTML. */
@@ -263,8 +376,11 @@ export function render() {
       h('span', {}, 'Adicione nós Chart ou KPI Card (categoria BI e indicadores) ao fluxo e execute.')));
     return;
   }
-  if (editing && !formats) {
-    api.dashboardFormats().then((f) => { formats = f; render(); }).catch((err) => toastError(err, 'Não foi possível carregar o painel Formato'));
+  // Carrega o painel Formato já na primeira visita, para o modo Editar abrir pronto (sem redesenhar no meio).
+  if (!formats && !loadingFormats) {
+    loadingFormats = api.dashboardFormats()
+      .then((f) => { formats = f; if (ui.mode === 'edit') render(); })
+      .catch((err) => { loadingFormats = null; toastError(err, 'Não foi possível carregar o painel Formato'); });
   }
   const fit = Math.max(0.2, (root.clientWidth - 48 - (editing ? PANEL_W + 16 : 0)) / PAGE_W);
   ui.scale = editing && ui.zoom ? ui.zoom : Math.min(fit, 1.5);
@@ -325,7 +441,8 @@ function panelEl() {
 
 function formatKind(item) {
   if (item.kind !== 'visual') return item.kind;
-  return widgetsByNode()[item.node_id]?.widget_type === 'kpi' || nodeOf(item.node_id)?.type === 'bi.kpi_card' ? 'kpi' : 'chart';
+  const type = widgetsByNode()[item.node_id]?.widget_type || { 'bi.kpi_card': 'kpi', 'bi.table': 'table' }[nodeOf(item.node_id)?.type];
+  return type === 'kpi' || type === 'table' ? type : 'chart';
 }
 
 function itemPanel(item) {
@@ -335,15 +452,24 @@ function itemPanel(item) {
   const widget = widgetsByNode()[item.node_id];
   const f = item.format || {};
   const surface = hex(f.background) || hex(cssVar('--surface'));
-  const onChange = ([name], value) => {
-    if (ctrl.has(name)) els.panelKey = null;
+  // `path` vem do formulário: [campo] ou, em listas (regras de cor), [campo, índice, subcampo].
+  const onChange = (path, value) => {
+    const [name] = path;
+    // Mudou o que aparece no painel (campo que controla outros, ou item adicionado/removido): refaz o painel.
+    if (ctrl.has(name) || (path.length === 1 && Array.isArray(value))) els.panelKey = null;
     commitLayout((dd) => {
       const it = dd.items.find((i) => i.id === item.id);
-      if (it) it.format = { ...it.format, [name]: value };
-    }, { key: `fmt:${item.id}:${name}` });
+      if (it) it.format = setIn(structuredClone(it.format || {}), path, value);
+    }, { key: `fmt:${item.id}:${path.join('.')}` });
   };
+  // "Cor por categoria" pinta o que tem cor no visual: séries, conjuntos do Venn ou categorias.
+  const colored = widget?.widget_type === 'venn' ? widget.sets.map((s) => s.name)
+    : widget?.series_names?.length ? widget.series_names
+      : widget?.chart_type === 'scatter' ? [...new Set((widget.points || []).map((p) => p.s).filter((s) => s !== undefined))]
+        : widget?.series?.map((s) => s.label) || [];
   const ctx = {
-    categories: widget?.series?.map((s) => s.label) || [],
+    categories: colored,
+    columns: () => (widget?.columns || []).filter((c) => c.numeric).map((c) => ({ name: c.name, type: 'Float64' })),
     contrastFor: (name) => {
       if (['color', 'category_colors'].includes(name) && kind === 'chart') return { against: surface, min: 3, what: 'o fundo do cartão' };
       if (name === 'value_color') return { against: surface, min: 4.5, what: 'o fundo do cartão' };
@@ -368,6 +494,17 @@ function itemPanel(item) {
     item.kind === 'text' ? textContentField(item) : null,
     item.kind === 'image' ? imageField(item) : null,
     renderFields(fields, f, onChange, ctx));
+}
+
+/** Atribui `value` no caminho dentro de `obj` (cria listas e objetos no caminho) e devolve `obj`. */
+function setIn(obj, path, value) {
+  let cur = obj;
+  path.slice(0, -1).forEach((key, i) => {
+    if (cur[key] === undefined || cur[key] === null) cur[key] = typeof path[i + 1] === 'number' ? [] : {};
+    cur = cur[key];
+  });
+  cur[path.at(-1)] = value;
+  return obj;
 }
 
 function textContentField(item) {

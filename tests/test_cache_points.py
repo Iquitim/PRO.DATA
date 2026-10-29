@@ -9,7 +9,8 @@ from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
 
-UPSTREAM = {"n_clientes", "n_cleanse", "n_formula", "n_filter", "n_vendas", "n_sum_vendas"}
+# n_vendas também alimenta os visuais de vendas (spec 014): outro ramo precisa dela, então ela roda.
+UPSTREAM = {"n_clientes", "n_cleanse", "n_formula", "n_filter", "n_sum_vendas"}
 
 
 def _point(demo: Workflow, node_id: str = "n_join") -> Workflow:
@@ -24,7 +25,7 @@ def test_cache_point_skips_everything_before_it(runner: WorkflowRunner, demo: Wo
     second = runner.run(wf).node_results
     assert second["n_join"].status == "cached" and second["n_join"].extra["cache_point"] == "frozen"
     held = {k for k, r in second.items() if r.extra.get("held")}
-    assert held >= UPSTREAM
+    assert held >= UPSTREAM and "n_vendas" not in held
     # O que vem depois continua funcionando com o resultado congelado.
     assert second["n_kpi"].status in ("executed", "cached")
     assert second["n_join"].anchors["J"].row_count == first["n_join"].anchors["J"].row_count

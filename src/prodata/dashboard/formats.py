@@ -124,6 +124,33 @@ class ChartFormat(CardFormat):
     )
 
 
+RULES = "Cores por faixa"
+_OPS = {
+    "lt": "menor que",
+    "le": "menor ou igual a",
+    "gt": "maior que",
+    "ge": "maior ou igual a",
+    "eq": "igual a",
+}
+_STATUS = {"good": "Bom (verde)", "warning": "Atenção (amarelo)", "critical": "Crítico (vermelho)"}
+
+
+class ValueRule(_Format):
+    """Formatação condicional (RF-1414): cor de status com ícone, nunca só a cor."""
+
+    op: Literal["lt", "le", "gt", "ge", "eq"] = Field(
+        "lt", title="Quando o valor for", json_schema_extra=ui(labels=_OPS)
+    )
+    value: float = Field(0, title="Valor")
+    status: Literal["good", "warning", "critical"] = Field(
+        "critical", title="Marcar como", json_schema_extra=ui(labels=_STATUS)
+    )
+
+
+class ColumnRule(ValueRule):
+    column: str = Field("", title="Coluna", json_schema_extra=ui(widget="column"))
+
+
 class KpiFormat(CardFormat):
     value_size: int = Field(30, ge=16, le=96, title="Tamanho do número")
     value_color: Color = Field("", title="Cor do número", json_schema_extra=ui(widget="color"))
@@ -131,10 +158,27 @@ class KpiFormat(CardFormat):
         "left", title="Alinhamento", json_schema_extra=ui(labels={"left": "Esquerda", "center": "Centro"})
     )
     show_footer: bool = Field(True, title="Mostrar rodapé (métrica e linhas)")
+    value_rules: list[ValueRule] = Field(
+        default_factory=list,
+        title="Regras",
+        description="A primeira regra que valer marca o indicador.",
+        json_schema_extra=ui(group=RULES),
+    )
 
 
-class VisualFormat(ChartFormat, KpiFormat):
-    """Validação no arquivo: um visual pode ser gráfico ou KPI."""
+class TableFormat(CardFormat):
+    zebra: bool = Field(True, title="Linhas alternadas")
+    compact: bool = Field(False, title="Linhas compactas")
+    rules: list[ColumnRule] = Field(
+        default_factory=list,
+        title="Regras",
+        description="Pinta o fundo da célula; a primeira regra que valer para a coluna é usada.",
+        json_schema_extra=ui(group=RULES),
+    )
+
+
+class VisualFormat(ChartFormat, KpiFormat, TableFormat):
+    """Validação no arquivo: um visual pode ser gráfico, KPI ou tabela."""
 
 
 class TextFormat(_Format):
@@ -185,6 +229,7 @@ class ShapeFormat(_Format):
 FORMATS: dict[str, type[_Format]] = {
     "chart": ChartFormat,
     "kpi": KpiFormat,
+    "table": TableFormat,
     "text": TextFormat,
     "image": ImageFormat,
     "shape": ShapeFormat,

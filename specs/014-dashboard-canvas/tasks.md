@@ -23,17 +23,17 @@ o PNG sobre os visuais de hoje; depois a formatação; por fim os tipos novos.
 
 ## Fase 3 — Visuais novos
 
-- [ ] T13 KPI: comparação com meta ou período anterior, variação e tendência no motor; testes (RF-1420..RF-1423)
-- [ ] T14 Big number rico e medidor no front (RF-1421..RF-1423, RF-1432)
-- [ ] T15 Chart com segunda dimensão: empilhado, agrupado, 100%, multi-linha, área; testes (RF-1430)
-- [ ] T16 Pareto: acumulado e destaque no motor; um só eixo Y, acumulado com rótulos diretos no front; testes (RF-1435)
-- [ ] T17 Ferramenta Venn: regiões nos dois modos, geometria proporcional para 2 conjuntos; testes (RF-1436, RF-1437)
-- [ ] T18 Dispersão e funil (RF-1431, RF-1432)
-- [ ] T19 Ferramenta Table + formatação condicional (RF-1433, RF-1414)
-- [ ] T20 Insights e modo tabela com os tipos novos (RF-1434)
+- [x] T13 KPI: comparação com meta ou período anterior, variação e tendência no motor; testes (RF-1420..RF-1423)
+- [x] T14 Big number rico e medidor no front (RF-1421..RF-1423, RF-1432)
+- [x] T15 Chart com segunda dimensão: empilhado, agrupado, 100%, multi-linha, área; testes (RF-1430)
+- [x] T16 Pareto: acumulado e destaque no motor; um só eixo Y, acumulado com rótulos diretos no front; testes (RF-1435)
+- [x] T17 Ferramenta Venn: regiões nos dois modos, geometria proporcional para 2 conjuntos; testes (RF-1436, RF-1437)
+- [x] T18 Dispersão e funil (RF-1431, RF-1432)
+- [x] T19 Ferramenta Table + formatação condicional (RF-1433, RF-1414)
+- [x] T20 Insights e modo tabela com os tipos novos (RF-1434)
 
 ## Fechamento
 
-- [ ] T21 Testes Playwright: layout persiste, organizar sem sobreposição, PNG igual à tela
-- [ ] T22 Fluxo de demonstração com dashboard montado (big numbers com variação, Pareto, Venn, empilhado, texto e logo)
+- [x] T21 Testes Playwright: layout persiste, organizar sem sobreposição, PNG igual à tela (rodados localmente com o Chrome instalado; fora da CI, que não tem navegador)
+- [x] T22 Fluxo de demonstração com dashboard montado (big numbers com variação, Pareto, Venn, empilhado, texto e logo)
 - [ ] T23 README, guia (novo capítulo "Montando o dashboard" com prints), versão 0.3.0, build e release
