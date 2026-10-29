@@ -24,6 +24,7 @@ from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
+from prodata.nodes import REGISTRY
 from prodata.samples.datasets import ensure_sample_datasets
 from prodata.samples.workflows import DEMO_WORKFLOW_ID, demo_workflow
 from prodata.services.workflows import WorkflowRepository
@@ -44,7 +45,7 @@ def build_services(settings: Settings) -> Services:
     queries = QueryStore(settings.queries_file)
     if settings.seed_samples:
         ensure_sample_datasets(settings.datasets_dir)
-        if not workflows.exists(DEMO_WORKFLOW_ID):
+        if not workflows.exists(DEMO_WORKFLOW_ID) or _uses_removed_tools(workflows.get(DEMO_WORKFLOW_ID)):
             workflows.save(Workflow.model_validate(demo_workflow()))
     return Services(
         settings=settings,
@@ -55,6 +56,11 @@ def build_services(settings: Settings) -> Services:
         connections=connections,
         queries=queries,
     )
+
+
+def _uses_removed_tools(workflow: Workflow) -> bool:
+    """Demonstração antiga (ex.: com as ferramentas de IA generativa removidas na spec 013)."""
+    return any(n.type not in REGISTRY for n in workflow.nodes)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

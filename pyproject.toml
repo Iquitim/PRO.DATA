@@ -1,6 +1,6 @@
 [project]
 name = "prodata"
-version = "0.2.0"
+version = "0.2.1"
 description = "Plataforma visual de pipelines de dados (ETL colunar, BI e AutoML) sobre Polars, DuckDB e Apache Arrow."
 readme = "README.md"
 requires-python = ">=3.14"

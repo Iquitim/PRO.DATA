@@ -8,7 +8,7 @@ import {
   alignNodes, distributeNodes, moveOutOfContainer, setCachePoint, setDisabled, wrapInContainer,
 } from './actions.js';
 import { copySelection, cutSelection, hasClipboard, paste } from './clipboard.js';
-import { $, clear, fmt, h, persist, storage } from './dom.js';
+import { $, clear, debounce, fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import {
   checkpoint, commit, emit, inspect, isSelected, node, nodeResult, on, select, selectedIds, selectMany, sourceLabel,
@@ -360,15 +360,41 @@ function moveNodeEl(n) {
 
 // ------------------------------------------------------------------ hit testing
 
+/**
+ * Pontos de cada fio calculados pela fórmula da curva (mesma de `curve`), sem consultar o SVG.
+ * getTotalLength/getPointAtLength forçavam layout a cada evento: arrastar uma caixa solta custava
+ * ~6 ms por movimento (38 ms numa CPU 4x mais lenta) e a caixa ficava para trás do cursor.
+ */
+function edgeSamples(steps) {
+  const byId = new Map(store.workflow.nodes.map((n) => [n.id, n]));
+  const out = [];
+  for (const e of store.workflow.edges) {
+    const s = byId.get(e.source);
+    const t = byId.get(e.target);
+    if (!s || !t) continue;
+    const a = portPoint(s, e.sourceHandle, true);
+    const b = portPoint(t, e.targetHandle, false);
+    const dx = Math.max(40, Math.abs(b.x - a.x) * 0.5);
+    const c1 = { x: a.x + dx, y: a.y };
+    const c2 = { x: b.x - dx, y: b.y };
+    const points = [];
+    for (let i = 1; i < steps; i += 1) {
+      const u = i / steps;
+      const v = 1 - u;
+      const k0 = v * v * v; const k1 = 3 * v * v * u; const k2 = 3 * v * u * u; const k3 = u * u * u;
+      points.push({ x: k0 * a.x + k1 * c1.x + k2 * c2.x + k3 * b.x, y: k0 * a.y + k1 * c1.y + k2 * c2.y + k3 * b.y });
+    }
+    out.push({ edge: e, points });
+  }
+  return out;
+}
+
 function edgeNear(world, tolerance = 16) {
   let best = null;
-  for (const g of els.svg.querySelectorAll('g.edge')) {
-    const path = g.querySelector('.edge-line');
-    const len = path.getTotalLength();
-    for (let i = 1; i < 24; i += 1) {
-      const p = path.getPointAtLength((len * i) / 24);
+  for (const { edge, points } of edgeSamples(24)) {
+    for (const p of points) {
       const d = Math.hypot(p.x - world.x, p.y - world.y);
-      if (d < tolerance / view.zoom && (!best || d < best.d)) best = { id: g.dataset.edge, d };
+      if (d < tolerance / view.zoom && (!best || d < best.d)) best = { id: edge.id, d };
     }
   }
   return best?.id || null;
@@ -380,14 +406,10 @@ function edgeNear(world, tolerance = 16) {
  */
 function edgeThroughRect(rect, ignoreNodeId = null, pad = 12) {
   let best = null;
-  for (const g of els.svg.querySelectorAll('g.edge')) {
-    const edge = store.workflow.edges.find((e) => e.id === g.dataset.edge);
-    if (!edge || edge.source === ignoreNodeId || edge.target === ignoreNodeId) continue;
-    const path = g.querySelector('.edge-line');
-    const len = path.getTotalLength();
+  for (const { edge, points } of edgeSamples(40)) {
+    if (edge.source === ignoreNodeId || edge.target === ignoreNodeId) continue;
     let hits = 0;
-    for (let i = 1; i < 40; i += 1) {
-      const p = path.getPointAtLength((len * i) / 40);
+    for (const p of points) {
       if (p.x >= rect.x - pad && p.x <= rect.x + rect.w + pad && p.y >= rect.y - pad && p.y <= rect.y + rect.h + pad) hits += 1;
     }
     if (hits && (!best || hits > best.hits)) best = { id: edge.id, hits };
@@ -528,9 +550,27 @@ function onPointerDown(e) {
   }
 }
 
+// Mouses e canetas mandam 120–1000 movimentos por segundo, mais do que a tela desenha:
+// guarda só o último e processa uma vez por quadro.
+let pendingMove = null;
+let moveFrame = 0;
+
 function onPointerMove(e) {
   lastPointer = { x: e.clientX, y: e.clientY };
   if (!gesture) return;
+  pendingMove = e;
+  if (!moveFrame) moveFrame = requestAnimationFrame(flushMove);
+}
+
+function flushMove() {
+  if (moveFrame) cancelAnimationFrame(moveFrame);
+  moveFrame = 0;
+  const e = pendingMove;
+  pendingMove = null;
+  if (e && gesture) handleMove(e);
+}
+
+function handleMove(e) {
   const far = Math.hypot(e.clientX - gesture.startX, e.clientY - gesture.startY) > DRAG_THRESHOLD;
   if (!gesture.moved && !far) return;
   const world = toWorld(e.clientX, e.clientY);
@@ -605,6 +645,7 @@ function onPointerMove(e) {
 }
 
 function onPointerUp(e) {
+  if (pendingMove) flushMove(); // o último movimento antes de soltar não pode se perder
   const g = gesture;
   gesture = null;
   els.viewport.classList.remove('panning');
@@ -882,7 +923,7 @@ export function initCanvas(root, opts = {}) {
   root.addEventListener('pointerdown', onPointerDown);
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
-  root.addEventListener('pointercancel', () => { gesture = null; els.marquee.hidden = true; });
+  root.addEventListener('pointercancel', () => { gesture = null; pendingMove = null; els.marquee.hidden = true; });
   root.addEventListener('pointerleave', () => { lastPointer = null; });
   root.addEventListener('wheel', onWheel, { passive: false });
   root.addEventListener('contextmenu', onContextMenu);
@@ -914,7 +955,8 @@ export function initCanvas(root, opts = {}) {
   const saved = storage('prodata.view', null);
   if (saved) Object.assign(view, saved);
   applyView();
-  on('zoom', () => persist('prodata.view', view));
+  // Salva a posição só quando o movimento para (antes: a cada evento de arrastar a tela).
+  on('zoom', debounce(() => persist('prodata.view', view), 400));
 }
 
 export const currentZoom = () => view.zoom;

@@ -66,44 +66,6 @@ def _vendas(rng: np.random.Generator) -> pl.DataFrame:
     )
 
 
-def _tickets(rng: np.random.Generator) -> pl.DataFrame:
-    modelos = [
-        (
-            "O processamento do ETL caiu de 4 horas para 3 minutos. Equipe muito satisfeita, queremos expandir 20 licenças.",
-            "Alta",
-        ),
-        (
-            "Erro de timeout ao conectar no banco Oracle durante a madrugada. Precisamos de apoio urgente.",
-            "Crítica",
-        ),
-        (
-            "A interface facilitou a migração do time de BI; gostaríamos de faturamento parcelado no boleto.",
-            "Média",
-        ),
-        ("Excelente ferramenta! O modelo de previsão de demanda aumentou nossa acurácia em 18%.", "Baixa"),
-        (
-            "A fatura deste mês veio com cobrança duplicada. Vamos cancelar o contrato se não houver estorno hoje.",
-            "Crítica",
-        ),
-        ("O conector de IA economizou 30 horas semanais da equipe jurídica.", "Baixa"),
-        ("Lentidão ao carregar planilhas acima de 800MB na rede da filial do RJ.", "Alta"),
-        ("Queremos agendar treinamento de expressões e fórmulas para 15 novos analistas.", "Baixa"),
-    ]
-    rows = []
-    for i in range(120):
-        texto, prioridade = modelos[i % len(modelos)]
-        rows.append(
-            {
-                "id_ticket": f"TCK-{8000 + i}",
-                "id_cliente": f"CLI-{1000 + (i * 3) % 450}",
-                "prioridade": prioridade,
-                "relato_cliente": texto,
-                "tempo_resposta_horas": round(float(rng.uniform(0.5, 36.0)), 1),
-            }
-        )
-    return pl.DataFrame(rows)
-
-
 def _metas_regionais(path: Path) -> None:
     """CSV no padrão de planilhas brasileiras: ';', vírgula decimal e Windows-1252."""
     linhas = ["uf;região;meta_mrr;margem_alvo;gerente"]
@@ -157,7 +119,6 @@ def ensure_sample_datasets(data_dir: Path) -> None:
     builders = {
         "clientes_enterprise.csv": _clientes,
         "transacoes_vendas.csv": _vendas,
-        "tickets_suporte_ia.csv": _tickets,
     }
     for name, build in builders.items():
         df = build(rng)  # sempre consome o gerador, para manter os dados estáveis

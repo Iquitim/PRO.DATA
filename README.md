@@ -19,9 +19,10 @@ localmente.
   arquivos do projeto.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo
   pode ser salvo e aberto de qualquer pasta (*Salvar como…* / *Abrir arquivo…*).
-- **22 ferramentas** na paleta, em 6 famílias: entrada/saída, preparação, junção e
-  agregação (Join com saídas L/J/R, Filter com T/F, Unique com U/D, SQL via
-  DuckDB), BI, Machine Learning (scikit-learn) e enriquecimento de texto.
+- **26 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
+  Text To Columns, Record ID e Running Total), combinação e transformação (Join
+  com saídas L/J/R, Cross Tab, Transpose, Append Fields, Summarize, Union, SQL via
+  DuckDB), BI e Machine Learning (scikit-learn).
 - **Ponto de cache** (como o "Cache and Run" do Alteryx): congela o resultado de
   uma caixa — inclusive em disco — e dispensa tudo o que vem antes dela até alguma
   caixa anterior mudar. Ideal para consultas a banco e arquivos grandes.
@@ -127,6 +128,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [010](specs/010-abas-formulas-fechamento/spec.md) | Abas de fluxos, editor de fórmulas com cores e autocompletar, fechamento seguro; corrige o Salvar como no executável |
 | [011](specs/011-planilhas-identidade/spec.md) | Abas e recorte de planilhas (pular linhas/colunas); identidade visual Grupo Protege |
 | [012](specs/012-selecao-cache-portas/spec.md) | Seleção múltipla, ponto de cache e dados de entrada por porta; remove o assistente de fluxo |
+| [013](specs/013-ferramentas-desempenho/spec.md) | Select com Todas/Nenhuma/Inverter, 6 ferramentas novas (Cross Tab, Transpose, Text To Columns, Record ID, Running Total, Append Fields), remove a IA generativa, canvas mais responsivo |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 
@@ -220,9 +222,6 @@ Variáveis de ambiente (ou `.env`, ver `.env.example`): `PRODATA_HOST`,
 
 ## Limitações conhecidas
 
-- **Enriquecimento de texto** (Prompt Column, Text Extractor) usa o provedor
-  `local-heuristic`: regras determinísticas que simulam a saída de um LLM. Um
-  provedor real deve ler a chave de API de variável de ambiente.
 - Modelos de ML ficam só em memória (não são serializados em disco) e são
   retreinados após reiniciar o servidor.
 - Aplicação local e de usuário único: não há autenticação.

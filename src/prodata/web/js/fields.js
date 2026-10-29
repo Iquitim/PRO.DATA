@@ -339,22 +339,37 @@ function selectColumns(field, value, set, ctx) {
   }
   const rules = new Map((value || []).map((r) => [r.name, r]));
   const current = (name) => ({ name, keep: true, rename: '', cast: '', ...rules.get(name) });
-  const save = (name, patch) => {
-    const next = cols.map((c) => (c.name === name ? { ...current(c.name), ...patch } : current(c.name)))
-      .filter((r) => !r.keep || r.rename || r.cast);
-    set(next);
-  };
-  return h('div', { class: 'select-table' },
-    h('div', { class: 'select-row head' }, h('span', {}, ''), h('span', {}, 'Coluna'), h('span', {}, 'Renomear'), h('span', {}, 'Tipo')),
-    cols.map((c) => {
-      const r = current(c.name);
-      return h('div', { class: ['select-row', !r.keep && 'dropped'] },
-        h('input', { type: 'checkbox', checked: r.keep, 'aria-label': `Manter ${c.name}`, onchange: (e) => save(c.name, { keep: e.target.checked }) }),
-        h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})` }, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
-        h('input', { class: 'input input-sm mono', value: r.rename, placeholder: '—', onchange: (e) => save(c.name, { rename: e.target.value.trim() }) }),
-        h('select', { class: 'input input-sm', onchange: (e) => save(c.name, { cast: e.target.value }) },
-          CASTS.map(([v, l]) => h('option', { value: v, selected: v === r.cast }, l))));
-    }));
+  // Só guarda o que difere do padrão (manter, sem renomear, sem converter).
+  const store = (rows) => set(rows.filter((r) => !r.keep || r.rename || r.cast));
+  const save = (name, patch) => store(cols.map((c) => (c.name === name ? { ...current(c.name), ...patch } : current(c.name))));
+  const setAll = (keep) => store(cols.map((c) => ({ ...current(c.name), keep: typeof keep === 'function' ? keep(current(c.name)) : keep })));
+
+  const kept = cols.filter((c) => current(c.name).keep).length;
+  const master = h('input', {
+    type: 'checkbox', checked: kept === cols.length, 'aria-label': 'Marcar ou desmarcar todas as colunas',
+    title: kept === cols.length ? 'Desmarcar todas' : 'Selecionar todas',
+    onchange: () => setAll(kept !== cols.length),
+  });
+  master.indeterminate = kept > 0 && kept < cols.length;
+  return h('div', { class: 'stack-xs' },
+    // Selecionar tudo / desmarcar tudo / inverter (spec 013).
+    h('div', { class: 'select-tools' },
+      h('span', { class: 'select-count' }, `${kept} de ${cols.length} colunas mantidas`),
+      h('div', { class: 'row gap-0' },
+        button({ label: 'Todas', size: 'sm', variant: 'ghost', title: 'Selecionar todas as colunas', disabled: kept === cols.length, onClick: () => setAll(true) }),
+        button({ label: 'Nenhuma', size: 'sm', variant: 'ghost', title: 'Desmarcar todas as colunas', disabled: kept === 0, onClick: () => setAll(false) }),
+        button({ label: 'Inverter', size: 'sm', variant: 'ghost', title: 'Inverter a seleção', onClick: () => setAll((r) => !r.keep) }))),
+    h('div', { class: 'select-table' },
+      h('div', { class: 'select-row head' }, master, h('span', {}, 'Coluna'), h('span', {}, 'Renomear'), h('span', {}, 'Tipo')),
+      cols.map((c) => {
+        const r = current(c.name);
+        return h('div', { class: ['select-row', !r.keep && 'dropped'] },
+          h('input', { type: 'checkbox', checked: r.keep, 'aria-label': `Manter ${c.name}`, onchange: (e) => save(c.name, { keep: e.target.checked }) }),
+          h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})` }, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
+          h('input', { class: 'input input-sm mono', value: r.rename, placeholder: '—', onchange: (e) => save(c.name, { rename: e.target.value.trim() }) }),
+          h('select', { class: 'input input-sm', onchange: (e) => save(c.name, { cast: e.target.value }) },
+            CASTS.map(([v, l]) => h('option', { value: v, selected: v === r.cast }, l))));
+      })));
 }
 
 // ------------------------------------------------------------------ Text Input: grade editável

@@ -12,7 +12,7 @@ critérios de aceite (ver `.specify/memory/constitution.md`).
 ## 2. Declare a ferramenta
 
 No módulo da família certa em `src/prodata/nodes/` (`io`, `prep`, `transform`,
-`bi`, `ml`, `genai`):
+`bi`, `ml`, ou `reshape` para reformatação):
 
 ```python
 class RoundConfig(ToolConfig):

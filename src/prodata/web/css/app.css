@@ -604,3 +604,7 @@ code, kbd, pre, textarea, .mono, .code, .input.code, .input.mono { font-variant-
 .results-via .icon { color: var(--accent); }
 .multi-actions { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
 .multi-actions .btn { justify-content: flex-start; }
+
+/* Select: selecionar tudo / nenhuma / inverter (spec 013) */
+.select-tools { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; }
+.select-count { font-size: 11.5px; color: var(--text-2); }

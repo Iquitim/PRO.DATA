@@ -6,7 +6,7 @@ from prodata.samples.workflows import DEMO_WORKFLOW_ID
 def test_catalog(client: TestClient) -> None:
     data = client.get("/api/catalog").json()
     assert len(data["tools"]) >= 21
-    assert {c["id"] for c in data["categories"]} >= {"inout", "prep", "transform", "bi", "ml", "genai"}
+    assert {c["id"] for c in data["categories"]} >= {"inout", "prep", "transform", "bi", "ml"}
 
 
 def test_index_is_served(client: TestClient) -> None:

@@ -196,12 +196,11 @@ def demo_workflow() -> dict[str, Any]:
                 prediction_column="risco_inadimplencia",
                 probability_column="confianca_pct",
             ),
-            _node("n_genai", "genai.llm_prompt", "Próxima ação", 7, 510, output_column="proxima_acao"),
             _node(
                 "n_output",
                 "io.output_data",
                 "Exportar",
-                8,
+                7,
                 510,
                 filename="clientes_pontuados",
                 format="parquet",
@@ -224,7 +223,6 @@ def demo_workflow() -> dict[str, Any]:
             _edge("e14", "n_join", "J", "n_trainer"),
             _edge("e15", "n_trainer", "M", "n_predictor", "M"),
             _edge("e16", "n_join", "J", "n_predictor", "D"),
-            _edge("e17", "n_predictor", "out", "n_genai"),
-            _edge("e18", "n_genai", "out", "n_output"),
+            _edge("e17", "n_predictor", "out", "n_output"),
         ],
     }

@@ -30,7 +30,6 @@ CATEGORIES: list[dict[str, str]] = [
     {"id": "transform", "label": "Combinar e transformar"},
     {"id": "bi", "label": "BI e indicadores"},
     {"id": "ml", "label": "Machine Learning"},
-    {"id": "genai", "label": "IA generativa"},
 ]
 
 

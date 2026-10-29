@@ -35,7 +35,6 @@
   --cat-transform: #6d4fc9;
   --cat-bi: #b7740f;
   --cat-ml: #138496;
-  --cat-genai: #b8457e;
 
   /* Paleta categórica de gráficos (ordem fixa, validada para daltonismo). */
   --series-1: #2a78d6;
@@ -105,7 +104,6 @@
     --cat-transform: #9b82ea;
     --cat-bi: #e0a23c;
     --cat-ml: #2fb3c4;
-    --cat-genai: #e07aac;
     --series-1: #3987e5;
     --series-2: #d95926;
     --series-3: #199e70;
@@ -157,7 +155,6 @@
   --cat-transform: #9b82ea;
   --cat-bi: #e0a23c;
   --cat-ml: #2fb3c4;
-  --cat-genai: #e07aac;
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
@@ -185,5 +182,4 @@
 [data-category="transform"] { --cat: var(--cat-transform); }
 [data-category="bi"] { --cat: var(--cat-bi); }
 [data-category="ml"] { --cat: var(--cat-ml); }
-[data-category="genai"] { --cat: var(--cat-genai); }
 [data-category="org"] { --cat: #64748b; }

@@ -60,6 +60,7 @@
   .avoid { break-inside: avoid; }
   code, kbd { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
   tr { break-inside: avoid; }
+  tr:has(.tag) { break-after: avoid; }  /* rótulo de grupo não fica sozinho no fim da página */
 
   figure { margin: 10pt 0 12pt; break-inside: avoid; }
   figure .frame { border: 1px solid var(--line); border-radius: 6pt; overflow: hidden; box-shadow: 0 4pt 14pt rgb(20 20 15 / 0.08); position: relative; }
@@ -124,7 +125,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.2.0 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.2.1 · Windows</span><span>Outubro de 2026</span></div>
   </div>
 </section>
 
@@ -136,7 +137,7 @@
   <p>Em vez de fórmulas espalhadas por várias abas, você monta um <strong>fluxo</strong>: caixas ligadas por linhas, em que cada caixa faz uma coisa (ler um arquivo, limpar, filtrar, juntar, calcular, resumir, gerar um gráfico). O fluxo fica salvo, pode ser executado de novo com dados novos em segundos e mostra o resultado de <strong>cada etapa</strong>, então dá para ver exatamente de onde veio cada número.</p>
 
   <div class="stat-row">
-    <div class="stat"><b>22</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
+    <div class="stat"><b>26</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
     <div class="stat"><b>6</b><span>formatos de arquivo + PostgreSQL e SQL Server</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
     <div class="stat"><b>100%</b><span>local: funciona offline, os dados ficam na sua máquina</span></div>
@@ -265,7 +266,7 @@
 <section class="chapter">
   <div class="eyebrow">5 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
-  <p class="intro">22 ferramentas em seis famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <p class="intro">26 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
     <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
@@ -280,18 +281,20 @@
     <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
     <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
     <tr><td class="tool">Sort · Sample</td><td>Ordena; tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
+    <tr><td class="tool">Text To Columns</td><td>Divide um texto por um separador em novas colunas ou linhas (ex.: "SP - São Paulo").</td></tr>
+    <tr><td class="tool">Record ID · Running Total</td><td>Numera as linhas; calcula soma acumulada, recomeçando a cada grupo se quiser.</td></tr>
     <tr><td colspan="2"><span class="tag">Combinar e transformar</span></td></tr>
     <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R.</td></tr>
     <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, contagens, mínimo e máximo.</td></tr>
     <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
+    <tr><td class="tool">Cross Tab · Transpose</td><td>Tabela dinâmica (valores de uma coluna viram colunas) e o inverso (colunas viram linhas).</td></tr>
+    <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
     <tr><td class="tool">SQL</td><td>Para quem conhece SQL: consulta livre sobre os dados do fluxo.</td></tr>
     <tr><td colspan="2"><span class="tag">BI e indicadores</span></td></tr>
     <tr><td class="tool">Chart · KPI Card</td><td>Gráficos (colunas, barras, linha, rosca) e indicadores para o Dashboard.</td></tr>
     <tr><td colspan="2"><span class="tag">Machine Learning</span></td></tr>
     <tr><td class="tool">Train/Test Split</td><td>Divide os dados em treino e teste.</td></tr>
     <tr><td class="tool">Model Trainer · Predictor</td><td>Treina modelos de classificação ou regressão e aplica a novos dados, com acurácia medida em dados de validação.</td></tr>
-    <tr><td colspan="2"><span class="tag">Enriquecimento de texto</span></td></tr>
-    <tr><td class="tool">Prompt Column · Text Extractor</td><td>Classificam e extraem sinais de textos livres (ex.: sentimento e tópico de chamados). Ver limitações no capítulo 11.</td></tr>
   </table>
 
   <h3>Configurando uma caixa</h3>
@@ -434,8 +437,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.2.0-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.2.0-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.2.1-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.2.1-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
   </div>
   <h3>Requisitos</h3>
   <table>
@@ -462,7 +465,7 @@
     <div>
       <h3>Incluído nesta versão</h3>
       <ul class="scope-in">
-        <li>Fluxos visuais com 22 ferramentas</li>
+        <li>Fluxos visuais com 26 ferramentas</li>
         <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
         <li>Consultas a PostgreSQL e SQL Server (tabela ou SQL)</li>
         <li>Exportação para Excel, CSV, Parquet, JSON e Arrow, em qualquer pasta</li>
@@ -491,7 +494,6 @@
   <table>
     <tr><th style="width:30%">Limitação</th><th>O que significa na prática</th></tr>
     <tr><td class="tool">Volume de dados</td><td>As tabelas são carregadas inteiras na memória do computador. O limite prático depende da RAM disponível; bases muito grandes (dezenas de milhões de linhas) ainda não foram validadas e podem exigir uma máquina com mais memória.</td></tr>
-    <tr><td class="tool">Enriquecimento de texto</td><td>As ferramentas <em>Prompt Column</em> e <em>Text Extractor</em> usam regras locais que <strong>simulam</strong> uma IA generativa — servem para demonstrar o processo, não substituem um modelo de linguagem real.</td></tr>
     <tr><td class="tool">Modelos de ML</td><td>Ficam em memória e são treinados novamente quando o programa é reaberto (sem impacto no resultado, só no tempo da primeira execução).</td></tr>
     <tr><td class="tool">Aviso do Windows</td><td>O instalador ainda não é assinado digitalmente; por isso o SmartScreen mostra "Editor desconhecido" na primeira execução.</td></tr>
     <tr><td class="tool">Filtros exploratórios</td><td>São lembrados enquanto o programa está aberto e não são salvos com o fluxo (por definição, são exploração; use "Criar nó Filter" para torná-los permanentes).</td></tr>
