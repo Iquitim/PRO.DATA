@@ -5,7 +5,7 @@ import {
   setContainerEnabled, toggleDisabled, updateConfig, updateContainer,
 } from './actions.js';
 import { api } from './api.js';
-import { cacheActions, NODE_W, nodeHeight, selectionActions } from './canvas.js';
+import { cacheActions, heldBy, NODE_W, nodeHeight, selectionActions } from './canvas.js';
 import { connectionTables, openConnectionDialog, openQueryEditor, refreshQueries, slug } from './connections.js';
 import { chooseFolder, isDesktop, reveal } from './desktop.js';
 import { button, debounce, fmt, h } from './dom.js';
@@ -14,7 +14,7 @@ import { renderFields } from './fields.js';
 import { formatOf, openPreview } from './datasets.js';
 import { icon } from './icons.js';
 import {
-  mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, sourceLabel, store, toolOf, upstreamColumns,
+  mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
 } from './store.js';
 import { showMenu, toast, toastError } from './ui.js';
 
@@ -129,10 +129,16 @@ function statusBanner(n) {
 function cacheBanner(n) {
   if (!n.cache_point) return null;
   const at = nodeResult(n.id)?.extra?.frozen_at;
+  // Só o resultado desta caixa é guardado; as anteriores ficam puladas (spec 016).
+  const skipped = [...heldBy()].filter(([, cp]) => cp.id === n.id).map(([id]) => node(id)).filter(Boolean);
+  const names = skipped.slice(0, 4).map((k) => k.label || toolOf(k)?.name).join(', ') + (skipped.length > 4 ? '…' : '');
   return banner('cache', 'database', 'Ponto de cache',
-    at ? `Resultado guardado em ${new Date(at).toLocaleString('pt-BR')}. As caixas anteriores não executam enquanto nada mudar antes daqui.`
-      : 'Execute o fluxo para guardar o resultado desta caixa.',
+    at ? `Guarda só o resultado desta caixa (${new Date(at).toLocaleString('pt-BR')}). `
+      + (skipped.length ? `Por isso ${skipped.length} caixa(s) anterior(es) não executam enquanto nada mudar antes daqui: ${names}.`
+        : 'Nenhuma caixa anterior precisou ser pulada.')
+      : 'Execute o fluxo para guardar o resultado desta caixa. Depois, as caixas anteriores não precisam executar.',
     h('div', { class: 'row wrap' },
+      skipped.length ? button({ icon: 'target', label: `Mostrar as ${skipped.length} puladas`, size: 'sm', onClick: () => selectMany(skipped.map((k) => k.id)) }) : null,
       button({ icon: 'refresh', label: 'Atualizar cache', size: 'sm', onClick: () => handlers.refreshCache(n.id) }),
       button({ icon: 'x', label: 'Remover', size: 'sm', variant: 'ghost', onClick: () => cacheActions(n)[1].onSelect() })));
 }

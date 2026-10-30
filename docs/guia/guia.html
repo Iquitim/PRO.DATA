@@ -127,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.3.5 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.3.6 · Windows</span><span>Outubro de 2026</span></div>
   </div>
 </section>
 
@@ -475,6 +475,7 @@
   </div>
   <h3>Painéis do seu jeito</h3>
   <p>Os três painéis — ferramentas/configuração, resultados e gráficos — podem ser arrastados pela alça <span class="muted">⠿</span> para a esquerda, a direita ou embaixo, ou ocultados. O botão <strong>Painéis</strong>, na barra superior, reexibe e restaura o padrão. O arranjo é lembrado.</p>
+  <p><strong>Telas menores</strong>: os painéis encolhem na proporção da janela e a interface fica <strong>compacta</strong> sozinha em monitores menores (largura abaixo de 1440 ou altura abaixo de 800). No menu Painéis dá para fixar a densidade: Automática, Confortável ou Compacta.</p>
   <figure class="narrow">
     <div class="frame"><img src="img/layoutAlt.png" alt="Arranjo alternativo dos painéis"></div>
     <figcaption>Um arranjo alternativo: resultados embaixo e gráficos empilhados à direita.</figcaption>
@@ -485,7 +486,7 @@
   <p><strong>Salvar</strong> guarda o fluxo na biblioteca do PRO.DATA. <strong>Salvar como…</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) grava um arquivo <code>.prodata.json</code> na pasta que você escolher — do projeto, da rede ou do OneDrive — e daí em diante <kbd>Ctrl</kbd>+<kbd>S</kbd> salva nele. <strong>Abrir arquivo…</strong> abre fluxos de qualquer pasta, e os recentes ficam listados. No <em>Output Data</em>, o campo <strong>Pasta de destino</strong> abre o seletor de pastas do Windows; depois de executar, o botão "Mostrar na pasta" leva até o arquivo gerado.</p>
   <div class="avoid">
   <h3>Ponto de cache</h3>
-  <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: o resultado dela fica guardado (inclusive depois de fechar o programa) e as caixas anteriores deixam de executar — aparecem tracejadas, "em cache". Mudou algo antes do ponto? O cache se refaz sozinho. Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
+  <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: só o resultado dela fica guardado (inclusive depois de fechar o programa), e por isso as caixas anteriores deixam de executar — aparecem douradas e tracejadas, com "Pulada pelo cache", e a barra de status conta quantas foram puladas. O aviso da caixa lista as puladas e tem o botão <strong>Mostrar as puladas</strong>. Mudou algo antes do ponto? O cache se refaz sozinho. Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
   <figure>
     <div class="frame"><img src="img/cache-crop.png" alt="Ponto de cache no Join"></div>
     <figcaption>Ponto de cache no Join: as caixas anteriores aparecem "em cache" e a tabela mostra o que chega pela entrada [R].</figcaption>
@@ -514,8 +515,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.3.5-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.3.5-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.3.6-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.3.6-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
   </div>
   <h3>Requisitos</h3>
   <table>

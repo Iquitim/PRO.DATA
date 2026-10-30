@@ -179,7 +179,14 @@
   font: 700 9.5px var(--font); letter-spacing: .04em; text-transform: uppercase; box-shadow: var(--shadow-sm);
 }
 .node.cache-point .node-card { box-shadow: inset 0 -2px 0 var(--brand-gold, #a9852f), var(--shadow-sm); }
-/* antes de um ponto de cache: não executou nesta rodada */
-.node.status-held .node-card { opacity: .62; border-style: dashed; }
+/* antes de um ponto de cache: pulada nesta rodada (spec 016) */
+.node.status-held .node-card {
+  border: 1.5px dashed var(--brand-gold, #a9852f);
+  background: color-mix(in srgb, var(--brand-gold, #a9852f) 9%, var(--surface));
+}
+.node.status-held .node-annot { color: var(--brand-gold-strong, #866c33); font-weight: 600; }
+.node.status-held .node-icon { opacity: .7; }
 .node.status-held .node-status { background: var(--brand-gold, #a9852f); }
+.node.held-focus .node-card { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-gold, #a9852f) 35%, transparent), var(--shadow-sm); }
+g.edge.held .edge-line { stroke: var(--brand-gold, #a9852f); stroke-dasharray: 6 5; }
 .port.in { cursor: pointer; }

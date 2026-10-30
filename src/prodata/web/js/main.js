@@ -3,7 +3,7 @@
 import { duplicateNode, removeContainer, removeEdge, removeNodes } from './actions.js';
 import { api } from './api.js';
 import {
-  addContainerAtCenter, currentZoom, fitView, initCanvas, NODE_W, pointerWorld, render as renderCanvas, zoomBy,
+  addContainerAtCenter, currentZoom, fitView, heldBy, initCanvas, NODE_W, pointerWorld, render as renderCanvas, zoomBy,
 } from './canvas.js';
 import { copySelection, cutSelection, paste } from './clipboard.js';
 import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
@@ -13,7 +13,7 @@ import { basename, chooseOpenFile, chooseSaveFile, dirname } from './desktop.js'
 import {
   activeIndex, anyDirty, dirtyTabs, findTab, openTab, persistTabs, removeTab, savedTabs, switchTab, tabCount, tabInfo,
 } from './tabs.js';
-import { $, button, fmt, h, isTyping, persist, storage } from './dom.js';
+import { $, button, debounce, fmt, h, isTyping, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import { initInsights } from './insights.js';
 import { initInspector } from './inspector.js';
@@ -403,11 +403,14 @@ function buildStatusbar() {
     const results = Object.values(ex?.node_results || {});
     const errors = results.filter((r) => r.status === 'error').length;
     const stale = store.pending.size > 0 && ex && !store.running;
+    const skipped = ex ? heldBy().size : 0;
     left.replaceChildren(...[
       h('span', { class: ['status-dot', store.running ? 'busy' : errors ? 'error' : ex ? 'ok' : ''] }),
       store.running ? 'Executando…'
         : ex ? `${results.length} nós · ${fmt.ms(ex.total_elapsed_ms)}${errors ? ` · ${errors} com erro` : ''}` : 'Pronto',
       stale ? h('span', { class: 'muted' }, `· ${store.pending.size} alterado(s) desde a execução`) : null,
+      skipped && !store.running ? h('span', { class: 'status-held', title: 'Caixas antes de um ponto de cache: não precisaram executar' },
+        `· ${skipped} pulada(s) pelo cache`) : null,
     ].filter(Boolean));
   };
   on('running', draw);
@@ -466,15 +469,31 @@ function buildLeftPanel() {
 function setupResizers() {
   const rootStyle = document.documentElement.style;
   const sizes = storage('prodata.layout.v2', { left: 300, right: 460, dock: 280 });
+  // Cada tamanho vale para a janela em que foi escolhido (vw × vh; o padrão foi pensado para 1600 × 900).
+  // Numa janela menor, os painéis encolhem na mesma proporção e o canvas não fica espremido (spec 016);
+  // a preferência salva não muda e volta inteira numa tela maior.
+  const fitted = () => {
+    const kw = Math.min(1, innerWidth / (sizes.vw || 1600));
+    const kh = Math.min(1, innerHeight / (sizes.vh || 900));
+    return {
+      left: Math.max(220, Math.round(sizes.left * kw)),
+      right: Math.max(260, Math.round(sizes.right * kw)),
+      dock: Math.max(130, Math.round(sizes.dock * kh)),
+    };
+  };
   const apply = () => {
-    rootStyle.setProperty('--left-w', `${sizes.left}px`);
-    rootStyle.setProperty('--right-w', `${sizes.right}px`);
-    rootStyle.setProperty('--dock-h', `${sizes.dock}px`);
+    const s = fitted();
+    rootStyle.setProperty('--left-w', `${s.left}px`);
+    rootStyle.setProperty('--right-w', `${s.right}px`);
+    rootStyle.setProperty('--dock-h', `${s.dock}px`);
   };
   apply();
+  window.addEventListener('resize', debounce(apply, 80));
   for (const handle of document.querySelectorAll('[data-resize]')) {
     handle.addEventListener('pointerdown', (e) => {
       const key = handle.dataset.resize;
+      // Arrastar parte do tamanho que está na tela e passa a valer para a janela atual.
+      Object.assign(sizes, fitted(), { vw: innerWidth, vh: innerHeight });
       const start = { x: e.clientX, y: e.clientY, value: sizes[key] };
       handle.setPointerCapture(e.pointerId);
       document.body.classList.add('resizing');

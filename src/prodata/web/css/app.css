@@ -684,3 +684,39 @@ code, kbd, pre, textarea, .mono, .code, .input.code, .input.mono { font-variant-
 .x-join-part span { grid-area: label; font-weight: 600; }
 .x-join-part strong { grid-area: count; }
 .x-join-part small { grid-area: help; }
+.status-held { color: var(--brand-gold-strong, #866c33); font-weight: 600; }
+
+/* ------------------------------------------------------------------ densidade compacta (spec 016)
+   Liga sozinha em telas menores (largura < 1440 ou altura < 800) ou pelo menu Painéis. */
+html.compact { --topbar-h: 42px; --statusbar-h: 22px; --tabs-h: 28px; }
+html.compact body { font-size: 12px; }
+html.compact .pad { padding: 9px; }
+html.compact .btn { height: 27px; padding: 0 9px; }
+html.compact .btn-icon { padding: 0; width: 27px; }
+html.compact .btn-sm { height: 24px; }
+html.compact .input { height: 27px; }
+html.compact .tab { height: 32px; padding: 0 8px; }
+html.compact .inspector-header { padding-top: 8px; padding-bottom: 8px; }
+html.compact .inspector-desc { font-size: 11.5px; }
+html.compact .field { margin-bottom: 8px; }
+html.compact .insights-head { height: 32px; }
+html.compact .chart-card.insight { width: 320px; }
+html.compact .kpi.compact { width: 190px; }
+html.compact .brand-logo { height: 30px; width: auto; }
+html.compact .brand-org { font-size: 9px; }
+/* dashboard: botões só com ícone (o nome fica no título ao passar o mouse), menos o principal */
+html.compact .dash-actions .btn:not(.btn-primary) > span { display: none; }
+html.compact .dash-actions .btn:not(.btn-primary) { padding: 0; width: 30px; justify-content: center; }
+html.compact .dashboard { padding: 14px 16px; }
+html.compact .dash-head { margin-bottom: 12px; }
+html.compact .dash-head h1 { font-size: 17px; }
+html.compact .dash-logo { height: 36px; }
+html.compact .dash-panel { padding: 10px; }
+
+/* "Como funciona" recolhível */
+details.explainer > summary { list-style: none; cursor: pointer; }
+details.explainer > summary::-webkit-details-marker { display: none; }
+details.explainer:not([open]) { gap: 0; }
+details.explainer > summary .x-toggle { margin-left: auto; color: var(--text-3); transition: transform .15s; }
+details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
+.x-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }

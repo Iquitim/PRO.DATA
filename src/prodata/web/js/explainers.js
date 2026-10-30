@@ -3,7 +3,7 @@
 // resultado de verdade é o do motor. Passar o mouse num valor destaca para onde ele vai.
 
 import { api } from './api.js';
-import { fmt, h } from './dom.js';
+import { fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import { inspect, nodeResult, on, store } from './store.js';
 
@@ -179,9 +179,16 @@ function join(n, cfg, left, right) {
 
 // ------------------------------------------------------------------ montagem
 
-/** Bloco do esquema para a caixa; `refresh()` redesenha após mudar a configuração. */
+const OPEN_KEY = 'prodata.explainer.open';
+
+/** Bloco do esquema para a caixa; `refresh()` redesenha após mudar a configuração. Pode ser recolhido. */
 export function explainerEl(n, spec) {
-  const root = linkHover(h('section', { class: 'explainer', 'aria-label': 'Como funciona' }));
+  const note = h('span', { class: 'muted' });
+  const summary = h('summary', { class: 'x-head' }, icon('info', 14), h('strong', {}, 'Como funciona'), note,
+    h('span', { class: 'x-toggle' }, icon('chevron-right', 14)));
+  const body = h('div', { class: 'x-body' }, h('p', { class: 'muted' }, 'Montando o esquema…'));
+  const root = linkHover(h('details', { class: 'explainer', open: storage(OPEN_KEY, true) }, summary, body));
+  root.addEventListener('toggle', () => persist(OPEN_KEY, root.open));
   const draw = async () => {
     const cfg = store.workflow.nodes.find((k) => k.id === n.id)?.config || n.config || {};
     let out;
@@ -193,15 +200,12 @@ export function explainerEl(n, spec) {
       out = (spec.explainer === 'crosstab' ? crosstab : transpose)(cfg, rows?.length ? rows : null);
       out.sample = Boolean(rows?.length);
     }
-    root.replaceChildren(
-      h('header', { class: 'x-head' }, icon('info', 14), h('strong', {}, 'Como funciona'),
-        spec.explainer !== 'join' ? h('span', { class: 'muted' }, out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)') : null),
+    note.textContent = spec.explainer === 'join' ? '' : out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)';
+    body.replaceChildren(
       h('div', { class: spec.explainer === 'join' ? 'x-stack' : 'x-row' }, out.body),
       h('p', { class: 'x-caption' }, out.caption));
   };
   root.refresh = () => draw().catch(() => {});
-  root.append(h('p', { class: 'muted' }, 'Montando o esquema…'));
   root.refresh();
   return root;
 }
-

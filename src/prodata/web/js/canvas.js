@@ -129,10 +129,34 @@ function statusOf(n) {
   return res?.status || 'pending';
 }
 
+/**
+ * Caixas puladas por pontos de cache (spec 016): id da caixa → o ponto de cache que a dispensou.
+ * Só o resultado do ponto de cache é guardado; as caixas antes dele não executam enquanto nada mudar.
+ */
+export function heldBy() {
+  const out = new Map();
+  const parents = new Map();
+  for (const e of store.workflow?.edges || []) {
+    if (!parents.has(e.target)) parents.set(e.target, []);
+    parents.get(e.target).push(e.source);
+  }
+  for (const cp of (store.workflow?.nodes || []).filter((n) => n.cache_point && nodeResult(n.id)?.extra?.cache_point === 'frozen')) {
+    const stack = [...(parents.get(cp.id) || [])];
+    while (stack.length) {
+      const id = stack.pop();
+      if (out.has(id) || !nodeResult(id)?.extra?.held) continue;
+      out.set(id, cp);
+      stack.push(...(parents.get(id) || []));
+    }
+  }
+  return out;
+}
+let held = new Map(); // recalculado a cada desenho
+
 const STATUS_TITLES = {
   executed: 'Executado', cached: 'Executado (cache)', error: 'Erro', skipped: 'Não executado',
   disabled: 'Desabilitado', pending: 'Alterado desde a última execução',
-  held: 'Em cache: o ponto de cache adiante já tem o resultado',
+  held: 'Pulada: o ponto de cache adiante já tem o resultado, então esta caixa não precisou executar',
 };
 
 function portEl(n, port, output, count) {
@@ -155,8 +179,12 @@ function buildNode(n) {
   const status = statusOf(n);
   const inputs = (spec?.inputs || []).map((p, index) => ({ ...p, index }));
   const outputs = (spec?.outputs || []).map((p, index) => ({ ...p, index }));
+  const cp = held.get(n.id);
+  const annotation = status === 'error' ? 'Erro — veja a configuração'
+    : cp && status === 'held' ? 'Pulada pelo cache'
+      : res?.annotation || spec?.name || '';
   return h('div', {
-    class: ['node', `status-${status}`,
+    class: ['node', `status-${status}`, cp && store.selection.nodeId === cp.id && 'held-focus',
       isSelected(n.id) && 'selected',
       n.cache_point && 'cache-point',
       !store.inspect.via && store.inspect.nodeId === n.id && 'inspected'],
@@ -165,12 +193,14 @@ function buildNode(n) {
   },
   h('div', {
     class: 'node-card',
-    title: [n.label || spec?.name, res?.annotation, res?.error].filter(Boolean).join('\n'),
+    title: [n.label || spec?.name, res?.annotation, res?.error,
+      cp && status === 'held' ? `Não executou: o ponto de cache “${cp.label || toolOf(cp)?.name}” já tem o resultado.` : null,
+    ].filter(Boolean).join('\n'),
   },
   h('span', { class: 'node-icon' }, icon(spec?.icon || 'info', 16)),
   h('span', { class: 'node-text' },
     h('span', { class: 'node-label' }, n.label || spec?.name || n.type),
-    h('span', { class: 'node-annot' }, status === 'error' ? 'Erro — veja a configuração' : res?.annotation || spec?.name || '')),
+    h('span', { class: 'node-annot' }, annotation)),
   h('span', { class: 'node-status', title: STATUS_TITLES[status] })),
   n.cache_point ? h('span', {
     class: 'node-cache', title: res?.extra?.frozen_at
@@ -189,11 +219,13 @@ function nodeKey(n) {
   const res = nodeResult(n.id);
   return JSON.stringify([n.type, n.label, n.disabled, n.cache_point, statusOf(n), res?.annotation, res?.error,
     res?.extra?.frozen_at, isSelected(n.id), !store.inspect.via && store.inspect.nodeId === n.id && store.inspect.anchor,
+    held.get(n.id)?.id, held.get(n.id) && store.selection.nodeId === held.get(n.id).id,
     store.inspect.via?.nodeId === n.id && store.inspect.via.port]);
 }
 
 function renderNodes() {
   const wf = store.workflow;
+  held = heldBy();
   const alive = new Set();
   for (const n of wf.nodes) {
     alive.add(n.id);
@@ -231,7 +263,9 @@ function renderEdges() {
     const tele = store.execution?.edge_telemetry?.[e.id];
     const fresh = tele && !store.pending.has(e.source);
     const model = toolOf(s)?.outputs.find((p) => p.id === e.sourceHandle)?.kind === 'model';
-    paths.push(`<g class="edge${store.selection.edgeId === e.id ? ' selected' : ''}${model ? ' model' : ''}${fresh ? ' live' : ''}" data-edge="${e.id}">
+    // Ligação entre caixas puladas pelo cache (ou chegando no ponto de cache): tracejada em dourado.
+    const skipped = held.has(e.source) && (held.has(e.target) || held.get(e.source).id === e.target);
+    paths.push(`<g class="edge${store.selection.edgeId === e.id ? ' selected' : ''}${model ? ' model' : ''}${fresh ? ' live' : ''}${skipped ? ' held' : ''}" data-edge="${e.id}">
       <path class="edge-hit" d="${d}"/><path class="edge-line" d="${d}"/></g>`);
     const touchesSelection = [e.source, e.target].includes(store.selection.nodeId);
     if (fresh && tele.kind === 'data' && touchesSelection) {

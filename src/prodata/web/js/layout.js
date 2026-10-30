@@ -7,6 +7,25 @@ import { emit } from './store.js';
 import { showMenu } from './ui.js';
 
 const KEY = 'prodata.panels.v1';
+const DENSITY_KEY = 'prodata.density';
+const DENSITIES = { auto: 'Automática (compacta em telas menores)', comfortable: 'Confortável', compact: 'Compacta' };
+let density = storage(DENSITY_KEY, 'auto');
+
+/** Interface compacta em telas menores (spec 016): fontes, barras e espaçamentos menores. */
+export function applyDensity() {
+  const small = innerWidth < 1440 || innerHeight < 800;
+  const compact = density === 'compact' || (density === 'auto' && small);
+  const root = document.documentElement;
+  if (root.classList.contains('compact') === compact) return;
+  root.classList.toggle('compact', compact);
+  emit('density', compact);
+}
+
+function setDensity(value) {
+  density = value;
+  persist(DENSITY_KEY, value);
+  applyDensity();
+}
 const DND_PANEL = 'application/x-prodata-panel';
 
 export const PANELS = {
@@ -157,11 +176,17 @@ export function openPanelsMenu(anchor) {
       onSelect: () => togglePanel(id),
     })),
     'separator',
+    ...Object.entries(DENSITIES).map(([value, label]) => ({
+      label: `Densidade: ${label}`, icon: density === value ? 'check' : null, onSelect: () => setDensity(value),
+    })),
+    'separator',
     { label: 'Restaurar layout padrão', icon: 'refresh', onSelect: resetLayout },
   ]);
 }
 
 export function initLayout() {
+  applyDensity();
+  window.addEventListener('resize', applyDensity);
   for (const [id, p] of Object.entries(PANELS)) elements[id] = $(p.el);
   buildDropTargets();
   apply();
