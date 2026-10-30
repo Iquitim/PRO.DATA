@@ -175,8 +175,8 @@ export function renderDatasetsPanel(root) {
   };
   on('datasets', draw);
   const link = button({
-    icon: 'link', label: 'Vincular arquivo da rede ou do computador', size: 'sm',
-    title: 'Lê o arquivo onde ele está, sempre na versão atual (para planilhas atualizadas todo dia)',
+    icon: 'link', label: 'Vincular arquivo', size: 'sm', class: 'btn btn-sm link-file',
+    title: 'Vincular um arquivo da rede ou do computador: lido onde está, sempre na versão atual (para planilhas atualizadas todo dia)',
     onClick: linkFile,
   });
   root.replaceChildren(h('div', { class: 'pad stack-sm' }, drop, input, link,

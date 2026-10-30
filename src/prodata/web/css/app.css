@@ -735,3 +735,5 @@ details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
 .export-choice span { display: flex; flex-direction: column; }
 .switch-line { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .cache-refresh { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; font-size: 12px; }
+/* Vincular arquivo: ocupa a largura do painel e quebra a linha em vez de vazar (painel estreito) */
+.btn.link-file { width: 100%; justify-content: center; height: auto; min-height: 26px; white-space: normal; text-align: center; }
