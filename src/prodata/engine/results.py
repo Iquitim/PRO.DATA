@@ -138,3 +138,27 @@ def page(
         "profile_scope": "filtered" if narrowed else "all",
         "rows": json_rows(view.slice(offset, limit)),
     }
+
+
+def distinct_values(
+    cache: ResultCache, workflow_id: str, node_id: str, anchor: str, column: str, limit: int = 500
+) -> dict[str, Any]:
+    """Valores distintos de uma coluna da saída, do mais frequente ao menos (spec 015, RF-1503)."""
+    df = cache.table(workflow_id, node_id, anchor)
+    if df is None:
+        raise NotFoundError("Sem resultado para esta saída. Execute o fluxo.")
+    if column not in df.columns:
+        raise InvalidInputError(f"Coluna não encontrada: {column}")
+    counts = (
+        df.select(pl.col(column).cast(pl.String).alias("value"))
+        .drop_nulls()
+        .group_by("value")
+        .len("count")
+        .sort(["count", "value"], descending=[True, False])
+    )
+    return {
+        "column": column,
+        "distinct": counts.height,
+        "values": counts.head(limit).to_dicts(),
+        "truncated": counts.height > limit,
+    }

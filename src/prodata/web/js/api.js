@@ -94,6 +94,8 @@ export const api = {
 
   execute: (workflow, targetNodeId = null) =>
     request('POST', '/api/execute', { workflow, target_node_id: targetNodeId }),
+  columnValues: (wfId, nodeId, anchor, column, limit = 500) =>
+    request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}/values?${new URLSearchParams({ column, limit })}`),
   results: (wfId, nodeId, anchor, params) =>
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}?${new URLSearchParams(params)}`),
   validateFormula: (expression, columns) => request('POST', '/api/formula/validate', { expression, columns }),

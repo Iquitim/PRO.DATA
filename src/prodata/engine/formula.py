@@ -21,6 +21,15 @@ from typing import Any
 import duckdb
 import polars as pl
 
+# Unidade de data em inglês ou português ('dia', 'mês', 'ano'...), normalizada para o DuckDB.
+_UNIT = (
+    "CASE WHEN lower(u) IN ('day', 'days', 'dia', 'dias', 'd') THEN 'day' "
+    "WHEN lower(u) IN ('week', 'weeks', 'semana', 'semanas') THEN 'week' "
+    "WHEN lower(u) IN ('month', 'months', 'mes', 'mês', 'meses') THEN 'month' "
+    "WHEN lower(u) IN ('quarter', 'quarters', 'trimestre', 'trimestres') THEN 'quarter' "
+    "WHEN lower(u) IN ('year', 'years', 'ano', 'anos') THEN 'year' ELSE lower(u) END"
+)
+
 # nome Alteryx (minúsculo) -> (macro SQL, definição)
 ALTERYX_FUNCTIONS: dict[str, tuple[str, str]] = {
     "iif": ("ax_iif", "ax_iif(c, a, b) AS CASE WHEN c THEN a ELSE b END"),
@@ -42,6 +51,92 @@ ALTERYX_FUNCTIONS: dict[str, tuple[str, str]] = {
     "todate": ("ax_todate", "ax_todate(x) AS TRY_CAST(x AS DATE)"),
     "left": ("ax_left", "ax_left(s, n) AS left(CAST(s AS VARCHAR), n)"),
     "right": ("ax_right", "ax_right(s, n) AS right(CAST(s AS VARCHAR), n)"),
+    # Spec 015: funções comuns no Alteryx e no KNIME, com unidades de data também em português.
+    "trimleft": ("ax_trimleft", "ax_trimleft(s) AS ltrim(CAST(s AS VARCHAR))"),
+    "trimright": ("ax_trimright", "ax_trimright(s) AS rtrim(CAST(s AS VARCHAR))"),
+    "padleft": ("ax_padleft", "ax_padleft(s, n, c) AS lpad(CAST(s AS VARCHAR), n, c)"),
+    "padright": ("ax_padright", "ax_padright(s, n, c) AS rpad(CAST(s AS VARCHAR), n, c)"),
+    "findstring": ("ax_findstring", "ax_findstring(s, t) AS instr(CAST(s AS VARCHAR), t)"),
+    "getword": (
+        "ax_getword",
+        "ax_getword(s, n) AS split_part(regexp_replace(trim(CAST(s AS VARCHAR)), '\\s+', ' ', 'g'), ' ', n)",
+    ),
+    "splitpart": ("ax_splitpart", "ax_splitpart(s, sep, n) AS split_part(CAST(s AS VARCHAR), sep, n)"),
+    "countwords": (
+        "ax_countwords",
+        "ax_countwords(s) AS CASE WHEN s IS NULL THEN NULL WHEN trim(CAST(s AS VARCHAR)) = '' THEN 0 "
+        "ELSE len(string_split(regexp_replace(trim(CAST(s AS VARCHAR)), '\\s+', ' ', 'g'), ' ')) END",
+    ),
+    "reverse": ("ax_reverse", "ax_reverse(s) AS reverse(CAST(s AS VARCHAR))"),
+    "removeaccents": ("ax_removeaccents", "ax_removeaccents(s) AS strip_accents(CAST(s AS VARCHAR))"),
+    "digitsonly": (
+        "ax_digitsonly",
+        "ax_digitsonly(s) AS regexp_replace(CAST(s AS VARCHAR), '[^0-9]', '', 'g')",
+    ),
+    "regexmatch": ("ax_regexmatch", "ax_regexmatch(s, p) AS regexp_matches(CAST(s AS VARCHAR), p)"),
+    "regexreplace": (
+        "ax_regexreplace",
+        "ax_regexreplace(s, p, r) AS regexp_replace(CAST(s AS VARCHAR), p, r, 'g')",
+    ),
+    "regexextract": (
+        "ax_regexextract",
+        "ax_regexextract(s, p, g) AS regexp_extract(CAST(s AS VARCHAR), p, g)",
+    ),
+    "mod": ("ax_mod", "ax_mod(a, b) AS (a % b)"),
+    "divide": ("ax_divide", "ax_divide(a, b) AS CASE WHEN b = 0 THEN NULL ELSE a / b END"),
+    "between": ("ax_between", "ax_between(x, a, b) AS (x BETWEEN a AND b)"),
+    "formatnumber": (
+        "ax_formatnumber",
+        "ax_formatnumber(x, n) AS translate(printf('%,.' || CAST(n AS VARCHAR) || 'f', CAST(x AS DOUBLE)), ',.', '.,')",
+    ),
+    "tointeger": ("ax_tointeger", "ax_tointeger(x) AS CAST(trunc(TRY_CAST(x AS DOUBLE)) AS BIGINT)"),
+    "tonumberbr": (
+        "ax_tonumberbr",
+        "ax_tonumberbr(x) AS TRY_CAST(replace(replace(trim(CAST(x AS VARCHAR)), '.', ''), ',', '.') AS DOUBLE)",
+    ),
+    "isnumber": (
+        "ax_isnumber",
+        "ax_isnumber(x) AS (TRY_CAST(x AS DOUBLE) IS NOT NULL "
+        "OR TRY_CAST(replace(replace(trim(CAST(x AS VARCHAR)), '.', ''), ',', '.') AS DOUBLE) IS NOT NULL)",
+    ),
+    "dateparse": (
+        "ax_dateparse",
+        "ax_dateparse(x, f) AS CAST(TRY_STRPTIME(trim(CAST(x AS VARCHAR)), f) AS DATE)",
+    ),
+    "now": ("ax_now", "ax_now() AS CAST(now() AS TIMESTAMP)"),
+    "dateadd": (
+        "ax_dateadd",
+        f"ax_dateadd(d, n, u) AS CAST(date_add(CAST(d AS TIMESTAMP), CASE {_UNIT} "
+        "WHEN 'day' THEN to_days(CAST(n AS INTEGER)) WHEN 'week' THEN to_days(7 * CAST(n AS INTEGER)) "
+        "WHEN 'month' THEN to_months(CAST(n AS INTEGER)) WHEN 'quarter' THEN to_months(3 * CAST(n AS INTEGER)) "
+        "WHEN 'year' THEN to_years(CAST(n AS INTEGER)) END) AS DATE)",
+    ),
+    "datetrunc": (
+        "ax_datetrunc",
+        f"ax_datetrunc(u, d) AS CAST(date_trunc({_UNIT}, CAST(d AS TIMESTAMP)) AS DATE)",
+    ),
+    "date_diff": (
+        "ax_datediff",
+        f"ax_datediff(u, a, b) AS date_diff({_UNIT}, CAST(a AS TIMESTAMP), CAST(b AS TIMESTAMP))",
+    ),
+    "startofmonth": (
+        "ax_startofmonth",
+        "ax_startofmonth(d) AS CAST(date_trunc('month', CAST(d AS DATE)) AS DATE)",
+    ),
+    "endofmonth": ("ax_endofmonth", "ax_endofmonth(d) AS last_day(CAST(d AS DATE))"),
+    "weekday": ("ax_weekday", "ax_weekday(d) AS isodow(CAST(d AS DATE))"),
+    "weekdayname": (
+        "ax_weekdayname",
+        "ax_weekdayname(d) AS ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', "
+        "'sábado', 'domingo'][isodow(CAST(d AS DATE))]",
+    ),
+    "monthname": (
+        "ax_monthname",
+        "ax_monthname(d) AS ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', "
+        "'setembro', 'outubro', 'novembro', 'dezembro'][month(CAST(d AS DATE))]",
+    ),
+    "isweekend": ("ax_isweekend", "ax_isweekend(d) AS (isodow(CAST(d AS DATE)) >= 6)"),
+    "dateformat": ("ax_dateformat", "ax_dateformat(d, f) AS strftime(CAST(d AS TIMESTAMP), f)"),
 }
 
 
@@ -106,9 +201,73 @@ FUNCTION_DOCS: list[FunctionDoc] = [
     FunctionDoc("Year", "Year(data)", "Datas", "Ano da data.", "Year([data])"),
     FunctionDoc("Month", "Month(data)", "Datas", "Mês da data (1 a 12).", "Month([data])"),
     FunctionDoc("Day", "Day(data)", "Datas", "Dia do mês.", "Day([data])"),
-    FunctionDoc("Date_Diff", "Date_Diff('day', início, fim)", "Datas",
-                "Diferença entre datas na unidade pedida ('day', 'month', 'year').",
-                "Date_Diff('day', [data], Today())"),
+    FunctionDoc("Date_Diff", "Date_Diff('dia', início, fim)", "Datas",
+                "Diferença entre datas na unidade pedida ('dia', 'semana', 'mês', 'ano' ou em inglês).",
+                "Date_Diff('dia', [data], Today())"),
+    # Spec 015 -------------------------------------------------------------------------------
+    FunctionDoc("NullIf", "NullIf(valor, valor_a_anular)", "Condicional",
+                "Nulo quando o valor é igual ao segundo (ex.: zero vira nulo).", "NullIf([valor], 0)"),
+    FunctionDoc("Between", "Between(valor, mínimo, máximo)", "Condicional",
+                "Verdadeiro se o valor está entre os limites (inclusive).", "Between([valor], 100, 500)"),
+    FunctionDoc("TrimLeft", "TrimLeft(texto)", "Texto", "Remove espaços do início.", "TrimLeft([nome])"),
+    FunctionDoc("TrimRight", "TrimRight(texto)", "Texto", "Remove espaços do fim.", "TrimRight([nome])"),
+    FunctionDoc("PadLeft", "PadLeft(texto, tamanho, caractere)", "Texto",
+                "Completa à esquerda até o tamanho (ex.: zeros em códigos).", "PadLeft([codigo], 8, '0')"),
+    FunctionDoc("PadRight", "PadRight(texto, tamanho, caractere)", "Texto",
+                "Completa à direita até o tamanho.", "PadRight([codigo], 10, ' ')"),
+    FunctionDoc("FindString", "FindString(texto, trecho)", "Texto",
+                "Posição do trecho no texto (começa em 1; 0 se não achar).", "FindString([email], '@')"),
+    FunctionDoc("GetWord", "GetWord(texto, n)", "Texto",
+                "A n-ésima palavra do texto (começa em 1).", "GetWord([nome], 1)"),
+    FunctionDoc("SplitPart", "SplitPart(texto, separador, n)", "Texto",
+                "O n-ésimo pedaço do texto, dividido pelo separador.", "SplitPart([email], '@', 2)"),
+    FunctionDoc("CountWords", "CountWords(texto)", "Texto", "Quantidade de palavras.", "CountWords([nome])"),
+    FunctionDoc("Reverse", "Reverse(texto)", "Texto", "Texto de trás para frente.", "Reverse([codigo])"),
+    FunctionDoc("RemoveAccents", "RemoveAccents(texto)", "Texto",
+                "Tira acentos e cedilha (São Paulo → Sao Paulo).", "RemoveAccents([cidade])"),
+    FunctionDoc("DigitsOnly", "DigitsOnly(texto)", "Texto",
+                "Só os dígitos (útil para CPF, CNPJ, CEP e telefone).", "DigitsOnly([documento])"),
+    FunctionDoc("RegexMatch", "RegexMatch(texto, padrão)", "Texto",
+                "Verdadeiro se o texto contém o padrão (expressão regular).", "RegexMatch([email], '^[^@]+@[^@]+$')"),
+    FunctionDoc("RegexReplace", "RegexReplace(texto, padrão, trocar_por)", "Texto",
+                "Troca tudo o que casa com o padrão.", "RegexReplace([telefone], '[^0-9]', '')"),
+    FunctionDoc("RegexExtract", "RegexExtract(texto, padrão, grupo)", "Texto",
+                "Trecho que casa com o grupo do padrão (0 = tudo).", "RegexExtract([codigo], '([A-Z]+)', 1)"),
+    FunctionDoc("Mod", "Mod(número, divisor)", "Números", "Resto da divisão.", "Mod(Year([data]), 4)"),
+    FunctionDoc("Divide", "Divide(número, divisor)", "Números",
+                "Divisão que dá nulo (em vez de erro) quando o divisor é zero.", "Divide([valor], [saldo])"),
+    FunctionDoc("Trunc", "Trunc(número)", "Números", "Corta as casas decimais, sem arredondar.", "Trunc([valor])"),
+    FunctionDoc("Sign", "Sign(número)", "Números", "-1, 0 ou 1 conforme o sinal.", "Sign([saldo])"),
+    FunctionDoc("Ln", "Ln(número)", "Números", "Logaritmo natural.", "Ln([valor])"),
+    FunctionDoc("Log10", "Log10(número)", "Números", "Logaritmo na base 10.", "Log10([valor])"),
+    FunctionDoc("Exp", "Exp(número)", "Números", "Exponencial (e elevado ao número).", "Exp(1)"),
+    FunctionDoc("FormatNumber", "FormatNumber(número, casas)", "Números",
+                "Texto no padrão brasileiro: 1.234,56.", "FormatNumber([valor], 2)"),
+    FunctionDoc("ToInteger", "ToInteger(valor)", "Conversão",
+                "Converte para inteiro, cortando as casas decimais.", "ToInteger([valor])"),
+    FunctionDoc("ToNumberBR", "ToNumberBR(texto)", "Conversão",
+                "Lê números no padrão brasileiro ('1.234,56' → 1234.56).", "ToNumberBR([valor_br])"),
+    FunctionDoc("IsNumber", "IsNumber(valor)", "Conversão",
+                "Verdadeiro se o valor pode ser lido como número (12.5 ou 12,5).", "IsNumber([valor_br])"),
+    FunctionDoc("DateParse", "DateParse(texto, formato)", "Conversão",
+                "Lê uma data no formato indicado (%d dia, %m mês, %Y ano).", "DateParse([data_texto], '%d/%m/%Y')"),
+    FunctionDoc("Now", "Now()", "Datas", "Data e hora de agora.", "Now()"),
+    FunctionDoc("DateAdd", "DateAdd(data, quantidade, unidade)", "Datas",
+                "Soma dias, semanas, meses, trimestres ou anos (negativo subtrai).", "DateAdd([data], 30, 'dia')"),
+    FunctionDoc("DateTrunc", "DateTrunc(unidade, data)", "Datas",
+                "Início do período: 'semana', 'mês', 'trimestre' ou 'ano'.", "DateTrunc('mês', [data])"),
+    FunctionDoc("StartOfMonth", "StartOfMonth(data)", "Datas", "Primeiro dia do mês.", "StartOfMonth([data])"),
+    FunctionDoc("EndOfMonth", "EndOfMonth(data)", "Datas", "Último dia do mês.", "EndOfMonth([data])"),
+    FunctionDoc("Quarter", "Quarter(data)", "Datas", "Trimestre (1 a 4).", "Quarter([data])"),
+    FunctionDoc("Week", "Week(data)", "Datas", "Semana do ano (ISO).", "Week([data])"),
+    FunctionDoc("Weekday", "Weekday(data)", "Datas", "Dia da semana: 1 = segunda … 7 = domingo.", "Weekday([data])"),
+    FunctionDoc("WeekdayName", "WeekdayName(data)", "Datas", "Nome do dia da semana.", "WeekdayName([data])"),
+    FunctionDoc("MonthName", "MonthName(data)", "Datas", "Nome do mês.", "MonthName([data])"),
+    FunctionDoc("IsWeekend", "IsWeekend(data)", "Datas", "Verdadeiro em sábados e domingos.", "IsWeekend([data])"),
+    FunctionDoc("DateFormat", "DateFormat(data, formato)", "Datas",
+                "Data como texto no formato pedido.", "DateFormat([data], '%d/%m/%Y')"),
+    FunctionDoc("Hour", "Hour(data_hora)", "Datas", "Hora (0 a 23).", "Hour([data_hora])"),
+    FunctionDoc("Minute", "Minute(data_hora)", "Datas", "Minuto (0 a 59).", "Minute([data_hora])"),
 ]  # fmt: skip
 
 # Palavras de controle e operadores lógicos (para cores e sugestões no editor).
@@ -121,7 +280,8 @@ SAMPLE_SCHEMA: list[dict[str, str]] = [
     for n, t in [
         ("valor", "Float64"), ("saldo", "Float64"), ("cidade", "String"), ("nome", "String"),
         ("codigo", "String"), ("email", "String"), ("telefone", "String"), ("uf", "String"),
-        ("data_texto", "String"), ("data", "Date"),
+        ("data_texto", "String"), ("data", "Date"), ("documento", "String"), ("valor_br", "String"),
+        ("data_hora", "Datetime"),
     ]
 ]  # fmt: skip
 
@@ -129,7 +289,13 @@ _STRING_LITERAL = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"")
 _COLUMN_REF = re.compile(r"\[([^\[\]]+)\]")
 _PLACEHOLDER = "\x00{}\x00"
 
-_DUCK_TYPES = {"Int64": "BIGINT", "Float64": "DOUBLE", "Boolean": "BOOLEAN", "Date": "DATE"}
+_DUCK_TYPES = {
+    "Int64": "BIGINT",
+    "Float64": "DOUBLE",
+    "Boolean": "BOOLEAN",
+    "Date": "DATE",
+    "Datetime": "TIMESTAMP",
+}
 _CASTS = {
     "Int64": "TRY_CAST(({}) AS BIGINT)",
     "Float64": "TRY_CAST(({}) AS DOUBLE)",
@@ -212,14 +378,20 @@ def _check_columns(expression: str, columns: list[str]) -> None:
 
 
 def evaluate_columns(df: pl.DataFrame, formulas: list[dict[str, Any]]) -> pl.DataFrame:
-    """Aplica, em sequência, uma lista de fórmulas ``{column, expression, type}``."""
+    """Aplica, em sequência, uma lista de fórmulas ``{column, expression, type, target?, existing?}``.
+
+    ``target="existing"`` grava em ``existing`` (uma coluna que já existe), mantendo a posição dela.
+    """
     with connect() as con:
         current = df
         for rule in formulas:
-            column = (rule.get("column") or "").strip()
+            replace = rule.get("target") == "existing"
+            column = (rule.get("existing" if replace else "column") or "").strip()
             expression = (rule.get("expression") or "").strip()
             if not column or not expression:
                 continue
+            if replace and column not in current.columns:
+                raise FormulaError(f"A coluna [{column}] não existe para ser alterada.")
             _check_columns(expression, current.columns)
             sql = transpile(expression)
             cast = _CASTS.get(rule.get("type") or "Auto")
@@ -266,7 +438,22 @@ def validate(expression: str, columns: list[dict[str, str]]) -> dict[str, Any]:
 
 def _clean(exc: Exception) -> str:
     """Remove o ruído de contexto do DuckDB e traduz erros de sintaxe para algo acionável."""
-    message = str(exc).split("\n\nLINE")[0].strip()
+    message = str(exc).split("\n\nLINE")[0].split("\n\tCandidate functions")[0].strip()
+    message = re.sub(r"\s*You might need to add explicit type casts\.?", "", message)
+    if "No function matches" in message:
+        # Quem vem do Alteryx junta textos com "+": aqui isso é soma de números.
+        if (
+            re.search(r"'\+\((?:VARCHAR|STRING_LITERAL)|, (?:VARCHAR|STRING_LITERAL)\)'", message)
+            and "'+(" in message
+        ):
+            return "Texto não se soma com +. Para juntar textos, use Concat([a], ' - ', [b])."
+        found = re.search(r"given name and argument types '([^(']+)\(", message)
+        name = found.group(1) if found else ""
+        what = f"A função {name}" if name[:1].isalpha() else f"A operação {name}".rstrip()
+        return (
+            f"{what} não aceita esses tipos de valor. Confira se as colunas são texto, número ou data "
+            "e converta com ToNumber, ToString ou ToDate."
+        )
     if "syntax error" not in message.lower():
         return message
     # A expressão vai embutida em "SELECT <expr> FROM t": parar em FROM ou no fim = expressão incompleta.

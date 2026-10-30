@@ -33,6 +33,7 @@ class JoinConfig(ToolConfig):
     icon="join",
     description="Junta [L] e [R] pelas chaves. Saídas: [L] só na esquerda, [J] combinados, [R] só na direita.",
     config=JoinConfig,
+    explainer="join",
     inputs=[Port("L", "L", "Esquerda"), Port("R", "R", "Direita")],
     outputs=[Port("L", "L", "Só na esquerda"), Port("J", "J", "Combinados"), Port("R", "R", "Só na direita")],
     annotate=lambda c: " · ".join(f"{k.left} = {k.right}" for k in c.keys if k.left),

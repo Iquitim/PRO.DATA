@@ -41,3 +41,16 @@ def test_write_png_only_valid_images(tmp_path: Path) -> None:
         desktop.write_png(str(tmp_path / "nada" / "x.png"), png)
     with pytest.raises(ValueError, match="pasta e o nome"):
         desktop.write_png("x.png", png)
+
+
+def test_port_is_stable_with_fallback() -> None:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.bind(("127.0.0.1", 0))
+        busy = probe.getsockname()[1]
+        probe.listen()
+        # Porta ocupada: usa outra. Porta livre: usa sempre a mesma.
+        assert desktop.choose_port(busy) != busy
+    free = desktop._free_port()
+    assert desktop.choose_port(free) == free

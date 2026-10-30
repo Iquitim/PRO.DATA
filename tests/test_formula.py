@@ -1,3 +1,5 @@
+from datetime import date
+
 import polars as pl
 import pytest
 from fastapi.testclient import TestClient
@@ -107,3 +109,40 @@ def test_incomplete_expression_has_friendly_message() -> None:
     assert "incompleta" in formula.validate("Round([valor], ", cols)["error"]
     assert "incompleta" in formula.validate("IF [valor] > 1 THEN 2", cols)["error"]
     assert "perto de" in formula.validate("[valor] > > 2", cols)["error"]
+
+
+# ------------------------------------------------------------------ spec 015
+
+
+def test_formula_can_change_an_existing_column_in_place() -> None:
+    df = pl.DataFrame({"id": [1], "nome": ["  ana maria "], "uf": ["sp"]})
+    out = formula.evaluate_columns(
+        df, [{"target": "existing", "existing": "nome", "expression": "TitleCase(Trim([nome]))"}]
+    )
+    assert out.columns == ["id", "nome", "uf"] and out["nome"][0] == "Ana Maria"
+    with pytest.raises(formula.FormulaError, match="não existe para ser alterada"):
+        formula.evaluate_columns(df, [{"target": "existing", "existing": "sumiu", "expression": "1"}])
+
+
+def test_brazilian_helpers() -> None:
+    df = pl.DataFrame({"v": ["1.234,56"], "doc": ["123.456.789-00"], "d": [date(2026, 1, 31)]})
+    out = formula.evaluate_columns(
+        df,
+        [
+            {"column": "n", "expression": "ToNumberBR([v])"},
+            {"column": "txt", "expression": "FormatNumber([n] * 1000, 2)"},
+            {"column": "cpf", "expression": "DigitsOnly([doc])"},
+            {"column": "venc", "expression": "DateAdd([d], 1, 'mês')"},
+            {"column": "mes", "expression": "MonthName([d])"},
+            {"column": "dias", "expression": "Date_Diff('dia', [d], DateAdd([d], 2, 'semana'))"},
+        ],
+    )
+    row = out.row(0, named=True)
+    assert row["n"] == 1234.56 and row["txt"] == "1.234.560,00" and row["cpf"] == "12345678900"
+    assert row["venc"] == date(2026, 2, 28) and row["mes"] == "janeiro" and row["dias"] == 14
+
+
+def test_plus_on_text_points_to_concat() -> None:
+    result = formula.validate("[nome] + ' x'", [{"name": "nome", "type": "String"}])
+    assert not result["valid"] and "Concat" in result["error"]
+    assert "Candidate" not in formula.validate("Year([nome])", [{"name": "nome", "type": "String"}])["error"]

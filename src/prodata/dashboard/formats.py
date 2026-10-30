@@ -36,6 +36,11 @@ def _color_map(value: dict[str, str]) -> dict[str, str]:
     return {k[:200]: _color(v) for k, v in list(value.items())[:50] if _color(v)}
 
 
+def _label_map(value: dict[str, str]) -> dict[str, str]:
+    """Nomes exibidos no lugar dos originais (texto puro, curto); vazio = manter o original."""
+    return {k[:200]: v.strip()[:100] for k, v in list(value.items())[:200] if v.strip() and v.strip() != k}
+
+
 class _Format(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -57,6 +62,14 @@ class CardFormat(_Format):
         json_schema_extra=ui(labels={"left": "Esquerda", "center": "Centro"}),
     )
     show_subtitle: bool = Field(True, title="Mostrar subtítulo")
+    subtitle: str = Field(
+        "",
+        title="Subtítulo",
+        max_length=200,
+        json_schema_extra=ui(
+            placeholder="Automático (o que o visual mostra)", show_if={"show_subtitle": [True]}
+        ),
+    )
     background: Color = Field("", title="Fundo", json_schema_extra=ui(widget="color", group=CARD))
     border: bool = Field(True, title="Borda", json_schema_extra=ui(group=CARD))
     border_color: Color = Field(
@@ -110,8 +123,21 @@ class ChartFormat(CardFormat):
     suffix: str = Field(
         "", max_length=10, title="Sufixo", json_schema_extra=ui(group=LABELS, placeholder="%")
     )
-    show_legend: bool = Field(
-        True, title="Mostrar legenda", description="Gráficos de rosca.", json_schema_extra=ui(group=LABELS)
+    show_legend: bool = Field(True, title="Mostrar legenda", json_schema_extra=ui(group=LABELS))
+    legend_position: Literal["top", "bottom"] = Field(
+        "top",
+        title="Posição da legenda",
+        json_schema_extra=ui(
+            group=LABELS,
+            labels={"top": "Acima do gráfico", "bottom": "Abaixo do gráfico"},
+            show_if={"show_legend": [True]},
+        ),
+    )
+    labels: Annotated[dict[str, str], AfterValidator(_label_map)] = Field(
+        default_factory=dict,
+        title="Nomes na legenda e nas categorias",
+        description="Troque o texto exibido de cada série, categoria ou conjunto (o dado não muda).",
+        json_schema_extra=ui(widget="rename_labels", group=LABELS),
     )
     grid: bool = Field(True, title="Linhas de grade", json_schema_extra=ui(group=AXES))
     x_title: str = Field("", max_length=80, title="Título do eixo X", json_schema_extra=ui(group=AXES))

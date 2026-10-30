@@ -201,7 +201,19 @@ def filter_rows(ctx: NodeContext, cfg: FilterConfig) -> NodeOutput:
 
 
 class FormulaItem(BaseModel):
-    column: str = Field("nova_coluna", title="Coluna")
+    target: Literal["new", "existing"] = Field(
+        "new",
+        title="Resultado em",
+        json_schema_extra=ui(
+            labels={"new": "Uma coluna nova", "existing": "Uma coluna existente (troca os valores)"}
+        ),
+    )
+    column: str = Field(
+        "nova_coluna", title="Nome da coluna nova", json_schema_extra=ui(show_if={"target": ["new"]})
+    )
+    existing: str = Field(
+        "", title="Coluna a alterar", json_schema_extra=ui(widget="column", show_if={"target": ["existing"]})
+    )
     type: Literal["Auto", "Float64", "Int64", "String", "Boolean", "Date"] = Field(
         "Auto",
         title="Tipo",
@@ -225,7 +237,7 @@ class FormulaConfig(ToolConfig):
     icon="function",
     description="Cria ou atualiza colunas com expressões (IF/THEN/ELSE, IIF, funções de texto e matemática).",
     config=FormulaConfig,
-    annotate=lambda c: ", ".join(f.column for f in c.formulas if f.column),
+    annotate=lambda c: ", ".join(f.existing if f.target == "existing" else f.column for f in c.formulas),
 )
 def formula_columns(ctx: NodeContext, cfg: FormulaConfig) -> NodeOutput:
     rules = [f.model_dump() for f in cfg.formulas]

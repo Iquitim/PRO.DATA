@@ -8,7 +8,8 @@ import { api } from './api.js';
 import { cacheActions, NODE_W, nodeHeight, selectionActions } from './canvas.js';
 import { connectionTables, openConnectionDialog, openQueryEditor, refreshQueries, slug } from './connections.js';
 import { chooseFolder, isDesktop, reveal } from './desktop.js';
-import { button, fmt, h } from './dom.js';
+import { button, debounce, fmt, h } from './dom.js';
+import { explainerEl } from './explainers.js';
 import { renderFields } from './fields.js';
 import { formatOf, openPreview } from './datasets.js';
 import { icon } from './icons.js';
@@ -163,11 +164,29 @@ function banner(kind, iconName, title, detail = null, action = null) {
       action ? h('div', { class: 'banner-action' }, action) : null));
 }
 
+// Valores distintos de colunas da entrada, guardados até a próxima execução (spec 015).
+const valuesCache = new Map();
+on('execution', () => valuesCache.clear());
+
+/** Valores de uma coluna que chega na caixa (pela porta indicada ou pela primeira ligada). */
+function upstreamValues(nodeId, column, port = null) {
+  const edge = store.workflow.edges.find((e) => e.target === nodeId && (!port || e.targetHandle === port));
+  if (!edge || !nodeResult(edge.source)?.anchors?.[edge.sourceHandle]) return Promise.reject(new Error('sem execução'));
+  const key = `${edge.source}|${edge.sourceHandle}|${column}`;
+  if (!valuesCache.has(key)) {
+    const pending = api.columnValues(store.workflow.id, edge.source, edge.sourceHandle, column);
+    pending.catch(() => valuesCache.delete(key));
+    valuesCache.set(key, pending);
+  }
+  return valuesCache.get(key);
+}
+
 function nodeContext(n) {
   const spec = toolOf(n);
   const res = nodeResult(n.id);
   const ctx = {
     columns: (port) => upstreamColumns(n.id, port || null),
+    values: (column, port) => upstreamValues(n.id, column, port || null),
     datasets: store.datasets,
     errorField: res?.status === 'error' ? res.error_field?.split('.')[0] : null,
   };
@@ -273,6 +292,7 @@ function controllingFields(spec) {
   const names = new Set(['format', 'dataset', 'connection']);
   const walk = (fields) => fields.forEach((f) => {
     Object.keys(f.show_if || {}).forEach((k) => names.add(k));
+    if (f.source) names.add(f.source); // ex.: a coluna do grupo do Venn muda a lista de valores
     if (f.item_fields) walk(f.item_fields);
   });
   walk(spec.config_fields);
@@ -283,6 +303,9 @@ function nodePanel(n) {
   const spec = toolOf(n);
   if (!spec) return banner('error', 'alert', `Ferramenta desconhecida: ${n.type}`);
   const controlling = controllingFields(spec);
+  // Esquema visual (Cross Tab, Transpose, Join): redesenha quando a configuração muda (spec 015).
+  const explainer = spec.explainer ? explainerEl(n, spec) : null;
+  const refreshExplainer = debounce(() => explainer?.refresh(), 200);
   const onChange = (path, value) => {
     if (n.type === 'io.input_data' && path.length === 1 && path[0] === 'dataset') {
       setSource(n, value);
@@ -290,6 +313,7 @@ function nodePanel(n) {
       return;
     }
     updateConfig(n.id, path, value);
+    refreshExplainer();
     const redraw = path.length === 1
       && (controlling.has(path[0]) || (Array.isArray(value) && !['grid'].includes(spec.config_fields.find((f) => f.name === path[0])?.widget)));
     if (redraw) render();
@@ -324,6 +348,7 @@ function nodePanel(n) {
       button({ icon: 'refresh', label: 'Converter para Input Data', size: 'sm', onClick: () => convertLegacy(n) })) : null,
     cacheBanner(n),
     statusBanner(n),
+    explainer,
     h('div', { class: 'pad' }, spec.config_fields.length
       ? renderFields(spec.config_fields, n.config, onChange, nodeContext(n))
       : h('p', { class: 'muted' }, 'Esta ferramenta não tem configurações.')));

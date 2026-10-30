@@ -82,3 +82,24 @@ def test_formula_validate(client: TestClient) -> None:
         "/api/formula/validate", json={"expression": "[a] * 2", "columns": [{"name": "a", "type": "Int64"}]}
     )
     assert ok.json()["valid"]
+
+
+def test_distinct_values_for_pickers(client: TestClient) -> None:
+    wf = client.get(f"/api/workflows/{DEMO_WORKFLOW_ID}").json()
+    client.post("/api/execute", json={"workflow": wf})
+    data = client.get(f"/api/results/{wf['id']}/n_vendas/out/values", params={"column": "produto"}).json()
+    assert {v["value"] for v in data["values"]} == {
+        "Cloud",
+        "Add-on Analytics",
+        "AutoML",
+        "Conectores",
+        "BI Pro",
+    }
+    counts = [v["count"] for v in data["values"]]
+    assert counts == sorted(counts, reverse=True) and sum(counts) == 1800 and not data["truncated"]
+    capped = client.get(
+        f"/api/results/{wf['id']}/n_vendas/out/values", params={"column": "id_cliente", "limit": 10}
+    )
+    assert len(capped.json()["values"]) == 10 and capped.json()["truncated"]
+    missing = client.get(f"/api/results/{wf['id']}/n_vendas/out/values", params={"column": "nada"})
+    assert missing.status_code == 400

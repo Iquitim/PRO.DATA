@@ -461,7 +461,10 @@ class VennConfig(ToolConfig):
     groups: list[str] = Field(
         default_factory=list,
         title="Grupos (2 ou 3 valores)",
-        json_schema_extra=ui(widget="tags", show_if={"mode": ["key_group"]}, placeholder="Cloud"),
+        description="Valores da coluna do grupo; marque até 3.",
+        json_schema_extra=ui(
+            widget="column_values", source="group_column", max_items=3, show_if={"mode": ["key_group"]}
+        ),
     )
     flag_columns: list[str] = Field(
         default_factory=list,

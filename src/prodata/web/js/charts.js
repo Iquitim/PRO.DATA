@@ -40,6 +40,9 @@ function options(opts = {}) {
     labels: opts.data_labels, // undefined = comportamento original de cada gráfico
     grid: opts.grid ?? true,
     legend: opts.show_legend ?? true,
+    legendPos: opts.legend_position || 'top',
+    // Nome original de uma categoria renomeada no painel Formato: as cores seguem o dado, não o texto.
+    keyOf: opts._keyOf || ((name) => name),
     xTitle: opts.x_title || '',
     yTitle: opts.y_title || '',
     yMin: opts.y_min ?? null,
@@ -55,7 +58,7 @@ function options(opts = {}) {
  */
 function paint(o, i, label, multi) {
   const slot = (i % MAX_SLICES) + 1;
-  const custom = o.palette === 'custom' && o.categoryColors[label];
+  const custom = o.palette === 'custom' && o.categoryColors[o.keyOf(label)];
   if (custom) return { style: `fill:${custom}` };
   if (o.palette === 'single' && o.color) return { style: `fill:${o.color}${multi ? `;fill-opacity:${Math.max(0.35, 1 - i * 0.12)}` : ''}` };
   if (o.palette === 'alt') return multi ? { class: `a${slot}` } : { style: 'fill:var(--alt-1)' };
@@ -225,7 +228,9 @@ export function donutChart(series, width, height = 200, opts) {
   }
   const total = slices.reduce((acc, s) => acc + s.value, 0) || 1;
   // Acompanha o cartão (dashboard redimensionável, spec 014), deixando metade da largura para a legenda.
-  const size = Math.max(120, Math.min(height, width * (o.legend ? 0.45 : 1), 360));
+  const below = o.legend && o.legendPos === 'bottom';
+  const size = Math.max(120, Math.min(below ? height - 24 * Math.min(8, series.length) - 12 : height,
+    width * (o.legend && !below ? 0.45 : 1), 360));
   const r = size * 0.43;
   const inner = size * 0.27;
   const cx = size / 2;
@@ -254,19 +259,27 @@ export function donutChart(series, width, height = 200, opts) {
   const legend = o.legend ? h('ul', { class: 'legend' }, slices.map((s, i) => h('li', {},
     swatch(tones[i]), h('span', { class: 'ellipsis' }, s.label),
     h('b', {}, o.short(s.value)), h('span', { class: 'muted' }, `${fmt.number((s.value / total) * 100, 1)}%`)))) : null;
-  return h('div', { class: 'donut-wrap', style: { maxWidth: `${width}px` } }, chart, legend);
+  return h('div', { class: ['donut-wrap', below && 'below'], style: { maxWidth: `${width}px` } }, chart, legend);
 }
 
 // ------------------------------------------------------------------ fase 3 da spec 014: visuais novos
 
 /** Cor (CSS) da série i: a mesma regra de paint(), em forma de valor para fill/stroke. */
 function tone(o, i, name) {
-  if (o.palette === 'custom' && o.categoryColors[name]) return o.categoryColors[name];
+  if (o.palette === 'custom' && o.categoryColors[o.keyOf(name)]) return o.categoryColors[o.keyOf(name)];
   if (o.palette === 'single' && o.color) return o.color;
   return `var(--${o.palette === 'alt' ? 'alt' : 'series'}-${(i % MAX_SLICES) + 1})`;
 }
 
-/** Legenda em linha acima do gráfico: obrigatória com 2 ou mais séries (a cor nunca identifica sozinha). */
+/** Gráfico com legenda acima ou abaixo (ou sem legenda, se o formato pedir) e rodapé opcional. */
+function framed(o, legend, chart, foot = null) {
+  return h('div', { class: 'multi-chart' },
+    o.legend && o.legendPos === 'top' ? legend : null, chart, o.legend && o.legendPos === 'bottom' ? legend : null, foot);
+}
+
+const LEGEND_H = 30;
+
+/** Legenda em linha: com 2 ou mais séries vem ligada por padrão (a cor nunca identifica sozinha). */
 function legendRow(names, colors) {
   return h('ul', { class: 'legend-row' }, names.map((n, i) => h('li', {},
     h('i', { class: 'swatch', style: { background: colors[i], opacity: colors[i] === colors[0] && i ? Math.max(0.35, 1 - i * 0.12) : null } }),
@@ -292,7 +305,7 @@ function multiChart(w, width, height, opts, mode) {
     return pct ? (c.value ? (v / c.value) * 100 : 0) : v;
   };
   const stacked = ['stacked', 'stacked100', 'area_stacked'].includes(mode);
-  const svgH = height - 30;
+  const svgH = height - (o.legend ? LEGEND_H : 0);
   const m = margins({ top: 16, right: mode.startsWith('line') || mode.startsWith('area') ? 56 : 12, bottom: 28, left: 48 }, o);
   const pw = width - m.left - m.right;
   const ph = svgH - m.top - m.bottom;
@@ -361,7 +374,7 @@ function multiChart(w, width, height, opts, mode) {
     if (o.grid) yTicks.push(svg('line', { class: 'grid', x1: m.left, x2: width - m.right, y1: y(v), y2: y(v) }));
     yTicks.push(svg('text', { class: 'tick', x: m.left - 8, y: y(v) + 4, 'text-anchor': 'end' }, pct ? `${v}%` : fmt.compact(v)));
   }
-  return h('div', { class: 'multi-chart' }, legendRow(names, colors),
+  return framed(o, legendRow(names, colors),
     svg('svg', { class: 'chart', width, height: svgH, viewBox: `0 0 ${width} ${svgH}` }, yTicks,
       svg('line', { class: 'axis', x1: m.left, x2: width - m.right, y1: y(lo), y2: y(lo) }), ticks, marks, axisTitles(o, m, width, svgH)));
 }
@@ -373,7 +386,7 @@ function multiChart(w, width, height, opts, mode) {
 function paretoChart(series, width, height, opts, w) {
   const o = options(opts);
   const total = series.reduce((acc, s) => acc + Math.max(0, s.value), 0) || 1;
-  const svgH = height - 30;
+  const svgH = height - (o.legend ? LEGEND_H : 0);
   const m = margins({ top: 18, right: 40, bottom: 28, left: 44 }, o);
   const pw = width - m.left - m.right;
   const ph = svgH - m.top - m.bottom;
@@ -404,7 +417,7 @@ function paretoChart(series, width, height, opts, w) {
     svg('circle', { class: 'dot', cx: cx(cut), cy: y(series[cut].cum_pct), r: 4, style: `fill:${lineColor}` }),
     svg('text', { class: 'value', x: cx(cut), y: y(series[cut].cum_pct) - 9, 'text-anchor': 'middle' }, `${fmt.number(series[cut].cum_pct, 0)}%`),
   ] : null;
-  return h('div', { class: 'multi-chart' },
+  return framed(o,
     h('ul', { class: 'legend-row' },
       h('li', {}, h('i', { class: 'swatch', style: { background: color } }), h('span', {}, `Participação no total · ${cut + 1} de ${series.length} somam ${fmt.number(threshold, 0)}%`)),
       h('li', {}, h('i', { class: 'swatch line-swatch', style: { background: lineColor } }), h('span', {}, 'Acumulado'))),
@@ -450,7 +463,7 @@ function scatterChart(w, width, height, opts) {
   const names = ranked.length > MAX_SLICES ? [...ranked.slice(0, MAX_SLICES - 1), 'Outros'] : ranked;
   const colors = names.map((n, i) => tone(o, i, n));
   const idx = (s) => { const k = names.indexOf(s); return k >= 0 ? k : names.length - 1; };
-  const svgH = height - (names.length ? 30 : 0);
+  const svgH = height - (names.length && o.legend ? LEGEND_H : 0);
   const m = margins({ top: 14, right: 16, bottom: 28 + (w.sampled ? 14 : 0), left: 52 }, o);
   const pw = width - m.left - m.right;
   const ph = svgH - m.top - m.bottom;
@@ -476,7 +489,7 @@ function scatterChart(w, width, height, opts) {
   const chart = svg('svg', { class: 'chart', width, height: svgH, viewBox: `0 0 ${width} ${svgH}` }, grid,
     svg('line', { class: 'axis', x1: m.left, x2: width - m.right, y1: m.top + ph, y2: m.top + ph }), dots, note,
     axisTitles({ ...o, xTitle: o.xTitle || w.x_column, yTitle: o.yTitle || w.y_column }, m, width, svgH));
-  return names.length ? h('div', { class: 'multi-chart' }, legendRow(names, colors), chart) : chart;
+  return names.length ? framed(o, legendRow(names, colors), chart) : chart;
 }
 
 /**
@@ -487,7 +500,7 @@ export function vennChart(w, width, height, opts) {
   const o = options(opts);
   const n = w.sets.length;
   const colors = w.sets.map((s, i) => tone(o, i, s.name));
-  const svgH = height - 22;
+  const svgH = height - 22 - (o.legend ? LEGEND_H - 4 : 0);
   const R = (k) => w.regions.find((r) => r.sets.join() === k.join());
   const regionLabel = (k, px, py) => {
     const r = R(k);
@@ -534,7 +547,7 @@ export function vennChart(w, width, height, opts) {
     w.proportional ? 'Áreas proporcionais' : 'Círculos ilustrativos: os números indicam a proporção',
     w.outside ? `${fmt.int(w.outside)} fora de todos` : null,
   ].filter(Boolean).join(' · ');
-  return h('div', { class: 'multi-chart' },
+  return framed(o,
     h('ul', { class: 'legend-row' }, w.sets.map((s, i) => h('li', {}, h('i', { class: 'swatch', style: { background: colors[i] } }), h('span', {}, `${s.name} · ${fmt.int(s.size)}`)))),
     svg('svg', { class: 'chart venn', width, height: svgH, viewBox: `0 0 ${width} ${svgH}` }, shapes, labels),
     h('p', { class: 'chart-foot muted' }, foot));

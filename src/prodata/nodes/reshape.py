@@ -55,6 +55,7 @@ class CrossTabConfig(ToolConfig):
     icon="pivot",
     description="Linhas viram colunas (tabela dinâmica): os valores de uma coluna viram cabeçalhos.",
     config=CrossTabConfig,
+    explainer="crosstab",
     annotate=lambda c: f"{c.header} → colunas" if c.header else "Escolha a coluna de cabeçalhos",
 )
 def crosstab(ctx: NodeContext, cfg: CrossTabConfig) -> NodeOutput:
@@ -111,6 +112,7 @@ class TransposeConfig(ToolConfig):
     icon="transpose",
     description="Colunas viram linhas (despivotar): cada coluna escolhida vira um par nome/valor.",
     config=TransposeConfig,
+    explainer="transpose",
     annotate=lambda c: f"Chave: {', '.join(c.keys)}" if c.keys else "Todas as colunas viram linhas",
 )
 def transpose(ctx: NodeContext, cfg: TransposeConfig) -> NodeOutput:

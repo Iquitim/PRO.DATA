@@ -298,3 +298,9 @@
 .dash-table td.cell-critical .icon { color: var(--status-critical); }
 .kpi.fill { overflow: hidden; }
 .kpi.fill .kpi-row .kpi-value { margin: 2px 0 4px; }
+
+/* Spec 015: nomes exibidos e legenda abaixo */
+.rename-labels { display: flex; flex-direction: column; gap: 4px; }
+.rename-row { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); align-items: center; gap: 8px; font-size: 12.5px; }
+.donut-wrap.below { flex-direction: column; align-items: stretch; }
+.donut-wrap.below .chart.donut { align-self: center; }

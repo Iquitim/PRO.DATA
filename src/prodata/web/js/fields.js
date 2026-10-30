@@ -5,7 +5,7 @@
 //   ctx: { columns(port) → [{name,type}], format, sheets, datasets, errorField, validate(expr, port) }
 
 import { api } from './api.js';
-import { button, debounce, h } from './dom.js';
+import { button, debounce, fmt, h } from './dom.js';
 import { icon } from './icons.js';
 import { formulaEditor } from './formula_editor.js';
 import { QUERY_PREFIX } from './store.js';
@@ -498,8 +498,76 @@ function categoryColors(field, value, set, ctx) {
   }));
 }
 
+// ------------------------------------------------------------------ valores de uma coluna (spec 015)
+
+/**
+ * Marca valores que existem numa coluna da entrada (ex.: grupos do Venn), até `max_items`.
+ * A coluna vem do campo `field.source`; sem execução, cai para digitação livre.
+ */
+function columnValues(field, value, set, ctx, id, values) {
+  const selected = Array.isArray(value) ? [...value] : [];
+  const max = field.max_items || Infinity;
+  const column = values?.[field.source];
+  if (!column) return h('p', { class: 'field-help' }, 'Escolha antes a coluna do grupo.');
+  const wrap = h('div', { class: 'value-picker' }, h('p', { class: 'field-help' }, 'Carregando os valores…'));
+  const draw = (data) => {
+    const known = new Set(data.values.map((v) => v.value));
+    const toggle = (v) => set(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+    const full = selected.length >= max;
+    const list = h('div', { class: 'value-list', role: 'group', 'aria-label': field.title });
+    const fill = (needle = '') => list.replaceChildren(...data.values
+      .filter((v) => !needle || v.value.toLowerCase().includes(needle.toLowerCase()))
+      .slice(0, 200)
+      .map((v) => {
+        const on = selected.includes(v.value);
+        return h('button', {
+          type: 'button', class: ['value-chip', on && 'on'], 'aria-pressed': String(on), disabled: !on && full,
+          title: !on && full ? `Máximo de ${max}: desmarque um para trocar` : null,
+          onclick: () => toggle(v.value),
+        }, icon(on ? 'check' : 'plus', 12), h('span', { class: 'ellipsis' }, v.value), h('span', { class: 'muted' }, fmt.int(v.count)));
+      }));
+    fill();
+    wrap.replaceChildren(...[ // replaceChildren() nativo escreveria "null" para os itens ausentes
+      h('div', { class: 'value-head' },
+        h('span', {}, `${selected.length} de ${max === Infinity ? data.values.length : max} marcados`),
+        h('span', { class: 'muted' }, `${fmt.int(data.distinct)} valores em [${column}]`)),
+      selected.filter((v) => !known.has(v)).length
+        ? h('div', { class: 'chips' }, selected.filter((v) => !known.has(v)).map((v) => h('span', { class: 'chip invalid', title: 'Não existe mais nesta coluna' },
+          `${v} (não encontrado)`, h('button', { type: 'button', class: 'chip-x', 'aria-label': `Remover ${v}`, onclick: () => toggle(v) }, icon('x', 12)))))
+        : null,
+      data.values.length > 12
+        ? h('input', { id, class: 'input', type: 'search', placeholder: 'Buscar valor…', oninput: (e) => fill(e.target.value) })
+        : null,
+      list,
+      data.truncated ? h('p', { class: 'field-help' }, 'Mostrando os 500 valores mais frequentes.') : null,
+    ].filter(Boolean));
+  };
+  const manual = () => wrap.replaceChildren(
+    h('p', { class: 'field-help' }, 'Execute o fluxo para escolher os valores numa lista. Enquanto isso, digite:'),
+    tags(field, value, set, ctx, id));
+  (ctx.values ? ctx.values(column) : Promise.reject()).then(draw).catch(manual);
+  return wrap;
+}
+
+/** Nomes exibidos: uma linha por série, categoria ou conjunto do visual (ctx.categories). Vazio = original. */
+function renameLabels(field, value, set, ctx) {
+  const map = { ...(value || {}) };
+  const cats = ctx.categories || [];
+  if (!cats.length) return h('p', { class: 'field-help' }, 'Execute o fluxo para listar os nomes.');
+  return h('div', { class: 'rename-labels' }, cats.slice(0, 60).map((cat) => h('label', { class: 'rename-row' },
+    h('span', { class: 'ellipsis muted', title: cat }, cat),
+    h('input', {
+      class: 'input', value: map[cat] || '', placeholder: cat, 'aria-label': `Nome exibido para ${cat}`,
+      oninput: (e) => {
+        if (e.target.value.trim()) map[cat] = e.target.value; else delete map[cat];
+        set({ ...map });
+      },
+    }))));
+}
+
 const WIDGETS = {
-  color, optional_number: optionalNumber, category_colors: categoryColors,
+  color, optional_number: optionalNumber, category_colors: categoryColors, column_values: columnValues,
+  rename_labels: renameLabels,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
   list, select_columns: selectColumns, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
 };

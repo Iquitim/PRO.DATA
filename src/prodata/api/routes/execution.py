@@ -54,6 +54,19 @@ def get_results(
     )
 
 
+@router.get("/results/{workflow_id}/{node_id}/{anchor}/values")
+def get_distinct_values(
+    workflow_id: Annotated[str, Path(pattern=ID_PATTERN)],
+    node_id: str,
+    anchor: str,
+    services: ServicesDep,
+    column: str = Query(..., min_length=1),
+    limit: int = Query(500, ge=1, le=5000),
+) -> dict[str, Any]:
+    """Valores distintos de uma coluna com a contagem de linhas (ex.: grupos do Venn)."""
+    return results.distinct_values(services.cache, workflow_id, node_id, anchor, column, limit)
+
+
 @router.delete("/cache/{workflow_id}/{node_id}", status_code=204)
 def refresh_cache_point(workflow_id: str, node_id: str, services: ServicesDep) -> Response:
     """Descarta o resultado congelado de um ponto de cache: a próxima execução relê tudo (spec 012)."""

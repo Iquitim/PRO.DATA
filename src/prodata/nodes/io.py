@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 from typing import Any, Literal
@@ -170,7 +171,7 @@ class OutputDataConfig(ToolConfig):
         json_schema_extra=ui(widget="folder"),
     )
     format: ExportFormat = Field(
-        "parquet",
+        "excel",
         title="Formato",
         json_schema_extra=ui(
             labels={
@@ -182,6 +183,63 @@ class OutputDataConfig(ToolConfig):
             }
         ),
     )
+    sheet_name: str = Field(
+        "Dados",
+        title="Nome da planilha",
+        json_schema_extra=ui(show_if={"format": ["excel"]}),
+    )
+    if_exists: Literal["replace", "add_sheet"] = Field(
+        "replace",
+        title="Se o arquivo já existir",
+        description="Adicionar mantém as outras planilhas: vários Output Data podem montar um arquivo só.",
+        json_schema_extra=ui(
+            show_if={"format": ["excel"]},
+            labels={"replace": "Substituir o arquivo", "add_sheet": "Adicionar ou atualizar esta planilha"},
+        ),
+    )
+
+
+_BAD_SHEET_CHARS = set("[]:*?/\\")
+
+
+def sheet_title(raw: str) -> str:
+    """Nome de planilha aceito pelo Excel: 1 a 31 caracteres, sem colchetes, : * ? / ou barra invertida."""
+    name = raw.strip() or "Dados"
+    bad = sorted(set(name) & _BAD_SHEET_CHARS)
+    if bad:
+        raise InvalidInputError(f"O nome da planilha não pode ter {' '.join(bad)}.")
+    if len(name) > 31:
+        raise InvalidInputError("O nome da planilha tem no máximo 31 caracteres.")
+    return name
+
+
+def write_excel_sheet(df: pl.DataFrame, path: Path, sheet: str, add: bool) -> None:
+    """Grava a planilha. Com ``add`` e arquivo existente, mantém as outras planilhas (e a posição desta)."""
+    if not (add and path.exists()):
+        df.write_excel(path, worksheet=sheet, autofit=True)
+        return
+    from openpyxl import load_workbook
+
+    try:
+        book = load_workbook(path)
+    except Exception as exc:  # arquivo corrompido ou que não é xlsx: mensagem acionável
+        raise InvalidInputError(
+            f"Não foi possível abrir {path.name} para adicionar a planilha: {exc}"
+        ) from exc
+    position = len(book.sheetnames)
+    if sheet in book.sheetnames:
+        position = book.sheetnames.index(sheet)
+        del book[sheet]
+    ws = book.create_sheet(sheet, position)
+    ws.append(df.columns)
+    for row in df.iter_rows():
+        ws.append(list(row))
+    for i, col in enumerate(df.columns, start=1):  # largura aproximada, como o autofit do write_excel
+        sample = [len(str(v)) for v in df[col].head(200).to_list() if v is not None]
+        ws.column_dimensions[ws.cell(1, i).column_letter].width = min(60, max([len(col), *sample]) + 2)
+    tmp = path.with_name(path.name + ".tmp")
+    book.save(tmp)
+    os.replace(tmp, path)
 
 
 def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
@@ -205,7 +263,9 @@ def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
     icon="download",
     description="Grava o resultado em Parquet, CSV, Excel, JSON ou Arrow, na pasta padrão ou numa pasta escolhida.",
     config=OutputDataConfig,
-    annotate=lambda c: f"{c.filename}{_EXTENSIONS[c.format]}",
+    annotate=lambda c: (
+        f"{c.filename}{_EXTENSIONS[c.format]}" + (f" · {c.sheet_name}" if c.format == "excel" else "")
+    ),
     side_effect=True,
 )
 def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
@@ -215,7 +275,7 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
         case "csv":
             df.write_csv(path, separator=";")
         case "excel":
-            df.write_excel(path, autofit=True)
+            write_excel_sheet(df, path, sheet_title(cfg.sheet_name), cfg.if_exists == "add_sheet")
         case "json":
             df.write_json(path)
         case "arrow":

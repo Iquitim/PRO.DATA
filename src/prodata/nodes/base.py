@@ -94,6 +94,8 @@ class ToolSpec:
     side_effect: bool = False
     # Fora da paleta (substituída), mas ainda executa em fluxos antigos.
     hidden: bool = False
+    # Esquema visual mostrado no Configurar (spec 015): "crosstab", "transpose", "join".
+    explainer: str | None = None
 
     def annotation(self, cfg: Any) -> str:
         if self.annotate is None:
@@ -115,6 +117,7 @@ class ToolSpec:
             "default_config": self.config().model_dump(mode="json"),
             "config_fields": describe_fields(self.config),
             "hidden": self.hidden,
+            "explainer": self.explainer,
         }
 
 
@@ -135,6 +138,7 @@ def tool(
     fingerprint: Callable[[NodeContext, Any], str] | None = None,
     side_effect: bool = False,
     hidden: bool = False,
+    explainer: str | None = None,
 ) -> Callable[[RunFn], RunFn]:
     def register(fn: RunFn) -> RunFn:
         if type in REGISTRY:
@@ -153,6 +157,7 @@ def tool(
             fingerprint=fingerprint,
             side_effect=side_effect,
             hidden=hidden,
+            explainer=explainer,
         )
         return fn
 

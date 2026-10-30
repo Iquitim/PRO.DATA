@@ -57,8 +57,14 @@ localmente.
   com alterações pergunta *Salvar / Não salvar / Cancelar*.
 - **Editor de fórmulas**: cores por tipo (coluna, função, controle, operador
   lógico, comparação, texto, número), autocompletar de funções e colunas
-  (`Ctrl+Espaço`), dica da assinatura da função e assistente com 33 funções
-  documentadas e botões de operadores. Diferente é `!=` (`<>` também vale).
+  (`Ctrl+Espaço`), dica da assinatura da função e assistente com 75 funções
+  documentadas (inclusive números e datas no padrão brasileiro, CPF/CNPJ,
+  expressões regulares) e botões de operadores. Diferente é `!=` (`<>` também
+  vale). A Formula cria colunas novas ou altera colunas existentes.
+- **Esquemas visuais** no Configurar do Cross Tab, do Transpose e do Join: o
+  antes e o depois com uma amostra dos seus dados.
+- **Excel por padrão** no Output Data, com nome da planilha e opção de juntar
+  várias planilhas num mesmo arquivo.
 - **Interface ajustável**: painéis de ferramentas/configuração, resultados e
   gráficos podem ser arrastados para esquerda, direita ou embaixo, ou ocultados.
 - **Aplicativo de desktop** para Windows: instalador `.exe` ou `.zip` portátil,
@@ -138,6 +144,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [012](specs/012-selecao-cache-portas/spec.md) | Seleção múltipla, ponto de cache e dados de entrada por porta; remove o assistente de fluxo |
 | [013](specs/013-ferramentas-desempenho/spec.md) | Select com Todas/Nenhuma/Inverter, 6 ferramentas novas (Cross Tab, Transpose, Text To Columns, Record ID, Running Total, Append Fields), remove a IA generativa, canvas mais responsivo |
 | [014](specs/014-dashboard-canvas/spec.md) | Dashboard em canvas (arrastar, redimensionar, guias, Organizar com layouts prontos), painel Formato, textos/imagens/formas, PNG, big number com variação e tendência, empilhados, Pareto, Venn, funil, dispersão, medidor e Table |
+| [015](specs/015-ajustes-035/spec.md) | Subtítulo e nomes de legenda no dashboard, grupos do Venn escolhidos na lista, esquemas visuais (Cross Tab, Transpose, Join), Excel com várias planilhas, Formula alterando colunas, 42 funções novas, preferências lembradas no programa instalado |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

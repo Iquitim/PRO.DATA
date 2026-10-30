@@ -105,7 +105,7 @@ export function kpiTile(w, { compact = false, className = '', fmt: f = {}, width
   const label = f.show_title === false ? null : h('div', { class: 'kpi-label', style: titleStyle(f) },
     status ? icon(STATUS_ICON[status], 13) : null, f.title || w.title, w.period_label ? h('span', { class: 'muted' }, ` · ${w.period_label}`) : null);
   const foot = f.show_footer === false ? null : h('div', { class: 'kpi-foot' },
-    `${AGG_LABELS[w.metric] || w.metric}${w.column && w.metric !== 'count' ? ` de ${w.column}` : ''} · ${fmt.int(w.row_count)} linhas`);
+    f.subtitle || `${AGG_LABELS[w.metric] || w.metric}${w.column && w.metric !== 'count' ? ` de ${w.column}` : ''} · ${fmt.int(w.row_count)} linhas`);
   const card = h('article', {
     class: ['kpi', compact && 'compact', className, f.align === 'center' && 'centered', status && `rule-${status}`], tabindex: 0, style: cardStyle(f),
     onclick: () => ui.mode === 'view' && goToNode(w.node_id),
@@ -154,17 +154,40 @@ function tableData(w) {
 }
 
 /**
+ * Nomes trocados no painel Formato (spec 015, RF-1502): muda só o texto exibido (eixo, legenda, tooltip e
+ * modo tabela). `_keyOf` devolve o nome original, que é o que as cores por categoria usam.
+ */
+function relabel(w, labels) {
+  if (!labels || !Object.keys(labels).length) return w;
+  const rename = (name) => labels[name] ?? name;
+  const back = new Map(Object.entries(labels).map(([from, to]) => [to, from]));
+  const out = { ...w, _keyOf: (name) => back.get(name) ?? name };
+  if (w.series) {
+    out.series = w.series.map((s) => ({
+      ...s,
+      label: rename(s.label),
+      values: s.values && Object.fromEntries(Object.entries(s.values).map(([k, v]) => [rename(k), v])),
+    }));
+  }
+  if (w.series_names) out.series_names = w.series_names.map(rename);
+  if (w.sets) out.sets = w.sets.map((set) => ({ ...set, name: rename(set.name) }));
+  if (w.points) out.points = w.points.map((pt) => (pt.s === undefined ? pt : { ...pt, s: rename(pt.s) }));
+  return out;
+}
+
+/**
  * Cartão de gráfico. `w`: widget publicado pela caixa (Chart ou Venn). Clicar no título leva ao nó de
  * origem. `actions`: botões extras no cabeçalho; `fmt`: formato do visual.
  */
-export function chartCard(w, { width, height = 260, className = '', actions = [], fmt: f = {} } = {}) {
+export function chartCard(original, { width, height = 260, className = '', actions = [], fmt: f = {} } = {}) {
+  const w = relabel(original, f.labels);
   const card = h('article', { class: ['chart-card', className], style: cardStyle(f) });
   const asTable = tableMode.has(w.node_id);
-  const subtitle = w.subtitle || (w.widget_type === 'venn' ? `${fmt.int(w.union)} em pelo menos um conjunto`
+  const subtitle = f.subtitle || w.subtitle || (w.widget_type === 'venn' ? `${fmt.int(w.union)} em pelo menos um conjunto`
     : SUBTITLES[w.chart_type]?.(w)
       || (w.agg === 'count' ? `Contagem por ${w.x_column}` : `${AGG_LABELS[w.agg] || w.agg} de ${w.y_column} por ${w.x_column}`)
       + (w.series_column ? ` e ${w.series_column}` : ''));
-  const redraw = () => card.replaceWith(chartCard(w, { width, height, className, actions, fmt: f }));
+  const redraw = () => card.replaceWith(chartCard(original, { width, height, className, actions, fmt: f }));
   const showTitle = f.show_title !== false;
   const showSub = f.show_subtitle !== false;
   card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
@@ -184,7 +207,7 @@ export function chartCard(w, { width, height = 260, className = '', actions = []
       h('thead', {}, h('tr', {}, t.head.map((c, i) => h('th', { class: i ? 'num' : null }, c)))),
       h('tbody', {}, t.rows.map((r) => h('tr', {}, r.map((v, i) => h('td', { class: i ? 'num' : null }, v))))))));
   } else {
-    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series || [], Math.max(220, width - 34), height, f, w));
+    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series || [], Math.max(220, width - 34), height, { ...f, _keyOf: w._keyOf }, w));
     card.append(body);
     withTooltip(card, body);
   }
@@ -199,7 +222,7 @@ export function tableCard(w, { className = '', fmt: f = {}, actions = [] } = {})
   card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
     showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: 'Ir para o nó', style: titleStyle(f), onclick: () => goToNode(w.node_id) },
       showTitle ? h('h3', { style: { fontSize: f.title_size ? `${f.title_size}px` : null } }, f.title || w.title) : null,
-      showSub ? h('p', { class: 'muted' }, `${fmt.int(Math.min(w.rows.length, w.row_count))} de ${fmt.int(w.row_count)} linhas`) : null) : h('span', { class: 'grow' }),
+      showSub ? h('p', { class: 'muted' }, f.subtitle || `${fmt.int(Math.min(w.rows.length, w.row_count))} de ${fmt.int(w.row_count)} linhas`) : null) : h('span', { class: 'grow' }),
     h('div', { class: 'chart-actions' }, actions)));
   const cellOf = (col, v) => {
     const status = col.numeric ? ruleFor(f.rules, v, col.name) : null;

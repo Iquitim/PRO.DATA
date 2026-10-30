@@ -51,6 +51,24 @@ def _free_port() -> int:
         return int(s.getsockname()[1])
 
 
+# Sempre o mesmo endereço local: o navegador embutido guarda preferências (painéis, tema, abas)
+# por endereço, porta incluída. Com porta sorteada, tudo era esquecido a cada abertura (spec 015).
+PREFERRED_PORT = 47615
+
+
+def choose_port(preferred: int = PREFERRED_PORT) -> int:
+    """A porta preferida, se estiver livre; senão (ex.: outra janela aberta), uma porta qualquer."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", preferred))
+        except OSError:
+            log.info(
+                "Porta %s ocupada: esta janela usa outra porta e não compartilha as preferências.", preferred
+            )
+            return _free_port()
+    return preferred
+
+
 def _wait_until_ready(url: str, server_thread: threading.Thread, timeout: float = 30.0) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -214,7 +232,7 @@ def run(data_dir: Path) -> None:
     from prodata.config import Settings
     from prodata.main import create_app
 
-    port = _free_port()
+    port = choose_port()
     url = f"http://127.0.0.1:{port}"
     settings = Settings(host="127.0.0.1", port=port, cors_origins=[url])
     log.info("%s %s iniciando em %s (dados: %s)", APP_NAME, __version__, url, data_dir)

@@ -14,6 +14,8 @@ def ui(
     placeholder: str | None = None,
     labels: dict[str, str] | None = None,
     step: float | None = None,
+    source: str | None = None,
+    max_items: int | None = None,
 ) -> dict[str, Any]:
     """Metadados de UI de um campo.
 
@@ -22,6 +24,8 @@ def ui(
     - ``show_if``: ``{"campo": [valores]}``; ``$format`` refere-se ao formato do arquivo.
     - ``port``: para widgets de coluna, de qual porta de entrada vêm as opções.
     - ``labels``: rótulos legíveis para opções de ``Literal``.
+    - ``source``: campo com o nome da coluna cujos valores o widget lista (``column_values``).
+    - ``max_items``: quantos itens podem ser escolhidos no máximo.
     """
     meta = {
         "widget": widget,
@@ -31,5 +35,7 @@ def ui(
         "placeholder": placeholder,
         "labels": labels,
         "step": step,
+        "source": source,
+        "max_items": max_items,
     }
     return {k: v for k, v in meta.items() if v is not None}
