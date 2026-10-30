@@ -7,6 +7,7 @@ import {
 } from './canvas.js';
 import { copySelection, cutSelection, paste } from './clipboard.js';
 import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
+import { askExports } from './exports_ask.js';
 import { refreshConnections, refreshQueries, renderConnectionsSection, renderQueriesSection } from './connections.js';
 import { enableFileDropOnCanvas, refreshDatasets, renderDatasetsPanel } from './datasets.js';
 import { basename, chooseOpenFile, chooseSaveFile, dirname } from './desktop.js';
@@ -30,12 +31,46 @@ const RECENT_FILES = 'prodata.recentFiles';
 
 // ------------------------------------------------------------------ execução
 
-async function run(targetNodeId = null) {
+/**
+ * Exportações em "Perguntar ao executar" com arquivo existente (spec 017): pergunta e devolve o fluxo a
+ * executar (com a escolha só desta execução, ou gravada nas caixas), ou null se o usuário cancelar.
+ */
+async function resolveExports(targetNodeId) {
+  const pending = await api.pendingExports(store.workflow, targetNodeId);
+  if (!pending.length) return store.workflow;
+  const answer = await askExports(pending);
+  if (!answer) return null;
+  if (answer.remember) {
+    mutate((wf) => {
+      for (const n of wf.nodes) if (answer.choices[n.id]) n.config.if_exists = answer.choices[n.id];
+    });
+    return store.workflow;
+  }
+  const once = structuredClone(store.workflow);
+  for (const n of once.nodes) if (answer.choices[n.id]) n.config.if_exists = answer.choices[n.id];
+  return once;
+}
+
+/**
+ * Executa o fluxo. `auto`: execução que o usuário não pediu (abrir o programa ou um fluxo, trocar de aba):
+ * exportações que precisariam perguntar ficam esperando o próximo "Executar".
+ */
+async function run(targetNodeId = null, { auto = false } = {}) {
   if (store.running || !store.workflow) return;
+  let workflow = store.workflow;
+  if (!auto) {
+    try {
+      workflow = await resolveExports(targetNodeId);
+    } catch (err) {
+      toastError(err, 'Não foi possível verificar os arquivos de saída');
+      return;
+    }
+    if (!workflow) return; // cancelou: nada executa
+  }
   store.running = true;
   emit('running');
   try {
-    const report = await api.execute(store.workflow, targetNodeId);
+    const report = await api.execute(workflow, targetNodeId, auto);
     setExecution(report, Object.keys(report.node_results));
     const errors = Object.values(report.node_results).filter((r) => r.status === 'error').length;
     if (errors) {
@@ -98,7 +133,7 @@ async function open(workflow, { saved = true, autorun = true, filePath = null } 
   }
   openTab(workflow, { saved, filePath });
   if (saved && filePath) rememberRecent(filePath, workflow.name);
-  if (autorun && workflow.nodes.length) await run();
+  if (autorun && workflow.nodes.length) await run(null, { auto: true });
 }
 
 /** Fluxos abertos/salvos fora da biblioteca, mais recentes primeiro (só neste computador). */
@@ -218,7 +253,7 @@ function buildTabs() {
           onclick: () => {
             if (store.running && i !== activeIndex()) { toast('Aguarde a execução terminar', { kind: 'info' }); return; }
             switchTab(i);
-            if (!store.execution && store.workflow.nodes.length) run();
+            if (!store.execution && store.workflow.nodes.length) run(null, { auto: true });
           },
           onauxclick: (e) => { if (e.button === 1) closeTab(i); },
         },
@@ -591,7 +626,7 @@ async function boot() {
   await restoreTabs();
   buildTabs();
   emit('tabs');
-  if (store.workflow.nodes.length) await run();
+  if (store.workflow.nodes.length) await run(null, { auto: true });
   if (!store.inspect.nodeId && store.workflow.nodes.length) inspect(store.workflow.nodes[0].id);
 }
 

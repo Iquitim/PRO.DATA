@@ -134,6 +134,16 @@ class DesktopApi:
             file_types=(_WORKFLOW_FILTER, "Todos os arquivos (*.*)"),
         )
 
+    def open_data_file(self, start: str = "") -> str | None:
+        """Arquivo de dados para vincular (spec 017): lido onde está, sempre na versão atual."""
+        import webview
+
+        return self._dialog(
+            webview.FileDialog.OPEN,
+            directory=start if Path(start).is_dir() else "",
+            file_types=(_DATA_FILTER, "Todos os arquivos (*.*)"),
+        )
+
     def save_png(self, suggested: str, data: str) -> str | None:
         """Imagem do dashboard (spec 014, RF-1452): "Salvar como" do Windows e grava o PNG escolhido."""
         import webview
@@ -180,6 +190,7 @@ class DesktopApi:
 # O pywebview só aceita letras, dígitos e espaços na descrição do filtro: "PRO.DATA" quebrava o diálogo.
 _WORKFLOW_FILTER = "Fluxos PRODATA (*.prodata.json)"
 _PNG_FILTER = "Imagem PNG (*.png)"
+_DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_MAX_BYTES = 64 * 1024 * 1024
 

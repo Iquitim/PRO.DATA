@@ -141,9 +141,18 @@ def page(
 
 
 def distinct_values(
-    cache: ResultCache, workflow_id: str, node_id: str, anchor: str, column: str, limit: int = 500
+    cache: ResultCache,
+    workflow_id: str,
+    node_id: str,
+    anchor: str,
+    column: str,
+    limit: int = 500,
+    search: str = "",
 ) -> dict[str, Any]:
-    """Valores distintos de uma coluna da saída, do mais frequente ao menos (spec 015, RF-1503)."""
+    """Valores distintos de uma coluna da saída, do mais frequente ao menos (spec 015, RF-1503).
+
+    ``search`` filtra no servidor (sem diferenciar maiúsculas): serve para colunas com milhares de valores.
+    """
     df = cache.table(workflow_id, node_id, anchor)
     if df is None:
         raise NotFoundError("Sem resultado para esta saída. Execute o fluxo.")
@@ -156,9 +165,15 @@ def distinct_values(
         .len("count")
         .sort(["count", "value"], descending=[True, False])
     )
+    total = counts.height
+    if search.strip():
+        counts = counts.filter(
+            pl.col("value").str.to_lowercase().str.contains(search.strip().lower(), literal=True)
+        )
     return {
         "column": column,
-        "distinct": counts.height,
+        "distinct": total,
+        "matches": counts.height,
         "values": counts.head(limit).to_dicts(),
         "truncated": counts.height > limit,
     }

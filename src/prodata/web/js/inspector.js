@@ -137,10 +137,39 @@ function cacheBanner(n) {
       + (skipped.length ? `Por isso ${skipped.length} caixa(s) anterior(es) não executam enquanto nada mudar antes daqui: ${names}.`
         : 'Nenhuma caixa anterior precisou ser pulada.')
       : 'Execute o fluxo para guardar o resultado desta caixa. Depois, as caixas anteriores não precisam executar.',
+    h('div', { class: 'stack-xs' },
+      // Renovação (spec 017): arquivos de origem já invalidam o cache sozinhos; bancos precisam de prazo.
+      h('label', { class: 'cache-refresh' }, h('span', {}, 'Renovar'),
+        h('select', {
+          class: 'input input-sm', 'aria-label': 'Quando renovar o cache',
+          onchange: (e) => mutate((wf) => { wf.nodes.find((k) => k.id === n.id).cache_refresh = e.target.value; }, { affects: [n.id] }),
+        }, [['changes', 'quando algo antes mudar (padrão)'], ['daily', 'também todo dia'], ['hourly', 'também a cada hora']]
+          .map(([v, l]) => h('option', { value: v, selected: (n.cache_refresh || 'changes') === v }, l)))),
+      h('p', { class: 'field-help' }, 'Arquivos de origem atualizados também renovam o cache. Para bancos de dados, use "todo dia".')),
     h('div', { class: 'row wrap' },
       skipped.length ? button({ icon: 'target', label: `Mostrar as ${skipped.length} puladas`, size: 'sm', onClick: () => selectMany(skipped.map((k) => k.id)) }) : null,
       button({ icon: 'refresh', label: 'Atualizar cache', size: 'sm', onClick: () => handlers.refreshCache(n.id) }),
       button({ icon: 'x', label: 'Remover', size: 'sm', variant: 'ghost', onClick: () => cacheActions(n)[1].onSelect() })));
+}
+
+/** De quando são os dados de uma fonte (spec 017): data do arquivo, vínculo ou consulta refeita. */
+function sourceBanner(n) {
+  if (n.type !== 'io.input_data') return null;
+  const extra = nodeResult(n.id)?.extra || {};
+  const when = (iso) => new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  if (extra.source_linked) {
+    return banner('muted', 'link', `Arquivo vinculado · modificado em ${when(extra.source_modified)}`,
+      `${extra.source_linked}. A cada execução, se o arquivo mudou, ele é relido e só o que depende dele roda de novo.`);
+  }
+  if (extra.source_modified) {
+    return banner('muted', 'clock', `Cópia enviada em ${when(extra.source_modified)}`,
+      'Este arquivo é uma cópia: atualizar o original não muda o fluxo. Para acompanhar uma planilha atualizada todo dia, use "Vincular arquivo" na aba Dados.');
+  }
+  if (extra.source_read_at) {
+    return banner('muted', 'database', `Consulta feita em ${when(extra.source_read_at)}`,
+      'Consultas ao banco são refeitas a cada execução (a menos que "Reaproveitar resultado" esteja ligado).');
+  }
+  return null;
 }
 
 /** Várias caixas selecionadas (spec 012): ações de grupo e a lista das selecionadas. */
@@ -175,12 +204,12 @@ const valuesCache = new Map();
 on('execution', () => valuesCache.clear());
 
 /** Valores de uma coluna que chega na caixa (pela porta indicada ou pela primeira ligada). */
-function upstreamValues(nodeId, column, port = null) {
+function upstreamValues(nodeId, column, port = null, search = '') {
   const edge = store.workflow.edges.find((e) => e.target === nodeId && (!port || e.targetHandle === port));
   if (!edge || !nodeResult(edge.source)?.anchors?.[edge.sourceHandle]) return Promise.reject(new Error('sem execução'));
-  const key = `${edge.source}|${edge.sourceHandle}|${column}`;
+  const key = `${edge.source}|${edge.sourceHandle}|${column}|${search}`;
   if (!valuesCache.has(key)) {
-    const pending = api.columnValues(store.workflow.id, edge.source, edge.sourceHandle, column);
+    const pending = api.columnValues(store.workflow.id, edge.source, edge.sourceHandle, column, 500, search);
     pending.catch(() => valuesCache.delete(key));
     valuesCache.set(key, pending);
   }
@@ -192,7 +221,7 @@ function nodeContext(n) {
   const res = nodeResult(n.id);
   const ctx = {
     columns: (port) => upstreamColumns(n.id, port || null),
-    values: (column, port) => upstreamValues(n.id, column, port || null),
+    values: (column, port, search) => upstreamValues(n.id, column, port || null, search || ''),
     datasets: store.datasets,
     errorField: res?.status === 'error' ? res.error_field?.split('.')[0] : null,
   };
@@ -354,6 +383,7 @@ function nodePanel(n) {
       button({ icon: 'refresh', label: 'Converter para Input Data', size: 'sm', onClick: () => convertLegacy(n) })) : null,
     cacheBanner(n),
     statusBanner(n),
+    sourceBanner(n),
     explainer,
     h('div', { class: 'pad' }, spec.config_fields.length
       ? renderFields(spec.config_fields, n.config, onChange, nodeContext(n))

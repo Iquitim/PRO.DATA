@@ -510,36 +510,56 @@ function columnValues(field, value, set, ctx, id, values) {
   const column = values?.[field.source];
   if (!column) return h('p', { class: 'field-help' }, 'Escolha antes a coluna do grupo.');
   const wrap = h('div', { class: 'value-picker' }, h('p', { class: 'field-help' }, 'Carregando os valores…'));
+  const toggle = (v) => set(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+  const full = () => selected.length >= max;
+  const chip = (v) => {
+    const on = selected.includes(v.value);
+    return h('button', {
+      type: 'button', class: ['value-chip', on && 'on'], 'aria-pressed': String(on), disabled: !on && full(),
+      title: !on && full() ? `Máximo de ${max}: desmarque um para trocar` : null,
+      onclick: () => toggle(v.value),
+    }, icon(on ? 'check' : 'plus', 12), h('span', { class: 'ellipsis' }, v.value), h('span', { class: 'muted' }, fmt.int(v.count)));
+  };
   const draw = (data) => {
     const known = new Set(data.values.map((v) => v.value));
-    const toggle = (v) => set(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
-    const full = selected.length >= max;
+    // Coluna com muitos valores (spec 017): provavelmente um identificador. Mostra só os mais frequentes
+    // e busca no servidor, para não despejar milhares de opções na tela.
+    const many = data.distinct > MANY_VALUES;
     const list = h('div', { class: 'value-list', role: 'group', 'aria-label': field.title });
-    const fill = (needle = '') => list.replaceChildren(...data.values
-      .filter((v) => !needle || v.value.toLowerCase().includes(needle.toLowerCase()))
-      .slice(0, 200)
-      .map((v) => {
-        const on = selected.includes(v.value);
-        return h('button', {
-          type: 'button', class: ['value-chip', on && 'on'], 'aria-pressed': String(on), disabled: !on && full,
-          title: !on && full ? `Máximo de ${max}: desmarque um para trocar` : null,
-          onclick: () => toggle(v.value),
-        }, icon(on ? 'check' : 'plus', 12), h('span', { class: 'ellipsis' }, v.value), h('span', { class: 'muted' }, fmt.int(v.count)));
-      }));
-    fill();
+    const note = h('p', { class: 'field-help' });
+    const fill = (rows, label) => { list.replaceChildren(...rows.map(chip)); note.textContent = label; };
+    const top = () => fill(data.values.slice(0, many ? TOP_WHEN_MANY : 200),
+      many ? `Mostrando os ${TOP_WHEN_MANY} mais frequentes. Busque para achar outros.` : '');
+    top();
+    const search = (needle) => {
+      if (!needle) { top(); return; }
+      if (!many && !data.truncated) {
+        const found = data.values.filter((v) => v.value.toLowerCase().includes(needle.toLowerCase()));
+        fill(found.slice(0, 200), found.length ? '' : 'Nenhum valor encontrado.');
+        return;
+      }
+      ctx.values(column, null, needle)
+        .then((res) => fill(res.values.slice(0, 50), res.matches > 50
+          ? `${fmt.int(res.matches)} valores encontrados; mostrando 50. Refine a busca.`
+          : res.matches ? '' : 'Nenhum valor encontrado.'))
+        .catch(() => fill([], 'Não foi possível buscar agora.'));
+    };
+    const lost = selected.filter((v) => !known.has(v) && !many);
     wrap.replaceChildren(...[ // replaceChildren() nativo escreveria "null" para os itens ausentes
       h('div', { class: 'value-head' },
-        h('span', {}, `${selected.length} de ${max === Infinity ? data.values.length : max} marcados`),
+        h('span', {}, `${selected.length} de ${max === Infinity ? data.distinct : max} marcados`),
         h('span', { class: 'muted' }, `${fmt.int(data.distinct)} valores em [${column}]`)),
-      selected.filter((v) => !known.has(v)).length
-        ? h('div', { class: 'chips' }, selected.filter((v) => !known.has(v)).map((v) => h('span', { class: 'chip invalid', title: 'Não existe mais nesta coluna' },
-          `${v} (não encontrado)`, h('button', { type: 'button', class: 'chip-x', 'aria-label': `Remover ${v}`, onclick: () => toggle(v) }, icon('x', 12)))))
-        : null,
-      data.values.length > 12
-        ? h('input', { id, class: 'input', type: 'search', placeholder: 'Buscar valor…', oninput: (e) => fill(e.target.value) })
+      many ? h('p', { class: 'field-warn' }, icon('alert', 13),
+        ` [${column}] tem ${fmt.int(data.distinct)} valores diferentes: parece um identificador, não um grupo. `
+        + 'O Venn compara 2 ou 3 grupos — prefira uma coluna com poucos valores (produto, segmento). Se for esta mesmo, busque o valor.') : null,
+      selected.length ? h('div', { class: 'chips' }, selected.map((v) => h('span', { class: ['chip', lost.includes(v) && 'invalid'], title: lost.includes(v) ? 'Não existe mais nesta coluna' : null },
+        lost.includes(v) ? `${v} (não encontrado)` : v,
+        h('button', { type: 'button', class: 'chip-x', 'aria-label': `Remover ${v}`, onclick: () => toggle(v) }, icon('x', 12))))) : null,
+      many || data.values.length > 12
+        ? h('input', { id, class: 'input', type: 'search', placeholder: 'Buscar valor…', oninput: debounce((e) => search(e.target.value.trim()), 250) })
         : null,
       list,
-      data.truncated ? h('p', { class: 'field-help' }, 'Mostrando os 500 valores mais frequentes.') : null,
+      note,
     ].filter(Boolean));
   };
   const manual = () => wrap.replaceChildren(
@@ -548,6 +568,9 @@ function columnValues(field, value, set, ctx, id, values) {
   (ctx.values ? ctx.values(column) : Promise.reject()).then(draw).catch(manual);
   return wrap;
 }
+
+const MANY_VALUES = 50;
+const TOP_WHEN_MANY = 15;
 
 /** Nomes exibidos: uma linha por série, categoria ou conjunto do visual (ctx.categories). Vazio = original. */
 function renameLabels(field, value, set, ctx) {

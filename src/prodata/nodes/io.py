@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -72,10 +73,22 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
             raise ValueError("Consultas de banco não estão disponíveis neste ambiente.")
         query = ctx.queries.get(query_id)
         df = read_definition(query, ctx.connections, limit=cfg.limit or None)
-        return NodeOutput(tables={"out": df}, extra={"source": query.name})
+        return NodeOutput(tables={"out": df}, extra={"source": query.name, "source_read_at": _now()})
     path = ctx.datasets.resolve(cfg.dataset)
+    info = ctx.datasets.info_of(cfg.dataset)
     df = read_table(path, cfg, n_rows=cfg.limit or None)
-    return NodeOutput(tables={"out": df})
+    # Quando o arquivo foi modificado e se é vinculado: o Configurar mostra de quando são os dados (spec 017).
+    extra = {
+        "source_modified": info.modified_at.isoformat() if info.modified_at else None,
+        "source_read_at": _now(),
+    }
+    if info.linked_path:
+        extra["source_linked"] = info.linked_path
+    return NodeOutput(tables={"out": df}, extra=extra)
+
+
+def _now() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 # ------------------------------------------------------------------ Text Input
@@ -188,13 +201,17 @@ class OutputDataConfig(ToolConfig):
         title="Nome da planilha",
         json_schema_extra=ui(show_if={"format": ["excel"]}),
     )
-    if_exists: Literal["replace", "add_sheet"] = Field(
-        "replace",
+    if_exists: Literal["ask", "replace", "new_file", "add_sheet"] = Field(
+        "ask",
         title="Se o arquivo já existir",
-        description="Adicionar mantém as outras planilhas: vários Output Data podem montar um arquivo só.",
+        description='"Adicionar planilha" só vale para Excel: vários Output Data podem montar um arquivo só.',
         json_schema_extra=ui(
-            show_if={"format": ["excel"]},
-            labels={"replace": "Substituir o arquivo", "add_sheet": "Adicionar ou atualizar esta planilha"},
+            labels={
+                "ask": "Perguntar ao executar",
+                "replace": "Substituir o arquivo",
+                "new_file": "Criar um novo arquivo (data e hora no nome)",
+                "add_sheet": "Adicionar ou atualizar esta planilha (Excel)",
+            },
         ),
     )
 
@@ -256,6 +273,17 @@ def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
     return folder.resolve() / name
 
 
+def new_file_path(path: Path) -> Path:
+    """Mesmo nome com data e hora (e um número, se ainda assim existir): o arquivo antigo fica intacto."""
+    stamp = datetime.now().strftime("%Y-%m-%d %Hh%M")
+    candidate = path.with_name(f"{path.stem} {stamp}{path.suffix}")
+    n = 2
+    while candidate.exists():
+        candidate = path.with_name(f"{path.stem} {stamp} ({n}){path.suffix}")
+        n += 1
+    return candidate
+
+
 @tool(
     type="io.output_data",
     name="Output Data",
@@ -270,7 +298,20 @@ def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
 )
 def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
     df = ctx.input()
+    if cfg.if_exists == "add_sheet" and cfg.format != "excel":
+        raise InvalidInputError(
+            '"Adicionar planilha" só vale para Excel. Escolha outra opção em "Se o arquivo já existir".'
+        )
     path = export_path(ctx.exports_dir, cfg)
+    existed = path.exists()
+    # "Perguntar" sem ninguém para responder (ex.: execução pela API): nunca sobrescreve em silêncio (spec 017).
+    if existed and cfg.if_exists in ("ask", "new_file"):
+        path = new_file_path(path)
+    action = (
+        "criado"
+        if not existed
+        else {"replace": "substituído", "add_sheet": "planilha atualizada"}.get(cfg.if_exists, "novo arquivo")
+    )
     match cfg.format:
         case "csv":
             df.write_csv(path, separator=";")
@@ -282,7 +323,7 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
             df.write_ipc(path, compression="zstd")
         case _:
             df.write_parquet(path)
-    extra = {"exported_file": path.name}
+    extra = {"exported_file": path.name, "export_action": action}
     if cfg.folder.strip():
         extra["exported_path"] = str(path)
     return NodeOutput(tables={"out": df}, extra=extra)

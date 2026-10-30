@@ -127,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.3.6 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.3.7 · Windows</span><span>Outubro de 2026</span></div>
   </div>
 </section>
 
@@ -243,6 +243,7 @@
   <h2>Trazendo dados</h2>
   <h3>Arquivos</h3>
   <p>Envie arquivos pela aba <strong>Dados</strong> (clicando ou arrastando) ou solte-os direto no canvas. Antes de usar, a <strong>prévia</strong> mostra o que foi detectado e as primeiras linhas — e qualquer ajuste aparece na hora.</p>
+  <p><strong>Enviar ou vincular?</strong> Enviar faz uma <em>cópia</em> do arquivo. Para uma planilha que é atualizada todo dia numa pasta da rede ou no OneDrive, use <strong>Vincular arquivo</strong>: o PRO.DATA lê o original onde ele está, sem copiar. A cada execução, se o arquivo mudou, ele é relido e só o que depende dele roda de novo; a aba Dados e o Configurar mostram quando o arquivo foi modificado e avisam se ele foi movido ou renomeado. O PRO.DATA nunca grava no arquivo vinculado.</p>
   <figure>
     <div class="frame"><img src="img/preview-crop.png" alt="Prévia de arquivo com detecção automática"></div>
     <figcaption>Um CSV no padrão brasileiro (ponto e vírgula, vírgula decimal, Windows-1252) reconhecido sem nenhuma configuração.</figcaption>
@@ -276,7 +277,7 @@
     <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da aba Dados: arquivos (com detecção automática de formato) ou consultas de banco.</td></tr>
     <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
     <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
-    <tr><td class="tool">Output Data</td><td>Exporta para Excel (padrão, com o nome da planilha; vários Output Data podem montar um arquivo com várias planilhas), CSV, Parquet, JSON ou Arrow, na pasta que você escolher.</td></tr>
+    <tr><td class="tool">Output Data</td><td>Exporta para Excel (padrão, com o nome da planilha; vários Output Data podem montar um arquivo com várias planilhas), CSV, Parquet, JSON ou Arrow, na pasta que você escolher. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
     <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
     <tr><td class="tool">Select</td><td>Escolhe, renomeia e muda o tipo das colunas.</td></tr>
     <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
@@ -486,7 +487,7 @@
   <p><strong>Salvar</strong> guarda o fluxo na biblioteca do PRO.DATA. <strong>Salvar como…</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) grava um arquivo <code>.prodata.json</code> na pasta que você escolher — do projeto, da rede ou do OneDrive — e daí em diante <kbd>Ctrl</kbd>+<kbd>S</kbd> salva nele. <strong>Abrir arquivo…</strong> abre fluxos de qualquer pasta, e os recentes ficam listados. No <em>Output Data</em>, o campo <strong>Pasta de destino</strong> abre o seletor de pastas do Windows; depois de executar, o botão "Mostrar na pasta" leva até o arquivo gerado.</p>
   <div class="avoid">
   <h3>Ponto de cache</h3>
-  <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: só o resultado dela fica guardado (inclusive depois de fechar o programa), e por isso as caixas anteriores deixam de executar — aparecem douradas e tracejadas, com "Pulada pelo cache", e a barra de status conta quantas foram puladas. O aviso da caixa lista as puladas e tem o botão <strong>Mostrar as puladas</strong>. Mudou algo antes do ponto? O cache se refaz sozinho. Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
+  <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: só o resultado dela fica guardado (inclusive depois de fechar o programa), e por isso as caixas anteriores deixam de executar — aparecem douradas e tracejadas, com "Pulada pelo cache", e a barra de status conta quantas foram puladas. O aviso da caixa lista as puladas e tem o botão <strong>Mostrar as puladas</strong>. Mudou algo antes do ponto, ou um arquivo de origem foi atualizado? O cache se refaz sozinho. Para fontes de banco, que só mudam por dentro, escolha em <strong>Renovar</strong> "também todo dia" ou "a cada hora". Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
   <figure>
     <div class="frame"><img src="img/cache-crop.png" alt="Ponto de cache no Join"></div>
     <figcaption>Ponto de cache no Join: as caixas anteriores aparecem "em cache" e a tabela mostra o que chega pela entrada [R].</figcaption>
@@ -515,8 +516,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.3.6-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.3.6-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.3.7-setup.exe</code> (137 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.3.7-portable.zip</code> (219 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
   </div>
   <h3>Requisitos</h3>
   <table>
@@ -603,7 +604,8 @@
   <div class="avoid"><h4>Preciso saber programar?</h4><p>Não. Tudo é feito por arrastar, ligar e preencher formulários. Quem conhece SQL ou fórmulas tem recursos extras, mas eles são opcionais.</p></div>
   <div class="avoid"><h4>Meus dados vão para a nuvem?</h4><p>Não. O PRO.DATA roda só no seu computador e funciona sem internet.</p></div>
   <div class="avoid"><h4>Posso estragar meu banco de dados?</h4><p>Não. As conexões são somente leitura; comandos que alteram dados são bloqueados.</p></div>
-  <div class="avoid"><h4>Como atualizo um relatório mensal?</h4><p>Envie o arquivo novo com o mesmo nome (o PRO.DATA pergunta se deve substituir) e clique em Executar. O fluxo inteiro roda de novo com os dados atualizados.</p></div>
+  <div class="avoid"><h4>Como atualizo um relatório mensal?</h4><p>Envie o arquivo novo com o mesmo nome (o PRO.DATA pergunta se deve substituir) e clique em Executar. Se a planilha é atualizada sozinha numa pasta, use <strong>Vincular arquivo</strong>: basta clicar em Executar.</p></div>
+  <div class="avoid"><h4>A exportação vai apagar o arquivo de ontem?</h4><p>Não sem perguntar. Se o arquivo de saída já existe, ao clicar em Executar o PRO.DATA pergunta: substituir, criar um novo com data e hora no nome, ou (no Excel) adicionar a planilha. Dá para lembrar a escolha na caixa. Ao abrir o programa, essas exportações esperam o seu Executar.</p></div>
   <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
   <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na aba Dados.</p></div>
   <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, clique em <strong>Baixar imagem</strong>: o PNG sai em alta resolução, pronto para colar no e-mail ou na apresentação. O layout fica salvo no arquivo do fluxo.</p></div>

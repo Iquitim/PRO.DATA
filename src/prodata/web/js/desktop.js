@@ -48,6 +48,12 @@ export async function chooseSaveFile(suggested, start = '') {
   return askPath({ title: 'Salvar fluxo como', label: 'Arquivo', value: start ? `${start}\\${suggested}` : suggested, placeholder: 'D:\\Fluxos\\vendas.prodata.json' });
 }
 
+/** Arquivo de dados para vincular (spec 017). No navegador, o caminho é digitado. */
+export async function chooseDataFile(start = '') {
+  if (native()) return call('open_data_file', start);
+  return askPath({ title: 'Vincular arquivo', label: 'Arquivo', placeholder: 'D:\\Rede\\Comercial\\vendas_diarias.xlsx' });
+}
+
 export async function chooseOpenFile(start = '') {
   if (native()) return call('open_file', start);
   return askPath({ title: 'Abrir fluxo de arquivo', label: 'Arquivo', placeholder: 'D:\\Fluxos\\vendas.prodata.json' });

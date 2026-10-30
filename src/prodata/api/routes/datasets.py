@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, Field
 
 from prodata.api.deps import ServicesDep
 from prodata.errors import InvalidInputError
@@ -38,7 +39,7 @@ def preview_dataset(
     """Lê as primeiras linhas com as opções informadas (``auto`` é resolvido e devolvido)."""
     path = services.datasets.resolve(name)
     preview = inspect_file(path, options or ReadOptions(), rows=rows)
-    preview["info"] = services.datasets.info(path).model_dump(mode="json")
+    preview["info"] = services.datasets.info_of(name).model_dump(mode="json")
     return preview
 
 
@@ -46,3 +47,14 @@ def preview_dataset(
 def delete_dataset(name: str, services: ServicesDep) -> Response:
     services.datasets.delete(name)
     return Response(status_code=204)
+
+
+class LinkRequest(BaseModel):
+    path: str = Field(..., min_length=1, max_length=1000)
+    name: str | None = Field(None, max_length=200)
+
+
+@router.post("/link", status_code=201)
+def link_dataset(req: LinkRequest, services: ServicesDep) -> DatasetInfo:
+    """Vincula um arquivo escolhido pelo usuário: lido onde está, sempre na versão atual (spec 017)."""
+    return services.datasets.link(req.path, req.name)

@@ -52,7 +52,7 @@ def test_updating_a_sheet_keeps_its_position(tmp_path: Path) -> None:
 
 def test_replace_overwrites_the_whole_file(tmp_path: Path) -> None:
     export(tmp_path, CLIENTES, sheet_name="Clientes")
-    path = export(tmp_path, VENDAS, sheet_name="Vendas")
+    path = export(tmp_path, VENDAS, sheet_name="Vendas", if_exists="replace")
     assert sheets(path) == ["Vendas"]
 
 

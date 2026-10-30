@@ -8,13 +8,14 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 from pydantic import ValidationError
 
-from prodata.connectors.queries import QueryStore
+from prodata.connectors.queries import QueryStore, source_query_id
 from prodata.connectors.store import ConnectionStore
 from prodata.domain.execution import (
     AnchorSummary,
@@ -28,9 +29,10 @@ from prodata.domain.workflow import Node, Workflow
 from prodata.engine import graph
 from prodata.engine.cache import FrozenEntry, NodeEntry, ResultCache
 from prodata.engine.profiling import simple_type
-from prodata.errors import ProdataError
+from prodata.errors import NotFoundError, ProdataError
 from prodata.ingestion.datasets import DatasetStore
 from prodata.nodes import REGISTRY, NodeContext, ToolSpec
+from prodata.nodes.io import OutputDataConfig, export_path
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +99,11 @@ class WorkflowRunner:
         self.queries = queries
         self._lock = threading.Lock()
 
-    def run(self, workflow: Workflow, target_node_id: str | None = None) -> ExecutionReport:
+    def run(
+        self, workflow: Workflow, target_node_id: str | None = None, *, hold_exports: bool = False
+    ) -> ExecutionReport:
+        """Executa o fluxo. ``hold_exports``: execução automática (ao abrir o fluxo, trocar de aba): exportações
+        em "Perguntar" cujo arquivo já existe esperam o usuário clicar em Executar (spec 017)."""
         started = time.perf_counter()
         order = graph.topological_order(workflow)
         if target_node_id:
@@ -118,8 +124,16 @@ class WorkflowRunner:
             for node_id in order:
                 node = workflow.node(node_id)
                 spec = REGISTRY.get(node.type)
+                waiting = self._waiting_export(node) if hold_exports else None
                 if node_id not in needed:
                     result = self._held_result(workflow, node, spec)
+                elif waiting:
+                    result = NodeResult(
+                        status="skipped",
+                        annotation="Arquivo já existe: clique em Executar",
+                        error=f"{waiting} já existe. Clique em Executar para escolher entre substituir ou criar outro.",
+                        extra={"export_waiting": waiting},
+                    )
                 elif node_id in frozen:
                     result = self._frozen_result(workflow, node, spec, frozen[node_id], fingerprints)
                 else:
@@ -169,15 +183,49 @@ class WorkflowRunner:
         """Pontos com instantâneo ainda válido e a assinatura atual de todos os pontos."""
         points = [n for n in workflow.nodes if n.cache_point and not n.disabled]
         self.cache.prune_frozen(workflow.id, {n.id for n in points})
-        signatures = {n.id: graph.upstream_signature(workflow, n.id) for n in points if n.id in order}
+        signatures = {
+            n.id: f"{graph.upstream_signature(workflow, n.id)}:{self._sources_signature(workflow, n.id)}"
+            for n in points
+            if n.id in order
+        }
         frozen: dict[str, FrozenEntry] = {}
         for node_id, signature in signatures.items():
             snapshot = self.cache.frozen(workflow.id, node_id)
-            if snapshot is not None and snapshot.signature == signature:
+            if (
+                snapshot is not None
+                and snapshot.signature == signature
+                and not _expired(snapshot, workflow.node(node_id).cache_refresh)
+            ):
                 frozen[node_id] = snapshot
             elif snapshot is not None:
-                self.cache.unfreeze(workflow.id, node_id)  # algo antes do ponto mudou
+                self.cache.unfreeze(workflow.id, node_id)  # algo antes do ponto mudou, ou o prazo venceu
         return frozen, signatures
+
+    def _waiting_export(self, node: Node) -> str | None:
+        """Nome do arquivo, se for uma exportação em "Perguntar" que encontraria o arquivo já existente."""
+        if node.type != "io.output_data" or node.disabled:
+            return None
+        try:
+            cfg = OutputDataConfig.model_validate(node.config)
+            path = export_path(self.exports_dir, cfg)
+        except ValidationError, ProdataError:
+            return None
+        return path.name if cfg.if_exists == "ask" and path.exists() else None
+
+    def _sources_signature(self, workflow: Workflow, node_id: str) -> str:
+        """Data e tamanho dos arquivos de origem antes do ponto (spec 017): um arquivo atualizado
+        invalida o cache. Fontes de banco não aparecem aqui; para elas existe a renovação por prazo."""
+        parts = []
+        for upstream in sorted(graph.ancestors(workflow, node_id)):
+            node = workflow.node(upstream)
+            dataset = str(node.config.get("dataset") or "")
+            if node.type != "io.input_data" or not dataset or source_query_id(dataset) is not None:
+                continue
+            try:
+                parts.append(f"{dataset}={self.datasets.signature(dataset)}")
+            except NotFoundError:
+                parts.append(f"{dataset}=sumiu")
+        return hashlib.sha256("|".join(parts).encode()).hexdigest()[:12]
 
     def _frozen_result(
         self,
@@ -360,3 +408,14 @@ class WorkflowRunner:
                 return "Desabilitado"
             case _:
                 return result.error or ""
+
+
+def _expired(snapshot: FrozenEntry, refresh: str) -> bool:
+    """Prazo do ponto de cache (spec 017): "daily" vale até o fim do dia (hora local); "hourly", por uma hora."""
+    if refresh == "changes":
+        return False
+    frozen_at = datetime.fromisoformat(snapshot.frozen_at)
+    now = datetime.now(UTC)
+    if refresh == "hourly":
+        return now - frozen_at >= timedelta(hours=1)
+    return frozen_at.astimezone().date() != now.astimezone().date()

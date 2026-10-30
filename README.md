@@ -64,7 +64,13 @@ localmente.
 - **Esquemas visuais** no Configurar do Cross Tab, do Transpose e do Join: o
   antes e o depois com uma amostra dos seus dados.
 - **Excel por padrão** no Output Data, com nome da planilha e opção de juntar
-  várias planilhas num mesmo arquivo.
+  várias planilhas num mesmo arquivo. Se o arquivo de saída já existe, o
+  PRO.DATA pergunta ao executar: substituir, criar um novo (data e hora no nome)
+  ou adicionar a planilha.
+- **Fontes que se atualizam**: *Vincular arquivo* lê a planilha original (pasta
+  da rede, OneDrive) sem copiar; mudanças no arquivo são percebidas a cada
+  execução e também invalidam o ponto de cache, que pode ainda renovar todo dia
+  ou a cada hora (para bancos de dados).
 - **Interface ajustável**: painéis de ferramentas/configuração, resultados e
   gráficos podem ser arrastados para esquerda, direita ou embaixo, ou ocultados.
 - **Aplicativo de desktop** para Windows: instalador `.exe` ou `.zip` portátil,
@@ -146,6 +152,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [014](specs/014-dashboard-canvas/spec.md) | Dashboard em canvas (arrastar, redimensionar, guias, Organizar com layouts prontos), painel Formato, textos/imagens/formas, PNG, big number com variação e tendência, empilhados, Pareto, Venn, funil, dispersão, medidor e Table |
 | [015](specs/015-ajustes-035/spec.md) | Subtítulo e nomes de legenda no dashboard, grupos do Venn escolhidos na lista, esquemas visuais (Cross Tab, Transpose, Join), Excel com várias planilhas, Formula alterando colunas, 42 funções novas, preferências lembradas no programa instalado |
 | [016](specs/016-telas-menores-cache/spec.md) | Painéis proporcionais e densidade compacta em telas menores; caixas puladas pelo ponto de cache em destaque, com contagem e "mostrar as puladas" |
+| [017](specs/017-fontes-vivas-exportacao/spec.md) | Arquivos vinculados (fonte sempre atualizada), cache que percebe a fonte e renova por prazo, exportação que pergunta antes de sobrescrever, Venn seguro com colunas grandes |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

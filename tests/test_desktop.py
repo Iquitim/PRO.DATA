@@ -25,6 +25,7 @@ def test_closing_is_blocked_only_with_unsaved_changes() -> None:
 
 def test_png_filter_and_names() -> None:
     webview_util.parse_file_type(desktop._PNG_FILTER)
+    webview_util.parse_file_type(desktop._DATA_FILTER)
     assert desktop.png_name("Vendas 2026 - 29/10") == "10.png"  # barra separa pasta: fica só o nome
     assert desktop.png_name('Vendas: "jan"?') == "Vendas jan.png"
     assert desktop.png_name("relatorio.PNG") == "relatorio.png"

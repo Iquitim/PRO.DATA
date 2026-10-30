@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -35,6 +35,8 @@ class Node(BaseModel):
     disabled: bool = False
     # Ponto de cache (spec 012): entrega o resultado congelado e dispensa as caixas anteriores.
     cache_point: bool = False
+    # Renovação do ponto de cache (spec 017): além de mudanças antes dele, também todo dia ou a cada hora.
+    cache_refresh: Literal["changes", "daily", "hourly"] = "changes"
 
 
 class Edge(BaseModel):

@@ -7,6 +7,7 @@ import { button, debounce, fmt, h } from './dom.js';
 import { renderFields } from './fields.js';
 import { FORMAT_ICONS, icon } from './icons.js';
 import { emit, mutate, on, sourceLabel, store } from './store.js';
+import { chooseDataFile } from './desktop.js';
 import { confirmDialog, openDialog, toast, toastError } from './ui.js';
 
 const FORMAT_LABELS = {
@@ -69,23 +70,51 @@ export async function uploadFiles(files, { onUploaded } = {}) {
 
 // ------------------------------------------------------------------ painel
 
+/** Data e hora da última modificação do arquivo (vinculado ou cópia). */
+const modifiedText = (d) => (d.modified_at ? `modificado em ${new Date(d.modified_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : '');
+
 function datasetItem(d) {
+  const meta = d.missing ? `Arquivo não encontrado: ${d.linked_path}`
+    : d.linked_path ? `Vinculado · ${FORMAT_LABELS[d.format] || d.format} · ${modifiedText(d)}`
+      : `${FORMAT_LABELS[d.format] || d.format} · ${fmt.bytes(d.size_bytes)} · ${fmt.date(d.modified_at)}`;
   return h('div', {
-    class: 'dataset-item',
+    class: ['dataset-item', d.linked_path && 'linked', d.missing && 'missing'],
     draggable: 'true',
-    title: 'Arraste para o canvas para criar um Input Data',
+    title: d.linked_path
+      ? `Vinculado: ${d.linked_path}\nLido sempre na versão atual do arquivo.\nArraste para o canvas para criar um Input Data`
+      : 'Cópia enviada ao PRO.DATA · arraste para o canvas para criar um Input Data',
     ondragstart: (e) => {
       e.dataTransfer.setData(DND_DATASET, d.name);
       e.dataTransfer.effectAllowed = 'copy';
     },
   },
-  h('span', { class: 'dataset-icon' }, icon(FORMAT_ICONS[d.format] || 'file', 16)),
-  h('button', { type: 'button', class: 'dataset-main', onclick: () => openPreview(d.name) },
+  h('span', { class: 'dataset-icon' }, icon(d.missing ? 'alert' : d.linked_path ? 'link' : FORMAT_ICONS[d.format] || 'file', 16)),
+  h('button', { type: 'button', class: 'dataset-main', disabled: d.missing, onclick: () => openPreview(d.name) },
     h('span', { class: 'dataset-name' }, d.name),
-    h('span', { class: 'dataset-meta' }, `${FORMAT_LABELS[d.format] || d.format} · ${fmt.bytes(d.size_bytes)} · ${fmt.date(d.modified_at)}`)),
+    h('span', { class: 'dataset-meta' }, meta)),
   h('div', { class: 'dataset-actions' },
     button({ icon: 'plus', title: 'Adicionar ao fluxo', size: 'sm', variant: 'ghost', onClick: () => addInputNode(d.name) }),
-    button({ icon: 'trash', title: 'Excluir arquivo', size: 'sm', variant: 'ghost', onClick: () => removeDataset(d.name) })));
+    button({ icon: 'trash', title: d.linked_path ? 'Remover o vínculo (o arquivo não é apagado)' : 'Excluir arquivo', size: 'sm', variant: 'ghost', onClick: () => removeDataset(d) })));
+}
+
+/** Vincular (spec 017): em vez de copiar, lê o arquivo onde está — pasta da rede, OneDrive — sempre atualizado. */
+async function linkFile() {
+  const path = await chooseDataFile();
+  if (!path) return;
+  try {
+    let info;
+    try {
+      info = await api.linkDataset(path);
+    } catch (err) {
+      if (!(err instanceof ApiError) || err.status !== 409) throw err;
+      const base = path.split(/[\\/]/).pop().replace(/\.[^.]+$/, '');
+      info = await api.linkDataset(path, `${base}_vinculado${path.match(/\.[^.\\/]+$/)?.[0] || ''}`);
+    }
+    await refreshDatasets();
+    toast(`${info.name} vinculado`, { kind: 'success', detail: 'O PRO.DATA lê sempre a versão atual do arquivo, sem cópia.' });
+  } catch (err) {
+    toastError(err, 'Não foi possível vincular o arquivo');
+  }
 }
 
 function addInputNode(name, options = {}) {
@@ -93,11 +122,17 @@ function addInputNode(name, options = {}) {
   addNode('io.input_data', c.x - 80, c.y - 28, { ...options, dataset: name, __label: sourceLabel(name) });
 }
 
-async function removeDataset(name) {
+async function removeDataset(d) {
+  const { name } = d;
   const used = store.workflow?.nodes.some((n) => n.config?.dataset === name);
-  const ok = await confirmDialog({
+  const warn = used ? ' Este fluxo usa a fonte e deixará de funcionar.' : '';
+  const ok = await confirmDialog(d.linked_path ? {
+    title: 'Remover vínculo',
+    message: `Remover o vínculo com "${d.linked_path}"? O arquivo continua onde está.${warn}`,
+    confirm: 'Remover vínculo',
+  } : {
     title: 'Excluir arquivo',
-    message: `Excluir "${name}" de storage/datasets?${used ? ' Este fluxo usa o arquivo e deixará de funcionar.' : ''}`,
+    message: `Excluir "${name}" de storage/datasets?${warn}`,
     confirm: 'Excluir',
     danger: true,
   });
@@ -105,7 +140,7 @@ async function removeDataset(name) {
   try {
     await api.deleteDataset(name);
     await refreshDatasets();
-    toast(`${name} excluído`, { kind: 'success' });
+    toast(d.linked_path ? `Vínculo com ${name} removido` : `${name} excluído`, { kind: 'success' });
   } catch (err) {
     toastError(err, 'Não foi possível excluir');
   }
@@ -139,7 +174,13 @@ export function renderDatasetsPanel(root) {
       : [h('p', { class: 'muted pad' }, 'Nenhum arquivo ainda.')]));
   };
   on('datasets', draw);
-  root.replaceChildren(h('div', { class: 'pad stack-sm' }, drop, input),
+  const link = button({
+    icon: 'link', label: 'Vincular arquivo da rede ou do computador', size: 'sm',
+    title: 'Lê o arquivo onde ele está, sempre na versão atual (para planilhas atualizadas todo dia)',
+    onClick: linkFile,
+  });
+  root.replaceChildren(h('div', { class: 'pad stack-sm' }, drop, input, link,
+    h('p', { class: 'field-help' }, 'Enviar faz uma cópia. Vincular lê o original: se ele for atualizado, o fluxo pega a versão nova.')),
     h('div', { class: 'panel-subtitle' }, 'Arquivos'), list);
   draw();
 }

@@ -720,3 +720,18 @@ details.explainer:not([open]) { gap: 0; }
 details.explainer > summary .x-toggle { margin-left: auto; color: var(--text-3); transition: transform .15s; }
 details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
 .x-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+
+/* Fontes vinculadas (spec 017) */
+.dataset-item.linked .dataset-icon { color: var(--accent); }
+.dataset-item.missing .dataset-icon, .dataset-item.missing .dataset-meta { color: var(--status-critical, #d03b3b); }
+.dataset-item.missing .dataset-main { cursor: default; }
+
+/* Pergunta antes de exportar (spec 017) */
+.export-ask { margin: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 6px; }
+.export-ask legend { display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.export-path { margin: 0; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.export-choice { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
+.export-choice input { margin-top: 3px; }
+.export-choice span { display: flex; flex-direction: column; }
+.switch-line { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cache-refresh { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; font-size: 12px; }

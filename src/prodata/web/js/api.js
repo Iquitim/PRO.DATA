@@ -48,6 +48,7 @@ export const api = {
   previewDataset: (name, options = {}, rows = 100) =>
     request('POST', `/api/datasets/${enc(name)}/preview?rows=${rows}`, options),
   deleteDataset: (name) => request('DELETE', `/api/datasets/${enc(name)}`),
+  linkDataset: (path, name = null) => request('POST', '/api/datasets/link', { path, name }),
 
   /** Upload com progresso (fetch não expõe progresso de envio). */
   uploadDataset(file, { overwrite = false, onProgress } = {}) {
@@ -92,10 +93,12 @@ export const api = {
   saveWorkflow: (wf) => request('PUT', `/api/workflows/${enc(wf.id)}`, wf),
   deleteWorkflow: (id) => request('DELETE', `/api/workflows/${enc(id)}`),
 
-  execute: (workflow, targetNodeId = null) =>
-    request('POST', '/api/execute', { workflow, target_node_id: targetNodeId }),
-  columnValues: (wfId, nodeId, anchor, column, limit = 500) =>
-    request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}/values?${new URLSearchParams({ column, limit })}`),
+  execute: (workflow, targetNodeId = null, holdExports = false) =>
+    request('POST', '/api/execute', { workflow, target_node_id: targetNodeId, hold_exports: holdExports }),
+  pendingExports: (workflow, targetNodeId = null) =>
+    request('POST', '/api/exports/pending', { workflow, target_node_id: targetNodeId }),
+  columnValues: (wfId, nodeId, anchor, column, limit = 500, search = '') =>
+    request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}/values?${new URLSearchParams({ column, limit, search })}`),
   results: (wfId, nodeId, anchor, params) =>
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}?${new URLSearchParams(params)}`),
   validateFormula: (expression, columns) => request('POST', '/api/formula/validate', { expression, columns }),
