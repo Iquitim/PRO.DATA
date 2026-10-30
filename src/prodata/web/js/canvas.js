@@ -223,6 +223,21 @@ function nodeKey(n) {
     store.inspect.via?.nodeId === n.id && store.inspect.via.port]);
 }
 
+/**
+ * Andamento da execução nas caixas (spec 018): a da vez brilha, as concluídas ganham um sinal e as que
+ * ainda vão rodar ficam esmaecidas. `null` limpa tudo ao terminar.
+ */
+export function showProgress(progress) {
+  const order = new Set(progress?.order || []);
+  for (const [id, { el }] of nodeEls) {
+    const done = progress?.done?.[id];
+    el.classList.toggle('run-now', !!progress && progress.running === id && !done);
+    el.classList.toggle('run-done', !!done);
+    el.classList.toggle('run-wait', !!progress && order.has(id) && !done && progress.running !== id);
+  }
+  els.viewport.classList.toggle('is-running', !!progress);
+}
+
 function renderNodes() {
   const wf = store.workflow;
   held = heldBy();

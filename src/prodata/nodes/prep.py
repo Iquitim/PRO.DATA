@@ -8,6 +8,7 @@ import polars as pl
 from pydantic import BaseModel, Field
 
 from prodata.engine import formula
+from prodata.engine.convert import convert
 from prodata.forms import ui
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
 
@@ -45,6 +46,9 @@ class SelectConfig(ToolConfig):
         description="Colunas não listadas são mantidas como estão.",
         json_schema_extra=ui(widget="select_columns"),
     )
+    # Ordem das colunas na saída (spec 018), editada arrastando as linhas da tabela acima.
+    # Vazio = ordem de entrada; colunas que não estão na lista vão para o fim, na ordem de entrada.
+    order: list[str] = Field(default_factory=list, title="Ordem", json_schema_extra=ui(widget="hidden"))
 
 
 @tool(
@@ -59,19 +63,30 @@ class SelectConfig(ToolConfig):
 def select(ctx: NodeContext, cfg: SelectConfig) -> NodeOutput:
     df = ctx.input()
     by_name = {f.name: f for f in cfg.fields}
-    exprs: list[pl.Expr] = []
-    for col in df.columns:
+    rank = {name: i for i, name in enumerate(cfg.order)}
+    columns = sorted(df.columns, key=lambda c: (rank.get(c, len(rank)), df.columns.index(c)))
+    out: list[pl.Series] = []
+    warnings: list[str] = []
+    for col in columns:
         rule = by_name.get(col)
-        if rule is None:
-            exprs.append(pl.col(col))
+        if rule is not None and not rule.keep:
             continue
-        if not rule.keep:
-            continue
-        expr = pl.col(col)
-        if rule.cast:
-            expr = expr.cast(_POLARS_TYPES[rule.cast], strict=False)
-        exprs.append(expr.alias(rule.rename.strip() or col))
-    return NodeOutput(tables={"out": df.select(exprs)})
+        series = df[col]
+        if rule is not None and rule.cast:
+            # Conversão tolerante (spec 018): entende padrão brasileiro, datas em texto e do Excel,
+            # e avisa o que não converteu em vez de perder em silêncio.
+            result = convert(series, _POLARS_TYPES[rule.cast])
+            series = result.series
+            if result.failed:
+                warnings.append(
+                    f"[{col}] → {_TYPE_LABELS[rule.cast]}: {result.failed} valor(es) não converteram e ficaram vazios "
+                    f"(ex.: {', '.join(repr(v) for v in result.examples)})."
+                )
+        out.append(series.alias((rule.rename.strip() if rule else "") or col))
+    return NodeOutput(
+        tables={"out": pl.DataFrame(out) if out else df.clear().select([])},
+        extra={"warnings": warnings} if warnings else {},
+    )
 
 
 # ------------------------------------------------------------------ Filter

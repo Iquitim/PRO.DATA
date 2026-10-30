@@ -176,3 +176,12 @@
 }
 .sheet-tab:hover { color: var(--text); border-color: var(--border-strong); }
 .sheet-tab.active { color: var(--accent-text); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+
+/* Espaços em branco visíveis (spec 018) */
+.data-table td.blank { color: var(--text-3); font-style: italic; background: color-mix(in srgb, var(--status-warning, #fab219) 10%, transparent); }
+.data-table td.padded .ws { color: #a8760c; font-weight: 700; margin: 0 1px; }
+.th-spaces {
+  display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 0 5px; border-radius: 999px;
+  font: 600 10px var(--font); color: #8a5f00; background: color-mix(in srgb, var(--status-warning, #fab219) 22%, transparent);
+  white-space: nowrap; vertical-align: middle;
+}

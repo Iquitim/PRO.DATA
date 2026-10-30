@@ -3,7 +3,7 @@
 import { duplicateNode, removeContainer, removeEdge, removeNodes } from './actions.js';
 import { api } from './api.js';
 import {
-  addContainerAtCenter, currentZoom, fitView, heldBy, initCanvas, NODE_W, pointerWorld, render as renderCanvas, zoomBy,
+  addContainerAtCenter, currentZoom, fitView, heldBy, initCanvas, NODE_W, pointerWorld, render as renderCanvas, showProgress, zoomBy,
 } from './canvas.js';
 import { copySelection, cutSelection, paste } from './clipboard.js';
 import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
@@ -68,7 +68,10 @@ async function run(targetNodeId = null, { auto = false } = {}) {
     if (!workflow) return; // cancelou: nada executa
   }
   store.running = true;
+  store.progress = null;
   emit('running');
+  showProgress({ order: [], done: {}, running: null });
+  const stop = watchProgress(workflow.id);
   try {
     const report = await api.execute(workflow, targetNodeId, auto);
     setExecution(report, Object.keys(report.node_results));
@@ -82,9 +85,31 @@ async function run(targetNodeId = null, { auto = false } = {}) {
   } catch (err) {
     toastError(err, 'Falha ao executar o fluxo');
   } finally {
+    stop();
+    showProgress(null);
     store.running = false;
+    store.progress = null;
     emit('running');
   }
+}
+
+/** Consulta o andamento enquanto o fluxo executa (spec 018) e acende a caixa da vez. */
+function watchProgress(workflowId) {
+  let alive = true;
+  const tick = async () => {
+    if (!alive) return;
+    try {
+      const p = await api.progress(workflowId);
+      if (alive && p.active) {
+        store.progress = p;
+        showProgress(p);
+        emit('running');
+      }
+    } catch { /* o resultado final chega pela própria execução */ }
+    if (alive) setTimeout(tick, 250);
+  };
+  setTimeout(tick, 120);
+  return () => { alive = false; };
 }
 
 /** Ponto de cache (spec 012): descarta o resultado guardado e executa de novo, relendo as entradas. */
@@ -441,7 +466,9 @@ function buildStatusbar() {
     const skipped = ex ? heldBy().size : 0;
     left.replaceChildren(...[
       h('span', { class: ['status-dot', store.running ? 'busy' : errors ? 'error' : ex ? 'ok' : ''] }),
-      store.running ? 'Executando…'
+      store.running ? (store.progress?.order?.length
+        ? `Executando… ${Object.keys(store.progress.done).length}/${store.progress.order.length}`
+        : 'Executando…')
         : ex ? `${results.length} nós · ${fmt.ms(ex.total_elapsed_ms)}${errors ? ` · ${errors} com erro` : ''}` : 'Pronto',
       stale ? h('span', { class: 'muted' }, `· ${store.pending.size} alterado(s) desde a execução`) : null,
       skipped && !store.running ? h('span', { class: 'status-held', title: 'Caixas antes de um ponto de cache: não precisaram executar' },

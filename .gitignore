@@ -28,4 +28,5 @@ docs/guia/.chrome-profile/
 # Gerados pelo build de desktop (packaging/build.py)
 packaging/prodata.ico
 packaging/version_info.txt
+packaging/splash.png
 packaging/wizard-*.bmp

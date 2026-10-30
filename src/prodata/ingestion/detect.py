@@ -17,6 +17,7 @@ EXTENSIONS: dict[str, str] = {
     ".xlsx": "excel",
     ".xlsm": "excel",
     ".xls": "excel",
+    ".xlsb": "excel",
     ".parquet": "parquet",
     ".pq": "parquet",
     ".json": "json",

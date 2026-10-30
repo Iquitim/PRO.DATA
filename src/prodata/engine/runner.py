@@ -98,6 +98,8 @@ class WorkflowRunner:
         self.connections = connections
         self.queries = queries
         self._lock = threading.Lock()
+        # Andamento das execuções em curso, por fluxo (spec 018): a interface consulta para iluminar a caixa da vez.
+        self._progress: dict[str, dict[str, Any]] = {}
 
     def run(
         self, workflow: Workflow, target_node_id: str | None = None, *, hold_exports: bool = False
@@ -112,6 +114,33 @@ class WorkflowRunner:
             keep = graph.ancestors(workflow, target_node_id) | {target_node_id}
             order = [n for n in order if n in keep]
 
+        progress: dict[str, Any] = {"order": order, "running": None, "done": {}}
+        self._progress[workflow.id] = progress
+        try:
+            return self._run_locked(workflow, order, progress, started, hold_exports)
+        finally:
+            self._progress.pop(workflow.id, None)
+
+    def progress(self, workflow_id: str) -> dict[str, Any]:
+        """Caixa em execução e caixas já concluídas da execução em curso (vazio se nada roda)."""
+        current = self._progress.get(workflow_id)
+        if current is None:
+            return {"running": None, "done": {}, "order": [], "active": False}
+        return {
+            "running": current["running"],
+            "done": dict(current["done"]),
+            "order": list(current["order"]),
+            "active": True,
+        }
+
+    def _run_locked(
+        self,
+        workflow: Workflow,
+        order: list[str],
+        progress: dict[str, Any],
+        started: float,
+        hold_exports: bool,
+    ) -> ExecutionReport:
         results: dict[str, NodeResult] = {}
         fingerprints: dict[str, str] = {}
         widgets: list[dict[str, Any]] = []
@@ -125,6 +154,7 @@ class WorkflowRunner:
                 node = workflow.node(node_id)
                 spec = REGISTRY.get(node.type)
                 waiting = self._waiting_export(node) if hold_exports else None
+                progress["running"] = node_id
                 if node_id not in needed:
                     result = self._held_result(workflow, node, spec)
                 elif waiting:
@@ -148,6 +178,7 @@ class WorkflowRunner:
                                 "frozen_at": saved.frozen_at,
                             }
                 results[node_id] = result
+                progress["done"][node_id] = result.status
                 name = node.label or (spec.name if spec else node.type)
                 logs.append(
                     LogEntry(
@@ -401,7 +432,9 @@ class WorkflowRunner:
         rows = sum(a.row_count for a in result.anchors.values() if a.kind == "data")
         match result.status:
             case "executed":
-                return f"{rows:,} linha(s) em {result.elapsed_ms} ms".replace(",", ".")
+                text = f"{rows:,} linha(s) em {result.elapsed_ms} ms".replace(",", ".")
+                warnings = result.extra.get("warnings") or []
+                return f"{text} · atenção: {' '.join(warnings)}" if warnings else text
             case "cached":
                 return f"{rows:,} linha(s), reaproveitado do cache".replace(",", ".")
             case "disabled":

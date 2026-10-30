@@ -70,8 +70,13 @@ def profile_column(series: pl.Series) -> dict[str, Any]:
     kind = simple_type(series.dtype)
     nulls = int(series.null_count())
     empties = 0
+    padded = 0
     if kind == "String" and total:
-        empties = int(series.drop_nulls().cast(pl.String).str.strip_chars().eq("").sum())
+        text = series.drop_nulls().cast(pl.String)
+        stripped = text.str.strip_chars()
+        empties = int(stripped.eq("").sum())
+        # Espaço sobrando no início ou no fim (spec 018): "SP " não casa com "SP" num Join ou filtro.
+        padded = int(((text != stripped) & stripped.ne("")).sum())
     ok = max(0, total - nulls - empties)
 
     stats: dict[str, Any] = {}
@@ -89,6 +94,7 @@ def profile_column(series: pl.Series) -> dict[str, Any]:
         "ok_count": ok,
         "null_count": nulls,
         "empty_count": empties,
+        "padded_count": padded,
         "ok_pct": _pct(ok, total) if total else 100.0,
         "null_pct": _pct(nulls, total),
         "empty_pct": _pct(empties, total),

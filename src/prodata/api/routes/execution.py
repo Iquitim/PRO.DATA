@@ -30,6 +30,14 @@ def execute(req: ExecuteRequest, services: ServicesDep) -> ExecutionReport:
     return services.runner.run(req.workflow, req.target_node_id, hold_exports=req.hold_exports)
 
 
+@router.get("/execute/{workflow_id}/progress")
+def execution_progress(
+    workflow_id: Annotated[str, Path(pattern=ID_PATTERN)], services: ServicesDep
+) -> dict[str, Any]:
+    """Andamento da execução em curso (spec 018): caixa da vez e caixas concluídas."""
+    return services.runner.progress(workflow_id)
+
+
 @router.get("/results/{workflow_id}/{node_id}/{anchor}")
 def get_results(
     workflow_id: Annotated[str, Path(pattern=ID_PATTERN)],

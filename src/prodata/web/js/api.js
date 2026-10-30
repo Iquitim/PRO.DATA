@@ -93,6 +93,7 @@ export const api = {
   saveWorkflow: (wf) => request('PUT', `/api/workflows/${enc(wf.id)}`, wf),
   deleteWorkflow: (id) => request('DELETE', `/api/workflows/${enc(id)}`),
 
+  progress: (workflowId) => request('GET', `/api/execute/${encodeURIComponent(workflowId)}/progress`),
   execute: (workflow, targetNodeId = null, holdExports = false) =>
     request('POST', '/api/execute', { workflow, target_node_id: targetNodeId, hold_exports: holdExports }),
   pendingExports: (workflow, targetNodeId = null) =>

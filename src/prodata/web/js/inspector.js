@@ -97,6 +97,11 @@ function statusBanner(n) {
       'O ponto de cache adiante já tem o resultado. Mude algo antes dele (ou use "Atualizar cache") para executar de novo.');
   }
   if (res.status === 'skipped') return banner('muted', 'skip', res.error || 'Não executado.');
+  // Avisos da execução (spec 018): ex.: valores que o Select não conseguiu converter.
+  const warnings = res.extra?.warnings || [];
+  if (warnings.length) {
+    return banner('warn', 'alert', `Executou com ${warnings.length} aviso(s)`, h('ul', { class: 'banner-list' }, warnings.map((w) => h('li', {}, w))));
+  }
 
   const anchors = Object.entries(res.anchors);
   const parts = anchors.filter(([, a]) => a.kind === 'data')
@@ -349,7 +354,8 @@ function nodePanel(n) {
     }
     updateConfig(n.id, path, value);
     refreshExplainer();
-    const redraw = path.length === 1
+    const nested = path.length > 1 && path.some((k) => typeof k === 'string' && controlling.has(k) && k !== path[0]);
+    const redraw = nested || path.length === 1
       && (controlling.has(path[0]) || (Array.isArray(value) && !['grid'].includes(spec.config_fields.find((f) => f.name === path[0])?.widget)));
     if (redraw) render();
   };

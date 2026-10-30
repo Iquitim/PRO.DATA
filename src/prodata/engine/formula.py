@@ -188,6 +188,16 @@ FUNCTION_DOCS: list[FunctionDoc] = [
     FunctionDoc("Floor", "Floor(número)", "Números", "Arredonda para baixo.", "Floor([valor])"),
     FunctionDoc("Sqrt", "Sqrt(número)", "Números", "Raiz quadrada.", "Sqrt([valor])"),
     FunctionDoc("Power", "Power(base, expoente)", "Números", "Potência.", "Power([valor], 2)"),
+    FunctionDoc("Average", "Average(valor1, valor2, …)", "Números",
+                "Média entre colunas ou valores da mesma linha (vazios são ignorados).", "Average([valor], [saldo], 100)"),
+    FunctionDoc("Sum", "Sum(valor1, valor2, …)", "Números",
+                "Soma entre colunas da mesma linha (vazios são ignorados).", "Sum([valor], [saldo])"),
+    FunctionDoc("Median", "Median(valor1, valor2, …)", "Números",
+                "Mediana entre colunas da mesma linha.", "Median([valor], [saldo], 0)"),
+    FunctionDoc("Max", "Max(valor1, valor2, …)", "Números",
+                "Maior valor entre os informados (como Greatest).", "Max([valor], 0)"),
+    FunctionDoc("Min", "Min(valor1, valor2, …)", "Números",
+                "Menor valor entre os informados (como Least).", "Min([valor], 1000)"),
     FunctionDoc("Greatest", "Greatest(valor1, valor2, …)", "Números",
                 "Maior valor entre os informados.", "Greatest([valor], 0)"),
     FunctionDoc("Least", "Least(valor1, valor2, …)", "Números",
@@ -344,10 +354,49 @@ def transpile(expression: str) -> str:
         name = match.group(1).lower()
         return ALTERYX_FUNCTIONS[name][0] + "(" if name in ALTERYX_FUNCTIONS else match.group(0)
 
+    sql = _variadic(sql)
     sql = re.sub(r"\b([A-Za-z_]\w*)\s*\(", _function, sql)
 
     for idx, lit in enumerate(literals):
         sql = sql.replace(_PLACEHOLDER.format(idx), lit)
+    return sql
+
+
+# Funções de várias colunas (spec 018): média, soma e mediana por linha; Max/Min com 2+ valores.
+_ROW_LISTS = {"average": "list_avg", "sum": "list_sum", "median": "list_median"}
+_ROW_EXTREMES = {"max": "greatest", "min": "least"}
+_VARIADIC = re.compile(r"\b(average|sum|median|max|min)\s*\(", re.IGNORECASE)
+
+
+def _split_args(sql: str, open_at: int) -> tuple[int, int]:
+    """Posição do parêntese que fecha ``sql[open_at]`` e quantos argumentos há no nível de cima."""
+    depth, commas = 0, 0
+    for i in range(open_at, len(sql)):
+        ch = sql[i]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return i, commas + 1
+        elif ch == "," and depth == 1:
+            commas += 1
+    raise FormulaError("Parêntese sem fechamento.")
+
+
+def _variadic(sql: str) -> str:
+    """Average([a], [b], [c]) → list_avg(list_value(...)); Max([a], [b]) → greatest(...). Nulos são ignorados."""
+    end = len(sql)
+    while matches := list(_VARIADIC.finditer(sql, 0, end)):
+        m = matches[-1]  # de trás para frente: as de dentro primeiro
+        name = m.group(1).lower()
+        close, count = _split_args(sql, m.end() - 1)
+        args = sql[m.end() : close]
+        if name in _ROW_LISTS:
+            sql = f"{sql[: m.start()]}{_ROW_LISTS[name]}(list_value({args})){sql[close + 1 :]}"
+        elif count >= 2:
+            sql = f"{sql[: m.start()]}{_ROW_EXTREMES[name]}({args}){sql[close + 1 :]}"
+        end = m.start()
     return sql
 
 

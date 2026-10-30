@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import base64
+import importlib
 import logging
 import os
 import re
@@ -190,7 +191,7 @@ class DesktopApi:
 # O pywebview só aceita letras, dígitos e espaços na descrição do filtro: "PRO.DATA" quebrava o diálogo.
 _WORKFLOW_FILTER = "Fluxos PRODATA (*.prodata.json)"
 _PNG_FILTER = "Imagem PNG (*.png)"
-_DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
+_DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.xlsb;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_MAX_BYTES = 64 * 1024 * 1024
 
@@ -218,6 +219,23 @@ def write_png(raw_path: str, data: str) -> Path:
     return path
 
 
+def _splash(action: str, *args: str) -> None:
+    """Tela de abertura do executável (spec 018): texto de andamento e fechamento. Fora do executável
+    (ou com a tela já fechada) não faz nada."""
+    try:
+        getattr(importlib.import_module("pyi_splash"), action)(*args)
+    except Exception:
+        log.debug("Tela de abertura indisponível para %s", action)
+
+
+def splash_text(message: str) -> None:
+    _splash("update_text", message)
+
+
+def close_splash() -> None:
+    _splash("close")
+
+
 def main() -> None:
     data_dir = Path(os.environ.setdefault("PRODATA_STORAGE_DIR", str(user_data_dir())))
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -226,6 +244,7 @@ def main() -> None:
         run(data_dir)
     except Exception as exc:
         log.exception("Falha ao iniciar o %s", APP_NAME)
+        close_splash()
         _error_box(f"Não foi possível iniciar o {APP_NAME}.\n\n{exc}\n\nDetalhes em:\n{log_file}")
         raise SystemExit(1) from exc
     log.info("Encerrado")
@@ -236,6 +255,7 @@ def main() -> None:
 
 
 def run(data_dir: Path) -> None:
+    splash_text("Carregando o motor de dados…")
     import uvicorn
     import webview
 
@@ -260,8 +280,10 @@ def run(data_dir: Path) -> None:
     )
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, name="prodata-server", daemon=True)
+    splash_text("Iniciando o servidor local…")
     thread.start()
     _wait_until_ready(url, thread)
+    splash_text("Abrindo a janela…")
 
     webview.settings["ALLOW_DOWNLOADS"] = True  # exportações do Output Data
     api = DesktopApi()
@@ -275,6 +297,7 @@ def run(data_dir: Path) -> None:
         js_api=api,
     )
     api._window.events.closing += api._on_closing
+    api._window.events.shown += close_splash
     # private_mode=False: mantém preferências do usuário (tema, painéis) entre sessões.
     webview.start(private_mode=False, storage_path=str(data_dir / "webview"))
 

@@ -4,7 +4,7 @@ import { addNode, connect } from './actions.js';
 import { api } from './api.js';
 import { button, debounce, fmt, h, persist, storage } from './dom.js';
 import { isAreaFree } from './canvas.js';
-import { cell } from './datasets.js';
+import { cell, spacesBadge } from './datasets.js';
 import { describe, openFilterEditor, toExpression } from './explore.js';
 import { icon } from './icons.js';
 import { panelControls } from './layout.js';
@@ -265,7 +265,7 @@ function dataView() {
       ]);
     },
   },
-  h('div', { class: 'th-top' }, h('span', { class: 'th-name' }, c.name), sortIcon(c.name),
+  h('div', { class: 'th-top' }, h('span', { class: 'th-name' }, c.name), spacesBadge(c.empty_count || 0, c.padded_count || 0), sortIcon(c.name),
     h('button', {
       type: 'button', class: 'th-filter', title: `Filtrar ${c.name}`, 'aria-label': `Filtrar ${c.name}`,
       onclick: (e) => { e.stopPropagation(); filterAt(e.currentTarget, null, { column: c.name }); },
@@ -319,7 +319,8 @@ function profileView() {
       h('header', {}, h('strong', { class: 'mono ellipsis' }, c.name), h('span', { class: 'th-type' }, c.raw_type)),
       qualityBar(c),
       h('div', { class: 'q-legend' }, h('span', {}, h('i', { class: 'q-ok' }), `${c.ok_pct}% ok`),
-        h('span', {}, h('i', { class: 'q-empty' }), `${c.empty_pct}% vazio`), h('span', {}, h('i', { class: 'q-null' }), `${c.null_pct}% nulo`)),
+        h('span', {}, h('i', { class: 'q-empty' }), `${c.empty_pct}% vazio`), h('span', {}, h('i', { class: 'q-null' }), `${c.null_pct}% nulo`),
+        c.padded_count ? h('span', { class: 'th-spaces', title: 'Valores com espaço no início ou no fim: "SP " não casa com "SP"' }, icon('alert', 11), `${fmt.int(c.padded_count)} com espaço sobrando`) : null),
       h('dl', { class: 'facts' }, facts.map(([k, v]) => h('div', {}, h('dt', {}, k),
         h('dd', { class: 'ellipsis', title: String(v) }, typeof v === 'number' ? fmt.number(v) : v)))),
       c.histogram.length ? h('div', { class: 'hist' }, c.histogram.map((b) => h('div', { class: 'hist-row', title: `${b.label}: ${fmt.int(b.count)}` },

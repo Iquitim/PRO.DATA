@@ -50,9 +50,16 @@ def join(ctx: NodeContext, cfg: JoinConfig) -> NodeOutput:
     if missing := [c for c in right_on if c not in right.columns]:
         raise ValueError(f"Chave(s) inexistente(s) em [R]: {', '.join(missing)}")
 
-    clashes = {c: f"{cfg.right_prefix}{c}" for c in right.columns if c not in right_on and c in left.columns}
+    # O J mantém as chaves dos dois lados (spec 018): uma coluna calculada usada como chave na direita
+    # não pode sumir. Colunas da direita com nome repetido (chaves inclusive) ganham o prefixo.
+    clashes = {c: f"{cfg.right_prefix}{c}" for c in right.columns if c in left.columns}
     joined = left.join(
-        right.rename(clashes), left_on=left_on, right_on=right_on, how="inner", nulls_equal=False
+        right.rename(clashes),
+        left_on=left_on,
+        right_on=[clashes.get(k, k) for k in right_on],
+        how="inner",
+        nulls_equal=False,
+        coalesce=False,
     )
     return NodeOutput(
         tables={

@@ -230,9 +230,14 @@ function detectedSummary(preview) {
 }
 
 export function previewTable(columns, rows) {
+  // Na prévia, as contagens vêm das linhas mostradas.
+  const spaces = (name) => {
+    const values = rows.map((r) => r[name]).filter((v) => typeof v === 'string');
+    return [values.filter((v) => !v.trim()).length, values.filter((v) => v.trim() && v !== v.trim()).length];
+  };
   return h('div', { class: 'table-wrap' }, h('table', { class: 'data-table compact' },
     h('thead', {}, h('tr', {}, columns.map((c) => h('th', {},
-      h('div', { class: 'th-name' }, c.name), h('div', { class: 'th-type' }, c.type))))),
+      h('div', { class: 'th-name' }, c.name, spacesBadge(...spaces(c.name))), h('div', { class: 'th-type' }, c.type))))),
     h('tbody', {}, rows.map((r) => h('tr', {}, columns.map((c) => cell(r[c.name], c.type)))))));
 }
 
@@ -240,7 +245,25 @@ export function cell(value, type) {
   if (value === null || value === undefined) return h('td', { class: 'null' }, 'null');
   const numeric = type === 'Int64' || type === 'Float64';
   const text = numeric ? fmt.number(value) : typeof value === 'boolean' ? (value ? 'verdadeiro' : 'falso') : String(value);
+  if (typeof value === 'string') {
+    // Espaços invisíveis ficam visíveis (spec 018): célula só com espaços e espaço no início/fim.
+    if (!value.trim()) return h('td', { class: 'blank', title: value ? `${value.length} espaço(s)` : 'Texto vazio' }, value ? 'vazio (espaços)' : 'vazio');
+    const lead = value.length - value.trimStart().length;
+    const trail = value.length - value.trimEnd().length;
+    if (lead || trail) {
+      return h('td', { class: 'padded', title: `Espaço sobrando: ${lead} no início, ${trail} no fim` },
+        lead ? h('span', { class: 'ws' }, '␣'.repeat(Math.min(lead, 3))) : null, value.trim(),
+        trail ? h('span', { class: 'ws' }, '␣'.repeat(Math.min(trail, 3))) : null);
+    }
+  }
   return h('td', { class: numeric ? 'num' : '', title: text.length > 40 ? text : null }, text);
+}
+
+/** Aviso no cabeçalho de colunas de texto com células vazias ou espaço sobrando. */
+export function spacesBadge(blank, padded) {
+  if (!blank && !padded) return null;
+  const parts = [blank ? `${fmt.int(blank)} vazia(s) ou só com espaços` : null, padded ? `${fmt.int(padded)} com espaço no início ou no fim` : null].filter(Boolean);
+  return h('span', { class: 'th-spaces', title: `${parts.join(' · ')}. Use o Data Cleansing para limpar.` }, icon('alert', 11), `␣ ${fmt.int(blank + padded)}`);
 }
 
 /**

@@ -29,12 +29,25 @@ a = Analysis(  # noqa: F821
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
-    excludes=["tkinter", "matplotlib", "IPython", "pytest", "mypy", "ruff", "PyInstaller"],
+    excludes=["matplotlib", "IPython", "pytest", "mypy", "ruff", "PyInstaller"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)  # noqa: F821
+# Tela de abertura (spec 018): aparece logo no clique, antes de carregar o motor de dados.
+# O desktop.py atualiza o texto de andamento e fecha a tela quando a janela principal aparece.
+splash = Splash(  # noqa: F821
+    f"{HERE}/splash.png",
+    binaries=a.binaries,
+    datas=a.datas,
+    text_pos=(203, 262),
+    text_size=10,
+    text_color="#C4D2E0",
+    text_default="Abrindo…",
+    always_on_top=False,
+)
 exe = EXE(  # noqa: F821
     pyz,
+    splash,
     a.scripts,
     [],
     exclude_binaries=True,
@@ -43,4 +56,4 @@ exe = EXE(  # noqa: F821
     icon=f"{HERE}/prodata.ico",
     version=f"{HERE}/version_info.txt",
 )
-coll = COLLECT(exe, a.binaries, a.datas, name="PRO.DATA")  # noqa: F821
+coll = COLLECT(exe, a.binaries, a.datas, splash.binaries, name="PRO.DATA")  # noqa: F821

@@ -2,6 +2,7 @@
 
 - ``packaging/prodata.ico``: ícone do PRO.DATA.exe e do instalador (escudo oficial).
 - ``packaging/wizard-*.bmp``: imagens das telas do instalador (Inno Setup), em três escalas.
+- ``packaging/splash.png``: tela de abertura mostrada enquanto o programa carrega (spec 018).
 
 Os PNGs em ``packaging/brand/`` são o logotipo oficial (``src/prodata/web/brand/*.svg``)
 renderizado com fundo transparente.
@@ -11,7 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 SIZES = [16, 24, 32, 48, 64, 128, 256]
 HERE = Path(__file__).resolve().parent
@@ -55,6 +56,36 @@ def wizard_small_image(scale: float) -> Image.Image:
     return img
 
 
+SPLASH_SIZE = (520, 300)
+
+
+def _font(name: str, size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    try:
+        return ImageFont.truetype(name, size)
+    except OSError:  # fora do Windows (CI): fonte padrão
+        return ImageFont.load_default(size)
+
+
+def splash_image(version: str) -> Image.Image:
+    """Tela de abertura: marinho, escudo claro, nome e versão. O texto de andamento é escrito
+    pelo próprio executável na faixa de baixo (``text_pos`` no prodata.spec)."""
+    w, h = SPLASH_SIZE
+    img = Image.new("RGB", (w, h), NAVY)
+    for y in range(h):
+        t = y / max(1, h - 1)
+        color = tuple(round(NAVY_DEEP[i] + (NAVY[i] - NAVY_DEEP[i]) * t) for i in range(3))
+        img.paste(color, (0, y, w, y + 1))
+    shield = _shield(SHIELD_LIGHT, 132)
+    img.paste(shield, (44, 62), shield)
+    draw = ImageDraw.Draw(img)
+    draw.text((200, 92), "PRO.DATA", font=_font("segoeuib.ttf", 46), fill=WHITE)
+    draw.text(
+        (203, 152), f"Versão {version} · Grupo Protege", font=_font("segoeui.ttf", 16), fill=(196, 210, 224)
+    )
+    img.paste(GOLD, (0, h - 6, w, h))
+    return img
+
+
 def main() -> None:
     source = Image.open(SHIELD).convert("RGBA")
     images = [source.resize((s, s), Image.Resampling.LANCZOS) for s in SIZES]
@@ -64,6 +95,10 @@ def main() -> None:
         wizard_image(scale).save(HERE / f"wizard-{pct}.bmp")
         wizard_small_image(scale).save(HERE / f"wizard-small-{pct}.bmp")
     print("Imagens do instalador geradas: wizard-*.bmp")
+    from prodata import __version__
+
+    splash_image(__version__).save(HERE / "splash.png")
+    print("Tela de abertura gerada: splash.png")
 
 
 if __name__ == "__main__":

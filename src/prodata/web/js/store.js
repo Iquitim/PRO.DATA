@@ -19,6 +19,7 @@ export const store = {
   savedSnapshot: '',
   execution: null,
   running: false,
+  progress: null, // andamento da execução em curso (spec 018)
   pending: new Set(), // nós alterados desde a última execução
   // nodeIds: todas as caixas selecionadas; nodeId só quando há exatamente uma (spec 012).
   selection: { nodeId: null, edgeId: null, containerId: null, nodeIds: [] },

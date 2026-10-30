@@ -26,7 +26,7 @@ export function renderFields(fields, values, onChange, ctx = {}) {
   const root = h('div', { class: 'form' });
   const groups = new Map();
   for (const field of fields) {
-    if (!visible(field, values, ctx, fields)) continue;
+    if (field.widget === 'hidden' || !visible(field, values, ctx, fields)) continue;
     const group = field.group || '';
     if (!groups.has(group)) groups.set(group, []);
     groups.get(group).push(field);
@@ -35,7 +35,9 @@ export function renderFields(fields, values, onChange, ctx = {}) {
   const rank = (g) => (g === '' ? 0 : g === 'Avançado' ? 2 : 1);
   const ordered = [...groups].sort(([a], [b]) => rank(a) - rank(b));
   for (const [group, items] of ordered) {
-    const rows = items.map((f) => fieldRow(f, values?.[f.name] ?? f.default, (v, sub = []) => onChange([f.name, ...sub], v), ctx, values));
+    // `update`: um widget pode gravar outro campo da mesma configuração (ex.: a ordem do Select).
+    const local = { ...ctx, update: (name, v) => onChange([name], v) };
+    const rows = items.map((f) => fieldRow(f, values?.[f.name] ?? f.default, (v, sub = []) => onChange([f.name, ...sub], v), local, values));
     if (!group) {
       root.append(...rows);
     } else {
@@ -332,8 +334,19 @@ function list(field, value, set, ctx) {
 
 const CASTS = [['', 'Manter'], ['Int64', 'Inteiro'], ['Float64', 'Decimal'], ['String', 'Texto'], ['Boolean', 'Booleano'], ['Date', 'Data']];
 
-function selectColumns(field, value, set, ctx) {
-  const cols = ctx.columns?.() || [];
+function selectColumns(field, value, set, ctx, _id, values) {
+  // Ordem escolhida arrastando as linhas (spec 018); colunas novas da entrada vão para o fim.
+  const order = values?.order || [];
+  const rank = (name) => { const i = order.indexOf(name); return i < 0 ? order.length : i; };
+  const input = ctx.columns?.() || [];
+  const cols = input.map((c, i) => ({ c, i })).sort((a, b) => rank(a.c.name) - rank(b.c.name) || a.i - b.i).map(({ c }) => c);
+  const reorder = (from, to) => {
+    if (from === to || to < 0 || to >= cols.length) return;
+    const names = cols.map((c) => c.name);
+    const [moved] = names.splice(from, 1);
+    names.splice(to, 0, moved);
+    ctx.update?.('order', names);
+  };
   if (!cols.length) {
     return h('p', { class: 'field-help' }, 'Execute o fluxo até o nó anterior para listar as colunas de entrada.');
   }
@@ -358,17 +371,33 @@ function selectColumns(field, value, set, ctx) {
       h('div', { class: 'row gap-0' },
         button({ label: 'Todas', size: 'sm', variant: 'ghost', title: 'Selecionar todas as colunas', disabled: kept === cols.length, onClick: () => setAll(true) }),
         button({ label: 'Nenhuma', size: 'sm', variant: 'ghost', title: 'Desmarcar todas as colunas', disabled: kept === 0, onClick: () => setAll(false) }),
-        button({ label: 'Inverter', size: 'sm', variant: 'ghost', title: 'Inverter a seleção', onClick: () => setAll((r) => !r.keep) }))),
+        button({ label: 'Inverter', size: 'sm', variant: 'ghost', title: 'Inverter a seleção', onClick: () => setAll((r) => !r.keep) }),
+        order.length ? button({ label: 'Ordem original', size: 'sm', variant: 'ghost', title: 'Voltar à ordem das colunas de entrada', onClick: () => ctx.update?.('order', []) }) : null)),
+    h('p', { class: 'field-help' }, 'Arraste pela alça ⠿ (ou use as setas nela) para mudar a ordem das colunas.'),
     h('div', { class: 'select-table' },
-      h('div', { class: 'select-row head' }, master, h('span', {}, 'Coluna'), h('span', {}, 'Renomear'), h('span', {}, 'Tipo')),
-      cols.map((c) => {
+      h('div', { class: 'select-row head' }, h('span', {}), master, h('span', {}, 'Coluna'), h('span', {}, 'Renomear'), h('span', {}, 'Tipo')),
+      cols.map((c, index) => {
         const r = current(c.name);
-        return h('div', { class: ['select-row', !r.keep && 'dropped'] },
-          h('input', { type: 'checkbox', checked: r.keep, 'aria-label': `Manter ${c.name}`, onchange: (e) => save(c.name, { keep: e.target.checked }) }),
-          h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})` }, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
-          h('input', { class: 'input input-sm mono', value: r.rename, placeholder: '—', onchange: (e) => save(c.name, { rename: e.target.value.trim() }) }),
-          h('select', { class: 'input input-sm', onchange: (e) => save(c.name, { cast: e.target.value }) },
-            CASTS.map(([v, l]) => h('option', { value: v, selected: v === r.cast }, l))));
+        const row = h('div', {
+          class: ['select-row', !r.keep && 'dropped'], draggable: 'true',
+          ondragstart: (e) => { e.dataTransfer.setData('text/x-prodata-col', String(index)); e.dataTransfer.effectAllowed = 'move'; },
+          ondragover: (e) => { if (e.dataTransfer.types.includes('text/x-prodata-col')) { e.preventDefault(); row.classList.add('drop-over'); } },
+          ondragleave: () => row.classList.remove('drop-over'),
+          ondrop: (e) => { e.preventDefault(); row.classList.remove('drop-over'); reorder(Number(e.dataTransfer.getData('text/x-prodata-col')), index); },
+        },
+        h('button', {
+          type: 'button', class: 'select-grip', title: 'Arraste para mudar a ordem · ↑ ↓ movem', 'aria-label': `Mover ${c.name}`,
+          onkeydown: (e) => {
+            if (e.key === 'ArrowUp') { e.preventDefault(); reorder(index, index - 1); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); reorder(index, index + 1); }
+          },
+        }, icon('grip', 12)),
+        h('input', { type: 'checkbox', checked: r.keep, 'aria-label': `Manter ${c.name}`, onchange: (e) => save(c.name, { keep: e.target.checked }) }),
+        h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})` }, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
+        h('input', { class: 'input input-sm mono', value: r.rename, placeholder: '—', onchange: (e) => save(c.name, { rename: e.target.value.trim() }) }),
+        h('select', { class: 'input input-sm', onchange: (e) => save(c.name, { cast: e.target.value }) },
+          CASTS.map(([v, l]) => h('option', { value: v, selected: v === r.cast }, l))));
+        return row;
       })));
 }
 

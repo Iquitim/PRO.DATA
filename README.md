@@ -7,7 +7,7 @@ em um canvas, conecte entradas e saídas, execute e inspecione o resultado de
 cada etapa. O motor é colunar (Polars + DuckDB + Apache Arrow) e roda
 localmente.
 
-- **Ingestão** de CSV, Excel, Parquet, JSON/JSON Lines e Arrow, com detecção
+- **Ingestão** de CSV, Excel (inclusive `.xlsb`), Parquet, JSON/JSON Lines e Arrow, com detecção
   automática de formato, encoding (UTF-8, Windows-1252…), delimitador e
   separador decimal — CSVs brasileiros (`;` e vírgula decimal) funcionam sem
   configuração. Em planilhas, a prévia mostra as **abas** como guias e permite
@@ -57,10 +57,11 @@ localmente.
   com alterações pergunta *Salvar / Não salvar / Cancelar*.
 - **Editor de fórmulas**: cores por tipo (coluna, função, controle, operador
   lógico, comparação, texto, número), autocompletar de funções e colunas
-  (`Ctrl+Espaço`), dica da assinatura da função e assistente com 75 funções
+  (`Ctrl+Espaço`), dica da assinatura da função e assistente com 80 funções
   documentadas (inclusive números e datas no padrão brasileiro, CPF/CNPJ,
   expressões regulares) e botões de operadores. Diferente é `!=` (`<>` também
-  vale). A Formula cria colunas novas ou altera colunas existentes.
+  vale). A Formula cria colunas novas ou altera colunas existentes, e calcula
+  entre colunas da mesma linha com `Average`, `Sum`, `Median`, `Max` e `Min`.
 - **Esquemas visuais** no Configurar do Cross Tab, do Transpose e do Join: o
   antes e o depois com uma amostra dos seus dados.
 - **Excel por padrão** no Output Data, com nome da planilha e opção de juntar
@@ -153,6 +154,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [015](specs/015-ajustes-035/spec.md) | Subtítulo e nomes de legenda no dashboard, grupos do Venn escolhidos na lista, esquemas visuais (Cross Tab, Transpose, Join), Excel com várias planilhas, Formula alterando colunas, 42 funções novas, preferências lembradas no programa instalado |
 | [016](specs/016-telas-menores-cache/spec.md) | Painéis proporcionais e densidade compacta em telas menores; caixas puladas pelo ponto de cache em destaque, com contagem e "mostrar as puladas" |
 | [017](specs/017-fontes-vivas-exportacao/spec.md) | Arquivos vinculados (fonte sempre atualizada), cache que percebe a fonte e renova por prazo, exportação que pergunta antes de sobrescrever, Venn seguro com colunas grandes |
+| [018](specs/018-versao-04/spec.md) | Tela de abertura, `.xlsb`, Select que reordena colunas e converte tipos com tolerância e aviso, Formula em coluna existente corrigida, média/soma entre colunas, Join que mantém as duas chaves, aviso de espaços em branco, caixa em execução brilhando |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

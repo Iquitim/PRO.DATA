@@ -33,7 +33,8 @@ def test_join_emits_l_j_r(store: DatasetStore, tmp_path: Path) -> None:
     )
     assert out.tables["L"]["id"].to_list() == [1]
     assert out.tables["R"]["id"].to_list() == [4]
-    assert out.tables["J"].columns == ["id", "x", "r_x"]
+    # As duas chaves ficam no J (spec 018): a da direita com prefixo quando o nome coincide.
+    assert out.tables["J"].columns == ["id", "x", "r_id", "r_x"]
 
 
 def test_unique_splits_first_and_duplicates(store: DatasetStore, tmp_path: Path) -> None:
