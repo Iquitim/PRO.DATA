@@ -194,6 +194,10 @@ FUNCTION_DOCS: list[FunctionDoc] = [
                 "Soma entre colunas da mesma linha (vazios são ignorados).", "Sum([valor], [saldo])"),
     FunctionDoc("Median", "Median(valor1, valor2, …)", "Números",
                 "Mediana entre colunas da mesma linha.", "Median([valor], [saldo], 0)"),
+    FunctionDoc("Mode", "Mode(valor1, valor2, …)", "Números",
+                "Valor mais frequente entre colunas da mesma linha (vazios são ignorados).", "Mode([valor], [saldo], 0)"),
+    FunctionDoc("StdDev", "StdDev(valor1, valor2, …)", "Números",
+                "Desvio padrão amostral entre colunas da mesma linha.", "StdDev([valor], [saldo], 100)"),
     FunctionDoc("Max", "Max(valor1, valor2, …)", "Números",
                 "Maior valor entre os informados (como Greatest).", "Max([valor], 0)"),
     FunctionDoc("Min", "Min(valor1, valor2, …)", "Números",
@@ -363,9 +367,15 @@ def transpile(expression: str) -> str:
 
 
 # Funções de várias colunas (spec 018): média, soma e mediana por linha; Max/Min com 2+ valores.
-_ROW_LISTS = {"average": "list_avg", "sum": "list_sum", "median": "list_median"}
+_ROW_LISTS = {
+    "average": "list_avg",
+    "sum": "list_sum",
+    "median": "list_median",
+    "mode": "list_mode",
+    "stddev": "list_stddev_samp",
+}
 _ROW_EXTREMES = {"max": "greatest", "min": "least"}
-_VARIADIC = re.compile(r"\b(average|sum|median|max|min)\s*\(", re.IGNORECASE)
+_VARIADIC = re.compile(r"\b(average|sum|median|mode|stddev|max|min)\s*\(", re.IGNORECASE)
 
 
 def _split_args(sql: str, open_at: int) -> tuple[int, int]:

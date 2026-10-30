@@ -61,9 +61,18 @@ class SelectConfig(ToolConfig):
     annotate=lambda c: f"{sum(not f.keep for f in c.fields)} removida(s)" if c.fields else "Todas as colunas",
 )
 def select(ctx: NodeContext, cfg: SelectConfig) -> NodeOutput:
-    df = ctx.input()
-    by_name = {f.name: f for f in cfg.fields}
-    rank = {name: i for i, name in enumerate(cfg.order)}
+    out, warnings = apply_select(ctx.input(), cfg.fields, cfg.order)
+    return NodeOutput(tables={"out": out}, extra={"warnings": warnings} if warnings else {})
+
+
+def apply_select(
+    df: pl.DataFrame, fields: list[SelectField], order: list[str]
+) -> tuple[pl.DataFrame, list[str]]:
+    """Manter, renomear, converter e ordenar colunas. Usado pelo Select e pelo Join (spec 019)."""
+    if not fields and not order:
+        return df, []
+    by_name = {f.name: f for f in fields}
+    rank = {name: i for i, name in enumerate(order)}
     columns = sorted(df.columns, key=lambda c: (rank.get(c, len(rank)), df.columns.index(c)))
     out: list[pl.Series] = []
     warnings: list[str] = []
@@ -83,10 +92,7 @@ def select(ctx: NodeContext, cfg: SelectConfig) -> NodeOutput:
                     f"(ex.: {', '.join(repr(v) for v in result.examples)})."
                 )
         out.append(series.alias((rule.rename.strip() if rule else "") or col))
-    return NodeOutput(
-        tables={"out": pl.DataFrame(out) if out else df.clear().select([])},
-        extra={"warnings": warnings} if warnings else {},
-    )
+    return (pl.DataFrame(out) if out else df.clear().select([])), warnings
 
 
 # ------------------------------------------------------------------ Filter

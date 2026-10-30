@@ -57,13 +57,18 @@ localmente.
   com alterações pergunta *Salvar / Não salvar / Cancelar*.
 - **Editor de fórmulas**: cores por tipo (coluna, função, controle, operador
   lógico, comparação, texto, número), autocompletar de funções e colunas
-  (`Ctrl+Espaço`), dica da assinatura da função e assistente com 80 funções
+  (`Ctrl+Espaço`), dica da assinatura da função e assistente com 82 funções
   documentadas (inclusive números e datas no padrão brasileiro, CPF/CNPJ,
   expressões regulares) e botões de operadores. Diferente é `!=` (`<>` também
   vale). A Formula cria colunas novas ou altera colunas existentes, e calcula
-  entre colunas da mesma linha com `Average`, `Sum`, `Median`, `Max` e `Min`.
-- **Esquemas visuais** no Configurar do Cross Tab, do Transpose e do Join: o
-  antes e o depois com uma amostra dos seus dados.
+  entre colunas da mesma linha com `Average`, `Sum`, `Median`, `Mode`, `StdDev`, `Max` e `Min`.
+- **Esquemas visuais** no Configurar do Cross Tab, do Transpose, do Join e do
+  Summarize: o antes e o depois com uma amostra dos seus dados.
+- **Join como no Alteryx**: escolha se o J mantém as chaves dos dois lados, só
+  da esquerda ou só da direita, e selecione, renomeie, converta e reordene as
+  colunas do J sem precisar de um Select depois.
+- **Summarize** com moda e desvio padrão, além de soma, média, mediana,
+  contagens, mínimo, máximo e concatenação.
 - **Excel por padrão** no Output Data, com nome da planilha e opção de juntar
   várias planilhas num mesmo arquivo. Se o arquivo de saída já existe, o
   PRO.DATA pergunta ao executar: substituir, criar um novo (data e hora no nome)
@@ -155,6 +160,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [016](specs/016-telas-menores-cache/spec.md) | Painéis proporcionais e densidade compacta em telas menores; caixas puladas pelo ponto de cache em destaque, com contagem e "mostrar as puladas" |
 | [017](specs/017-fontes-vivas-exportacao/spec.md) | Arquivos vinculados (fonte sempre atualizada), cache que percebe a fonte e renova por prazo, exportação que pergunta antes de sobrescrever, Venn seguro com colunas grandes |
 | [018](specs/018-versao-04/spec.md) | Tela de abertura, `.xlsb`, Select que reordena colunas e converte tipos com tolerância e aviso, Formula em coluna existente corrigida, média/soma entre colunas, Join que mantém as duas chaves, aviso de espaços em branco, caixa em execução brilhando |
+| [019](specs/019-join-select-summarize/spec.md) | Join com lado das chaves e Select embutido, esquema visual do Summarize, moda e desvio padrão (Summarize e Formula), compatibilidade com fluxos da 0.3.8 |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

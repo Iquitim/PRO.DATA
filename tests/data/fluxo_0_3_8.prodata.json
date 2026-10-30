@@ -1,0 +1,621 @@
+{
+ "id": "demo_pipeline_360",
+ "name": "Pipeline 360° de clientes",
+ "description": "Limpeza, filtro, junção L/J/R, metas regionais (CSV ';' em CP1252), BI e modelo de inadimplência.",
+ "containers": [
+  {
+   "id": "c_prep",
+   "title": "1 · Ingestão e preparação",
+   "color": "#3b82f6",
+   "x": 20,
+   "y": 20,
+   "width": 972,
+   "height": 260
+  },
+  {
+   "id": "c_bi",
+   "title": "2 · Junção, metas e indicadores",
+   "color": "#8b5cf6",
+   "x": 1010,
+   "y": 20,
+   "width": 1222,
+   "height": 420
+  },
+  {
+   "id": "c_ml",
+   "title": "3 · Modelo de inadimplência",
+   "color": "#06b6d4",
+   "x": 1010,
+   "y": 460,
+   "width": 1222,
+   "height": 140
+  },
+  {
+   "id": "c_vendas",
+   "title": "4 · Vendas no dashboard",
+   "color": "#f59e0b",
+   "x": 20,
+   "y": 300,
+   "width": 972,
+   "height": 300
+  }
+ ],
+ "nodes": [
+  {
+   "id": "n_clientes",
+   "type": "io.input_data",
+   "label": "Clientes",
+   "x": 40,
+   "y": 70,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   }
+  },
+  {
+   "id": "n_vendas",
+   "type": "io.input_data",
+   "label": "Transações",
+   "x": 40,
+   "y": 190,
+   "config": {
+    "dataset": "transacoes_vendas.csv"
+   }
+  },
+  {
+   "id": "n_cleanse",
+   "type": "prep.cleanse",
+   "label": "Limpeza",
+   "x": 288,
+   "y": 70,
+   "config": {
+    "columns": [
+     "setor"
+    ],
+    "replace_null_string": true,
+    "string_default": "Não informado"
+   }
+  },
+  {
+   "id": "n_formula",
+   "type": "prep.formula",
+   "label": "ARR e tier",
+   "x": 536,
+   "y": 70,
+   "config": {
+    "formulas": [
+     {
+      "column": "receita_anual",
+      "type": "Float64",
+      "expression": "Round([mrr_mensal] * 12, 2)"
+     },
+     {
+      "column": "tier",
+      "type": "String",
+      "expression": "IF [mrr_mensal] >= 6000 THEN 'Diamond' ELSEIF [mrr_mensal] >= 3000 THEN 'Gold' ELSE 'Silver' ENDIF"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n_filter",
+   "type": "prep.filter",
+   "label": "Ativos",
+   "x": 784,
+   "y": 70,
+   "config": {
+    "mode": "expression",
+    "expression": "[status] != 'INATIVO' AND [mrr_mensal] >= 1000"
+   }
+  },
+  {
+   "id": "n_sum_vendas",
+   "type": "transform.summarize",
+   "label": "Vendas por cliente",
+   "x": 536,
+   "y": 190,
+   "config": {
+    "group_by": [
+     "id_cliente"
+    ],
+    "aggregations": [
+     {
+      "column": "valor_bruto",
+      "agg": "sum",
+      "alias": "total_compras"
+     },
+     {
+      "column": "quantidade_licencas",
+      "agg": "sum",
+      "alias": "total_licencas"
+     },
+     {
+      "column": "id_transacao",
+      "agg": "count",
+      "alias": "qtd_pedidos"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n_join",
+   "type": "transform.join",
+   "label": "Clientes × vendas",
+   "x": 1032,
+   "y": 125,
+   "config": {
+    "right_prefix": "v_",
+    "keys": [
+     {
+      "left": "id_cliente",
+      "right": "id_cliente"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n_sum_uf",
+   "type": "transform.summarize",
+   "label": "MRR por UF",
+   "x": 1280,
+   "y": 65,
+   "config": {
+    "group_by": [
+     "uf"
+    ],
+    "aggregations": [
+     {
+      "column": "mrr_mensal",
+      "agg": "sum",
+      "alias": "total_mrr"
+     },
+     {
+      "column": "id_cliente",
+      "agg": "count",
+      "alias": "clientes"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n_metas",
+   "type": "io.input_data",
+   "label": "Metas regionais",
+   "x": 1280,
+   "y": 165,
+   "config": {
+    "dataset": "metas_regionais_br.csv"
+   }
+  },
+  {
+   "id": "n_join_metas",
+   "type": "transform.join",
+   "label": "UF × metas",
+   "x": 1528,
+   "y": 100,
+   "config": {
+    "keys": [
+     {
+      "left": "uf",
+      "right": "uf"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n_atingimento",
+   "type": "prep.formula",
+   "label": "Atingimento",
+   "x": 1776,
+   "y": 108,
+   "config": {
+    "formulas": [
+     {
+      "column": "atingimento_pct",
+      "type": "Float64",
+      "expression": "Round([total_mrr] / [meta_mrr] * 100, 1)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "n_chart_uf",
+   "type": "bi.chart",
+   "label": "Gráfico por UF",
+   "x": 2024,
+   "y": 108,
+   "config": {
+    "title": "Atingimento da meta de MRR por UF (%)",
+    "chart_type": "bar",
+    "x_column": "uf",
+    "y_column": "atingimento_pct",
+    "agg": "max",
+    "sort": "value_desc"
+   }
+  },
+  {
+   "id": "n_kpi",
+   "type": "bi.kpi_card",
+   "label": "ARR ativo",
+   "x": 1280,
+   "y": 270,
+   "config": {
+    "title": "ARR dos clientes ativos",
+    "column": "receita_anual",
+    "metric": "sum",
+    "prefix": "R$ "
+   }
+  },
+  {
+   "id": "n_chart_seg",
+   "type": "bi.chart",
+   "label": "MRR por segmento",
+   "x": 1280,
+   "y": 360,
+   "config": {
+    "title": "MRR por segmento",
+    "chart_type": "donut",
+    "x_column": "segmento",
+    "y_column": "mrr_mensal",
+    "agg": "sum"
+   }
+  },
+  {
+   "id": "n_pareto",
+   "type": "bi.chart",
+   "label": "Pareto por UF",
+   "x": 1528,
+   "y": 300,
+   "config": {
+    "title": "Pareto do MRR por UF",
+    "chart_type": "pareto",
+    "x_column": "uf",
+    "y_column": "mrr_mensal",
+    "agg": "sum"
+   }
+  },
+  {
+   "id": "n_kpi_mes",
+   "type": "bi.kpi_card",
+   "label": "Faturamento do mês",
+   "x": 288,
+   "y": 350,
+   "config": {
+    "title": "Faturamento do mês",
+    "column": "valor_bruto",
+    "metric": "sum",
+    "prefix": "R$ ",
+    "compare": "previous",
+    "date_column": "competencia",
+    "period": "month",
+    "sparkline": true
+   }
+  },
+  {
+   "id": "n_stacked",
+   "type": "bi.chart",
+   "label": "Vendas por mês",
+   "x": 536,
+   "y": 350,
+   "config": {
+    "title": "Faturamento mensal por produto",
+    "chart_type": "stacked",
+    "x_column": "competencia",
+    "y_column": "valor_bruto",
+    "series_column": "produto",
+    "agg": "sum",
+    "sort": "label"
+   }
+  },
+  {
+   "id": "n_venn",
+   "type": "bi.venn",
+   "label": "Produtos por cliente",
+   "x": 288,
+   "y": 480,
+   "config": {
+    "title": "Clientes por produto contratado",
+    "key_column": "id_cliente",
+    "group_column": "produto",
+    "groups": [
+     "Cloud",
+     "AutoML",
+     "BI Pro"
+    ]
+   }
+  },
+  {
+   "id": "n_trainer",
+   "type": "ml.automl_trainer",
+   "label": "Treino",
+   "x": 1280,
+   "y": 510,
+   "config": {
+    "target_column": "inadimplente",
+    "feature_columns": [
+     "mrr_mensal",
+     "meses_contrato",
+     "nps",
+     "total_compras",
+     "total_licencas",
+     "segmento",
+     "uf"
+    ]
+   }
+  },
+  {
+   "id": "n_predictor",
+   "type": "ml.predictor",
+   "label": "Score de risco",
+   "x": 1528,
+   "y": 510,
+   "config": {
+    "prediction_column": "risco_inadimplencia",
+    "probability_column": "confianca_pct"
+   }
+  },
+  {
+   "id": "n_output",
+   "type": "io.output_data",
+   "label": "Exportar",
+   "x": 1776,
+   "y": 510,
+   "config": {
+    "filename": "clientes_pontuados",
+    "format": "parquet"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "n_cleanse",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "n_cleanse",
+   "sourceHandle": "out",
+   "target": "n_formula",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e3",
+   "source": "n_formula",
+   "sourceHandle": "out",
+   "target": "n_filter",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e4",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_sum_vendas",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e5",
+   "source": "n_filter",
+   "sourceHandle": "T",
+   "target": "n_join",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e6",
+   "source": "n_sum_vendas",
+   "sourceHandle": "out",
+   "target": "n_join",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e7",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_sum_uf",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e8",
+   "source": "n_sum_uf",
+   "sourceHandle": "out",
+   "target": "n_join_metas",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e9",
+   "source": "n_metas",
+   "sourceHandle": "out",
+   "target": "n_join_metas",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e10",
+   "source": "n_join_metas",
+   "sourceHandle": "J",
+   "target": "n_atingimento",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e11",
+   "source": "n_atingimento",
+   "sourceHandle": "out",
+   "target": "n_chart_uf",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e12",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_kpi",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e13",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_chart_seg",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e14",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_trainer",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e15",
+   "source": "n_trainer",
+   "sourceHandle": "M",
+   "target": "n_predictor",
+   "targetHandle": "M"
+  },
+  {
+   "id": "e16",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_predictor",
+   "targetHandle": "D"
+  },
+  {
+   "id": "e17",
+   "source": "n_predictor",
+   "sourceHandle": "out",
+   "target": "n_output",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e18",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_pareto",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e19",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_kpi_mes",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e20",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_stacked",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e21",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_venn",
+   "targetHandle": "in"
+  }
+ ],
+ "dashboard": {
+  "page": {
+   "size": "a4-landscape",
+   "height": 900,
+   "background": ""
+  },
+  "items": [
+   {
+    "id": "d_title",
+    "kind": "text",
+    "x": 40,
+    "y": 32,
+    "w": 1200,
+    "h": 56,
+    "content": "Pipeline 360° de clientes",
+    "format": {
+     "size": 30,
+     "bold": true,
+     "vertical": "middle"
+    }
+   },
+   {
+    "id": "d_logo",
+    "kind": "image",
+    "x": 1488,
+    "y": 24,
+    "w": 72,
+    "h": 88,
+    "content": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTEuMjcgMjQwLjc1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6Izk1NzkzYzt9LmNscy0ye2ZpbGw6IzIzMWYyMDt9LmNscy0ze2ZpbGw6IzA0MzE1NDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPm1haW4tbG9nbzwvdGl0bGU+PGcgaWQ9IkNhbWFkYV8yIiBkYXRhLW5hbWU9IkNhbWFkYSAyIj48ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIj48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0zNCwxMTUuMDl2LTUyYzguNTIsMywxNi4yLDMuOCwyOC41MSw0YTUyLjM0LDUyLjM0LDAsMCwxLDIyLjM0LDQuODRjNCwxLjgzLDcuNzEsNC40MSwxMCw4LjY5LDIuMzItNC4yOCw2LTYuODYsMTAtOC42OUE1Mi4zNSw1Mi4zNSwwLDAsMSwxMjcuMyw2N2MxMi4zMS0uMTUsMjEuMjYtMS4wNywyOS43OS00VjgyLjIzWm00NS44OCw4Mi4yOHMtMjUuNzYtMTguNjItMzguMjUtMjguN2MtOC40LTYuMzYtNy42My0xMi41My03LjYzLTIzLjgzTDc5Ljg5LDEzMi43Wm0zMC42MywwVjEyNC41Nmw0Ni43Mi0xMi40M2MtLjEzLDQyLjE1LS4xOCwzNS42LS4yNCw0MC40OC0uMTQsMTAuMjYtNC4yOSwxMi41MS05LjU4LDE3LjE3QzE0Mi43NSwxNzMuODksMTE3LjUxLDE5Mi4yMiwxMTAuNTIsMTk3LjM3WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTE0NC4yNiwxMTEuMzlWODkuNzZMMTU3LDg2LjM0djMuNDFMMTQ4LjU5LDkydjUuMzNsNy43Mi0yLjA2djMuNGwtNy43MiwyLjA3djYuMDdsOC41LTIuMjdWMTA4Wm0tMTA1LjQ5LDEwVjEyOGwxLjUyLS40YzIuMTctLjU4LDQuMTItMS44MSw0LjEyLTQuMzNzLTEuODktMi44Ny00LjEyLTIuMjdabS00LjM0LDE5LjM4VjExOS4xOGw1LjQ5LTEuNDdjNC43MS0xLjI2LDktMS4wNiw5LDQuMTJzLTMuNjksNy44OC04LjMzLDkuMTJsLTEuODQuNDl2OC4yMVptMjAuMy0yMy42NVYxMjNsMS40Mi0uMzhjMi4xNC0uNTcsNC41OS0xLjU0LDQuNTktNC4yNHMtMi40Mi0yLjE3LTQuNTktMS41OVptLTQuMzQsMTkuMzhWMTE0LjkxbDQuNjgtMS4yNmM0LjY0LTEuMjQsMTAuMTktMi44OCwxMC4xOSwzLjEyQTYuOSw2LjksMCwwLDEsNjAuOCwxMjNjMS4xNy0uMTYsMS44Ni44NCwyLjMsMS42OGwzLjQ3LDcuNTMtNC44NSwxLjMtMi42LTYuMDZjLS42Mi0xLjQ0LTEuMTctMS45Mi0zLTEuNDNsLTEuMzkuMzh2OVptMTctMTUuNDNjMC02LjY0LDMuNzItMTIuMTIsMTAuNi0xNHMxMC42LDEuNzQsMTAuNiw4LjI4Uzg0LjgxLDEyNy42OSw3OCwxMjkuNTIsNjcuMzYsMTI3Ljc1LDY3LjM2LDEyMS4xMVptNC41Mi0xLjIxYzAsMy45LDEuNjUsNy40LDYuMDgsNi4yMVM4NCwxMjAuNTUsODQsMTE2LjY0cy0xLjc3LTcuMjQtNi4wOC02LjA4UzcxLjg4LDExNi4wOSw3MS44OCwxMTkuOVptMjMuMyw0LjY0VjEwNi4zMUw4OSwxMDh2LTMuNDFsMTYuNzMtNC40OHYzLjQxbC02LjE5LDEuNjZ2MTguMjJabTEyLTMuMjNWOTkuNjhMMTIwLDk2LjI2djMuNDFsLTguNDIsMi4yNXY1LjM0bDcuNzEtMi4wN3YzLjQxbC03LjcxLDIuMDd2Ni4wN2w4LjQ5LTIuMjh2My40MlptMzMuMTEtMzBMMTQwLDk1LjA3YTEzLjM3LDEzLjM3LDAsMCwwLTUuNTcuMzQsMTAuMiwxMC4yLDAsMCwwLTcuODUsOS45NGMwLDQuNCwyLjc0LDcsNy4zNSw1Ljc1YTE0LjUzLDE0LjUzLDAsMCwwLDIuODYtMS4wN3YtNS42NGwtNC41OSwxLjIzdi0zLjQxTDE0MSw5OS44N3YxMS42NGEzMy40NSwzMy40NSwwLDAsMS03LDNjLTcsMS44Ny0xMS44Ny0uMzMtMTEuODctNy42NFMxMjYuNjIsOTQuMSwxMzQsOTIuMTRBMjAuOTIsMjAuOTIsMCwwLDEsMTQwLjMyLDkxLjM0WiIvPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTk1LjY0LDc0LjYxYy0yLjE4LTUuODMtMTUuNTItMTAuMzgtMjYuMi0xMS04LjQ3LS41LTE3Ljc5LS4zOC0yNi45NC0yLjQ3LTQuNDUtMS03LjY1LTIuOC0xMS45NC00LjE1LS4xMSw2Mi0uMjQsODMuODEtLjI0LDkzLC4xMyw0LjI5LjEzLDguMDksMS4yMywxMS42NCwxLjM1LDQuNjYsNC4xMyw3LjIzLDgsMTAuMTcsMTkuNzUsMTUuMTEsNTYuMTMsNDEuODksNTYuMTMsNDEuODlzMzYuMzYtMjYuNzgsNTYuMTEtNDEuODljMy44NC0yLjk0LDYuNjItNS41MSw4LTEwLjE3LDEuMS0zLjU1LDEuMS03LjM1LDEuMjItMTEuNjQsMC05LjE5LS4xMi0zMS0uMjUtOTMtNC4yOCwxLjM1LTcuNDcsMy4xMy0xMS45Miw0LjE1LTkuMTUsMi4wOS0xOC40NywyLTI2LjkzLDIuNDdDMTExLjE1LDY0LjIzLDk3LjgsNjguNzgsOTUuNjQsNzQuNjFaTTEwNy4xNCwxM2MtMi4yOS0uNDQtNC40LTEuMjItNS0yLjYzYTMuNDksMy40OSwwLDAsMC0uNTksMy41NkMxMDIuNCwxNC4xOSwxMDQuNDMsMTQuMSwxMDcuMTQsMTNaTTgzLjY3LDBoLjg2Yy43NCwzLjMxLDEuNjQsNS4xOSw1LjUxLDcuMjMsMi44NywxLjUsOS4yNS0uNjIsMTUuMzIsMSwxLjkxLjUsNC4yNSwxLjE4LDQuNjUsMy40NS42My41NCwyLjI0LjYxLDMuNDUuODFhMTIuNTQsMTIuNTQsMCwwLDEsMy43OSwxYzMsMS4yNiwzLjY3LDQuMTYsNC4xNiw4LjU3LTMuMTQtMS4xNy05LjgzLjQtMTAuNTMuNjItMi42LjgxLTMuMDksMy40My0zLjQ0LDUuMjctMiwxMC43NywxMC4yNywyMi44OCwyOC41LDIxLjJBNTcsNTcsMCwwLDAsMTU4LjA4LDQzYzQuNTctMi4zNywxNy4yNy0xMi4xMiwxNy42OS0yMC45MkEzLjM4LDMuMzgsMCwwLDAsMTcxLDE4Ljc0Yy0xLjcyLjc0LTIuNTcsMi4zMy00LjE1LDMuODFhMTEuMjMsMTEuMjMsMCwwLDEtOS44LDIuNTgsMTAuODcsMTAuODcsMCwwLDEtNy4zMS0xMy43YzIuMjEtNywxMC4zOC03LDE2Ljg0LTYuMTYsMy40Ni40OCwxNi43OSwzLjU1LDIxLjA4LjYxQTguNDksOC40OSwwLDAsMCwxOTEuMjcsMFYxNTVjMCwyMS44Mi03LjQ0LDI3LjkxLTE1LjI1LDM0LDAsMC0yNS43NywyMC40MS0zNC40NywyNy4wNWwtOS43LTcsMjUuNTMtMjAuMjdjMTYuMzQtMTMsMjItMTMuOCwyMi0zNS4xM1Y0Mi4xNWwtNi40MSw1LjkyczAsMjAuNjMuMTEsOTUuNDhjLS4wOSwxNC40MSwwLDIzLjYtNC4xNSwyNy42Ny0zLjQ0LDMuMzgtMTMsMTEuMDgtNDcuNzYsMzguNGwxNC41NywxMS4xNS0xMC4xNyw4TDExMSwyMTcuNTlsLTUuMTUsNCwxNC42MiwxMS4xNC0xMC4wOCw4LTE0LjctMTEuMTctMTQuNywxMS4xNy0xMC4wOS04LDE0LjYxLTExLjE0LTUuMTQtNEw2NS43NCwyMjguNzNsLTEwLjE2LTgsMTQuNTctMTEuMTVjLTM0LjgtMjcuMzItNDQuMzMtMzUtNDcuNzctMzguNC00LjEyLTQuMDctNC4wNi0xMy4yNi00LjE1LTI3LjY3LjEyLTc0Ljg1LjEyLTk1LjQ4LjEyLTk1LjQ4bC02LjQxLTUuOTJWMTUzLjY4YzAsMjEuMzMsNS42LDIyLjEyLDIyLDM1LjEzbDI1LjUzLDIwLjI3LTkuNyw3QzQxLDIwOS40NCwxNS4yNSwxODksMTUuMjUsMTg5LDcuNDQsMTgyLjksMCwxNzYuODEsMCwxNTVWMEE4LjQ1LDguNDUsMCwwLDAsMy42MSw1Ljg4YzQuMjksMi45NCwxNy42My0uMTMsMjEuMDctLjYxLDYuNDYtLjg5LDE0LjY0LS44MiwxNi44NCw2LjE2YTEwLjg2LDEwLjg2LDAsMCwxLTcuMywxMy43LDExLjIzLDExLjIzLDAsMCwxLTkuOC0yLjU4Yy0xLjU4LTEuNDgtMi40My0zLjA3LTQuMTQtMy44MWEzLjM4LDMuMzgsMCwwLDAtNC43OCwzLjMxYy40Miw4LjgsMTIuMTQsMTcuOCwxNi4zOCwyMC42OWEzNS42MiwzNS42MiwwLDAsMCwxNiw2LjFDODIuNjcsNTIuNyw4My40NCw2LjM1LDgzLjY3LDBaIi8+PC9nPjwvZz48L3N2Zz4=",
+    "format": {}
+   },
+   {
+    "id": "d_n_kpi",
+    "kind": "visual",
+    "node_id": "n_kpi",
+    "x": 40,
+    "y": 128,
+    "w": 752,
+    "h": 160,
+    "format": {}
+   },
+   {
+    "id": "d_n_kpi_mes",
+    "kind": "visual",
+    "node_id": "n_kpi_mes",
+    "x": 808,
+    "y": 128,
+    "w": 752,
+    "h": 160,
+    "format": {}
+   },
+   {
+    "id": "d_n_stacked",
+    "kind": "visual",
+    "node_id": "n_stacked",
+    "x": 40,
+    "y": 304,
+    "w": 496,
+    "h": 384,
+    "format": {}
+   },
+   {
+    "id": "d_n_pareto",
+    "kind": "visual",
+    "node_id": "n_pareto",
+    "x": 552,
+    "y": 304,
+    "w": 496,
+    "h": 384,
+    "format": {}
+   },
+   {
+    "id": "d_n_chart_uf",
+    "kind": "visual",
+    "node_id": "n_chart_uf",
+    "x": 1064,
+    "y": 304,
+    "w": 496,
+    "h": 384,
+    "format": {}
+   },
+   {
+    "id": "d_n_chart_seg",
+    "kind": "visual",
+    "node_id": "n_chart_seg",
+    "x": 40,
+    "y": 704,
+    "w": 752,
+    "h": 384,
+    "format": {}
+   },
+   {
+    "id": "d_n_venn",
+    "kind": "visual",
+    "node_id": "n_venn",
+    "x": 808,
+    "y": 704,
+    "w": 752,
+    "h": 384,
+    "format": {}
+   }
+  ],
+  "hidden": []
+ }
+}

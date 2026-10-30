@@ -332,13 +332,46 @@ function list(field, value, set, ctx) {
 
 // ------------------------------------------------------------------ Select: tabela de colunas
 
+/**
+ * Colunas que saem no J do Join (spec 019), na mesma regra do motor: esquerda, depois direita com o prefixo
+ * nas repetidas; "Só da esquerda" tira as chaves da direita e "Só da direita" tira as da esquerda (e a da
+ * direita volta ao nome original).
+ */
+function joinColumns(ctx, values) {
+  const left = ctx.columns?.('L') || [];
+  const right = ctx.columns?.('R') || [];
+  if (!left.length || !right.length) return [];
+  const prefix = values?.right_prefix ?? 'r_';
+  const leftNames = new Set(left.map((c) => c.name));
+  const rename = (name) => (leftNames.has(name) ? `${prefix}${name}` : name);
+  const keys = (values?.keys || []).filter((k) => k.left && k.right);
+  const leftKeys = new Set(keys.map((k) => k.left));
+  const rightKeys = new Set(keys.map((k) => rename(k.right)));
+  const mode = values?.keys_mode || 'both';
+  let out = [
+    ...left.map((c) => ({ ...c, side: 'L' })),
+    ...right.map((c) => ({ ...c, name: rename(c.name), side: 'R' })),
+  ];
+  if (mode === 'left') out = out.filter((c) => !(c.side === 'R' && rightKeys.has(c.name)));
+  if (mode === 'right') {
+    out = out.filter((c) => !(c.side === 'L' && leftKeys.has(c.name)));
+    const taken = new Set(out.map((c) => c.name));
+    for (const k of keys) {
+      const r = rename(k.right);
+      if (r !== k.right && !taken.has(k.right)) out = out.map((c) => (c.side === 'R' && c.name === r ? { ...c, name: k.right } : c));
+    }
+  }
+  return out;
+}
+
 const CASTS = [['', 'Manter'], ['Int64', 'Inteiro'], ['Float64', 'Decimal'], ['String', 'Texto'], ['Boolean', 'Booleano'], ['Date', 'Data']];
 
 function selectColumns(field, value, set, ctx, _id, values) {
   // Ordem escolhida arrastando as linhas (spec 018); colunas novas da entrada vão para o fim.
   const order = values?.order || [];
   const rank = (name) => { const i = order.indexOf(name); return i < 0 ? order.length : i; };
-  const input = ctx.columns?.() || [];
+  const fromJoin = field.source === 'join';
+  const input = fromJoin ? joinColumns(ctx, values) : ctx.columns?.() || [];
   const cols = input.map((c, i) => ({ c, i })).sort((a, b) => rank(a.c.name) - rank(b.c.name) || a.i - b.i).map(({ c }) => c);
   const reorder = (from, to) => {
     if (from === to || to < 0 || to >= cols.length) return;
@@ -348,7 +381,9 @@ function selectColumns(field, value, set, ctx, _id, values) {
     ctx.update?.('order', names);
   };
   if (!cols.length) {
-    return h('p', { class: 'field-help' }, 'Execute o fluxo até o nó anterior para listar as colunas de entrada.');
+    return h('p', { class: 'field-help' }, fromJoin
+      ? 'Execute o fluxo até as entradas [L] e [R] para listar as colunas do J.'
+      : 'Execute o fluxo até o nó anterior para listar as colunas de entrada.');
   }
   const rules = new Map((value || []).map((r) => [r.name, r]));
   const current = (name) => ({ name, keep: true, rename: '', cast: '', ...rules.get(name) });
@@ -393,7 +428,8 @@ function selectColumns(field, value, set, ctx, _id, values) {
           },
         }, icon('grip', 12)),
         h('input', { type: 'checkbox', checked: r.keep, 'aria-label': `Manter ${c.name}`, onchange: (e) => save(c.name, { keep: e.target.checked }) }),
-        h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})` }, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
+        h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})${c.side ? ` · vem de [${c.side}]` : ''}` },
+          c.side ? h('b', { class: `side-tag side-${c.side}` }, c.side) : null, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
         h('input', { class: 'input input-sm mono', value: r.rename, placeholder: '—', onchange: (e) => save(c.name, { rename: e.target.value.trim() }) }),
         h('select', { class: 'input input-sm', onchange: (e) => save(c.name, { cast: e.target.value }) },
           CASTS.map(([v, l]) => h('option', { value: v, selected: v === r.cast }, l))));

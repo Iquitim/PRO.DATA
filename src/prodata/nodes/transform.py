@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from prodata.forms import ui
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
+from prodata.nodes.prep import SelectField, apply_select
 
 # ------------------------------------------------------------------ Join
 
@@ -21,6 +22,25 @@ class JoinKey(BaseModel):
 
 class JoinConfig(ToolConfig):
     keys: list[JoinKey] = Field(default_factory=lambda: [JoinKey()], title="Chaves de junção")
+    keys_mode: Literal["both", "left", "right"] = Field(
+        "both",
+        title="Colunas da chave no J",
+        json_schema_extra=ui(
+            labels={
+                "both": "As duas (esquerda e direita)",
+                "left": "Só da esquerda",
+                "right": "Só da direita",
+            }
+        ),
+    )
+    # Select embutido no J (spec 019), como no Alteryx: manter, renomear, converter e ordenar.
+    fields: list[SelectField] = Field(
+        default_factory=list,
+        title="Colunas do J",
+        description="Colunas não listadas são mantidas como estão.",
+        json_schema_extra=ui(widget="select_columns", source="join"),
+    )
+    order: list[str] = Field(default_factory=list, title="Ordem", json_schema_extra=ui(widget="hidden"))
     right_prefix: str = Field(
         "r_", title="Prefixo para colunas repetidas da direita", json_schema_extra=ui(group="Avançado")
     )
@@ -50,35 +70,67 @@ def join(ctx: NodeContext, cfg: JoinConfig) -> NodeOutput:
     if missing := [c for c in right_on if c not in right.columns]:
         raise ValueError(f"Chave(s) inexistente(s) em [R]: {', '.join(missing)}")
 
-    # O J mantém as chaves dos dois lados (spec 018): uma coluna calculada usada como chave na direita
-    # não pode sumir. Colunas da direita com nome repetido (chaves inclusive) ganham o prefixo.
+    # Colunas da direita com nome repetido (chaves inclusive) ganham o prefixo. Por padrão o J mantém as
+    # chaves dos dois lados (spec 018): uma coluna calculada usada como chave na direita não pode sumir.
     clashes = {c: f"{cfg.right_prefix}{c}" for c in right.columns if c in left.columns}
+    renamed_right_keys = [clashes.get(k, k) for k in right_on]
     joined = left.join(
         right.rename(clashes),
         left_on=left_on,
-        right_on=[clashes.get(k, k) for k in right_on],
+        right_on=renamed_right_keys,
         how="inner",
         nulls_equal=False,
         coalesce=False,
     )
+    joined = _keep_key_side(joined, cfg.keys_mode, left_on, right_on, renamed_right_keys)
+    joined, warnings = apply_select(joined, cfg.fields, cfg.order)
     return NodeOutput(
         tables={
             "L": left.join(right, left_on=left_on, right_on=right_on, how="anti"),
             "J": joined,
             "R": right.join(left, left_on=right_on, right_on=left_on, how="anti"),
-        }
+        },
+        extra={"warnings": warnings} if warnings else {},
     )
+
+
+def _keep_key_side(
+    joined: pl.DataFrame, mode: str, left_on: list[str], right_on: list[str], renamed: list[str]
+) -> pl.DataFrame:
+    """Chaves no J (spec 019): as duas, só a da esquerda (como até a 0.3.8) ou só a da direita.
+    Sobrando um lado só, a chave da direita volta ao nome original."""
+    if mode == "left":
+        return joined.drop(list(dict.fromkeys(renamed)))
+    if mode == "right":
+        joined = joined.drop(list(dict.fromkeys(left_on)))
+        back = {r: o for r, o in zip(renamed, right_on, strict=True) if r != o and o not in joined.columns}
+        return joined.rename(back)
+    return joined
 
 
 # ------------------------------------------------------------------ Summarize
 
 AggOp = Literal[
-    "sum", "mean", "median", "min", "max", "count", "count_all", "n_unique", "first", "last", "concat"
+    "sum",
+    "mean",
+    "median",
+    "mode",
+    "std",
+    "min",
+    "max",
+    "count",
+    "count_all",
+    "n_unique",
+    "first",
+    "last",
+    "concat",
 ]
 _AGG_LABELS = {
     "sum": "Soma",
     "mean": "Média",
     "median": "Mediana",
+    "mode": "Moda (mais frequente)",
+    "std": "Desvio padrão",
     "min": "Mínimo",
     "max": "Máximo",
     "count": "Contagem (não nulos)",
@@ -113,6 +165,11 @@ def _agg_expr(item: Aggregation) -> pl.Expr:
             expr = col.mean()
         case "median":
             expr = col.median()
+        case "mode":
+            # Valor mais frequente; empate → o menor, para o resultado não variar entre execuções.
+            expr = col.drop_nulls().mode().sort().first()
+        case "std":
+            expr = col.std()  # amostral (n - 1), como DESVPAD.A do Excel
         case "min":
             expr = col.min()
         case "max":
@@ -137,8 +194,9 @@ def _agg_expr(item: Aggregation) -> pl.Expr:
     name="Summarize",
     category="transform",
     icon="sigma",
-    description="Agrupa e agrega: soma, média, mediana, mínimo, máximo, contagens e concatenação.",
+    description="Agrupa e agrega: soma, média, mediana, moda, desvio padrão, mínimo, máximo, contagens e concatenação.",
     config=SummarizeConfig,
+    explainer="summarize",
     annotate=lambda c: ("Por " + ", ".join(c.group_by)) if c.group_by else "Total geral",
 )
 def summarize(ctx: NodeContext, cfg: SummarizeConfig) -> NodeOutput:

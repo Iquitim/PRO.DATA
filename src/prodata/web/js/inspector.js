@@ -332,7 +332,9 @@ function controllingFields(spec) {
   const names = new Set(['format', 'dataset', 'connection']);
   const walk = (fields) => fields.forEach((f) => {
     Object.keys(f.show_if || {}).forEach((k) => names.add(k));
-    if (f.source) names.add(f.source); // ex.: a coluna do grupo do Venn muda a lista de valores
+    // Colunas do J (spec 019): chaves, lado das chaves e prefixo mudam a lista.
+    if (f.source === 'join') ['keys', 'left', 'right', 'keys_mode', 'right_prefix'].forEach((k) => names.add(k));
+    else if (f.source) names.add(f.source); // ex.: a coluna do grupo do Venn muda a lista de valores
     if (f.item_fields) walk(f.item_fields);
   });
   walk(spec.config_fields);

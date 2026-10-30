@@ -1,4 +1,4 @@
-// Esquemas visuais no Configurar (spec 015, RF-1504): mostram o que Cross Tab, Transpose e Join fazem com a
+// Esquemas visuais no Configurar (spec 015, RF-1504; Summarize na spec 019): mostram o que Cross Tab, Transpose, Join e Summarize fazem com a
 // tabela, usando as colunas configuradas e, depois de executar, uma amostra da entrada. Só ilustram: o
 // resultado de verdade é o do motor. Passar o mouse num valor destaca para onde ele vai.
 
@@ -47,14 +47,38 @@ function linkHover(root) {
   return root;
 }
 
+const nums = (v) => v.filter((x) => x !== null && x !== undefined && x !== '').map(Number).filter((x) => !Number.isNaN(x));
 const AGG = {
   sum: (v) => v.reduce((a, b) => a + (Number(b) || 0), 0),
   mean: (v) => v.reduce((a, b) => a + (Number(b) || 0), 0) / v.length,
-  count: (v) => v.length,
+  median: (v) => {
+    const s = nums(v).sort((a, b) => a - b);
+    return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null;
+  },
+  mode: (v) => {
+    const seen = new Map();
+    for (const x of v) if (x !== null && x !== undefined) seen.set(x, (seen.get(x) || 0) + 1);
+    const top = Math.max(0, ...seen.values());
+    return [...seen].filter(([, c]) => c === top).map(([x]) => x).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))[0] ?? null;
+  },
+  std: (v) => {
+    const s = nums(v);
+    if (s.length < 2) return null;
+    const m = s.reduce((a, b) => a + b, 0) / s.length;
+    return Math.sqrt(s.reduce((a, b) => a + (b - m) ** 2, 0) / (s.length - 1));
+  },
+  count: (v) => v.filter((x) => x !== null && x !== undefined).length,
+  count_all: (v) => v.length,
+  n_unique: (v) => new Set(v.filter((x) => x !== null && x !== undefined)).size,
   min: (v) => Math.min(...v.map(Number)),
   max: (v) => Math.max(...v.map(Number)),
   first: (v) => v[0],
-  concat: (v) => v.join(', '),
+  last: (v) => v[v.length - 1],
+  concat: (v) => [...new Set(v.filter((x) => x !== null && x !== undefined))].join(', '),
+};
+const AGG_NAME = {
+  sum: 'soma', mean: 'média', median: 'mediana', mode: 'moda', std: 'desvio padrão', count: 'contagem', count_all: 'linhas',
+  n_unique: 'distintos', min: 'mínimo', max: 'máximo', first: 'primeiro', last: 'último', concat: 'textos juntos',
 };
 const AGG_TEXT = { sum: 'somados', mean: 'pela média', count: 'contados', min: 'pelo mínimo', max: 'pelo máximo', first: 'pelo primeiro', concat: 'juntando os textos' };
 
@@ -173,7 +197,60 @@ function join(n, cfg, left, right) {
   return {
     body: [bar, h('div', { class: 'x-pair' }, side('Esquerda [L]', lk, lv, rv), arrow('casa pela chave'), side('Direita [R]', rk, rv, lv))],
     caption: `Linhas com o mesmo valor em [${lk}] e [${rk}] saem juntas em J. As demais saem em L ou R, para você ver o que não encontrou par.`
-      + ((cfg.keys?.length || 0) > 1 ? ` Com ${cfg.keys.length} chaves, todas precisam ser iguais.` : ''),
+      + ((cfg.keys?.length || 0) > 1 ? ` Com ${cfg.keys.length} chaves, todas precisam ser iguais.` : '')
+      + ({ both: ' No J ficam as chaves dos dois lados.', left: ` No J fica só [${lk}], da esquerda.`, right: ` No J fica só [${rk}], da direita.` }[cfg.keys_mode || 'both']),
+  };
+}
+
+// ------------------------------------------------------------------ Summarize
+
+/** Antes: linhas da amostra coloridas por grupo. Depois: uma linha por grupo com cada agregação. */
+function summarize(cfg, rows) {
+  const groups = (cfg.group_by || []).slice(0, 2);
+  let aggs = (cfg.aggregations || []).filter((a) => a.column || a.agg === 'count_all').slice(0, 3);
+  let data = rows;
+  if (!data || !aggs.length) {
+    // Exemplo fixo com os nomes configurados, enquanto falta configuração ou execução.
+    const g = groups[0] || 'uf';
+    const col = aggs[0]?.column || 'valor';
+    data = [['SP', 10], ['RJ', 5], ['SP', 20], ['SP', 10], ['RJ', 7]].map(([a, b]) => ({ [g]: a, [col]: b }));
+    if (!groups.length && !rows) groups.push(g);
+    if (!aggs.length) aggs = [{ column: col, agg: 'sum' }];
+  }
+  const key = (r) => groups.map((g) => show(r[g])).join(' · ') || '(tudo)';
+  const keys = [...new Set(data.map(key))].slice(0, 3);
+  const used = data.filter((r) => keys.includes(key(r))).slice(0, 7);
+  const tone = (k) => `g${keys.indexOf(k) % 3}`;
+  const cols = [...new Set(aggs.filter((a) => a.agg !== 'count_all').map((a) => a.column))];
+  const before = mini('Antes: uma linha por registro',
+    [...groups.map((g) => ({ text: g, kind: 'from' })), ...cols.map((c) => ({ text: c }))],
+    used.map((r) => {
+      const k = key(r);
+      return [
+        ...groups.map((g) => ({ text: show(r[g]), link: `g:${k}`, kind: tone(k) })),
+        ...cols.map((c) => ({ text: show(r[c]), link: `g:${k}` })),
+      ];
+    }));
+  const label = (a) => a.alias?.trim() || (a.agg === 'count_all' ? 'linhas' : `${AGG_NAME[a.agg] || a.agg} de ${a.column}`);
+  const after = mini(groups.length ? 'Depois: uma linha por grupo' : 'Depois: uma linha só',
+    [...groups.map((g) => ({ text: g })), ...aggs.map((a) => ({ text: label(a), kind: 'to' }))],
+    keys.map((k) => {
+      const inGroup = used.filter((r) => key(r) === k);
+      return [
+        ...groups.map((g) => ({ text: show(inGroup[0]?.[g]), link: `g:${k}`, kind: tone(k) })),
+        ...aggs.map((a) => {
+          const v = (AGG[a.agg] || AGG.first)(inGroup.map((r) => r[a.column]));
+          return { text: show(v), link: `g:${k}` };
+        }),
+      ];
+    }));
+  const what = aggs.map((a) => (a.agg === 'count_all' ? 'conta as linhas' : `calcula ${AGG_NAME[a.agg] || a.agg} de [${a.column}]`));
+  return {
+    body: [before, arrow('Summarize'), after],
+    caption: (groups.length
+      ? `As linhas com o mesmo ${groups.map((g) => `[${g}]`).join(' e ')} viram uma só; para cada grupo, o Summarize ${what.join(', ')}.`
+      : `Sem "agrupar por", a tabela inteira vira uma linha: o Summarize ${what.join(', ')}.`)
+      + ' No esquema, as contas usam só as linhas de exemplo.',
   };
 }
 
@@ -197,7 +274,7 @@ export function explainerEl(n, spec) {
       out = join(n, cfg, l, r);
     } else {
       const rows = await sampleOf(n.id);
-      out = (spec.explainer === 'crosstab' ? crosstab : transpose)(cfg, rows?.length ? rows : null);
+      out = ({ crosstab, transpose, summarize }[spec.explainer])(cfg, rows?.length ? rows : null);
       out.sample = Boolean(rows?.length);
     }
     note.textContent = spec.explainer === 'join' ? '' : out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)';

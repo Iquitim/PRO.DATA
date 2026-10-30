@@ -127,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.4.0 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.4.1 · Windows</span><span>Outubro de 2026</span></div>
   </div>
 </section>
 
@@ -288,8 +288,8 @@
     <tr><td class="tool">Text To Columns</td><td>Divide um texto por um separador em novas colunas ou linhas (ex.: "SP - São Paulo").</td></tr>
     <tr><td class="tool">Record ID · Running Total</td><td>Numera as linhas; calcula soma acumulada, recomeçando a cada grupo se quiser.</td></tr>
     <tr><td colspan="2"><span class="tag">Combinar e transformar</span></td></tr>
-    <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R. O J mantém as chaves dos dois lados. O Configurar mostra quantas linhas saem em cada uma.</td></tr>
-    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, contagens, mínimo e máximo.</td></tr>
+    <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R. Dá para escolher se o J mantém as chaves dos dois lados, só a da esquerda ou só a da direita, e escolher, renomear, converter e reordenar as colunas do J ali mesmo, como num Select. O Configurar mostra quantas linhas saem em cada uma.</td></tr>
+    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, moda, desvio padrão, contagens, mínimo e máximo. O Configurar mostra um esquema do antes e depois.</td></tr>
     <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
     <tr><td class="tool">Cross Tab · Transpose</td><td>Tabela dinâmica (valores de uma coluna viram colunas) e o inverso (colunas viram linhas). O Configurar desenha o antes e o depois com os seus dados.</td></tr>
     <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
@@ -310,7 +310,7 @@
     <figcaption>As chaves de junção são escolhidas em listas que já conhecem as colunas de cada lado.</figcaption>
   </figure>
   <h3>Entendendo o que a caixa faz</h3>
-  <p>Cross Tab, Transpose e Join são conceitos que confundem quem não trabalha com dados todo dia. No Configurar, essas caixas mostram um <strong>esquema</strong> do que acontece com a tabela, montado com as colunas escolhidas e uma amostra dos seus dados. Passar o mouse num valor destaca para onde ele vai; no Join, clicar em L, J ou R abre aquelas linhas.</p>
+  <p>Cross Tab, Transpose, Join e Summarize são conceitos que confundem quem não trabalha com dados todo dia. No Configurar, essas caixas mostram um <strong>esquema</strong> do que acontece com a tabela, montado com as colunas escolhidas e uma amostra dos seus dados. Passar o mouse num valor destaca para onde ele vai; no Join, clicar em L, J ou R abre aquelas linhas.</p>
   <div class="grid-2">
     <figure>
       <div class="frame"><img src="img/explain-crosstab.png" alt="Esquema do Cross Tab"></div>
@@ -319,6 +319,14 @@
     <figure>
       <div class="frame"><img src="img/explain-join.png" alt="Esquema do Join"></div>
       <figcaption>Join: quantas linhas casaram e quais chaves ficaram sem par de cada lado.</figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="img/explain-summarize.png" alt="Esquema do Summarize"></div>
+      <figcaption>Summarize: as linhas de cada grupo (cores) viram uma só, com a soma e a contagem calculadas.</figcaption>
+    </figure>
+    <figure>
+      <div class="frame"><img src="img/join-select.png" alt="Colunas do J no Join"></div>
+      <figcaption>Join: as colunas do J com a origem (L ou R) para manter, renomear, converter e arrastar para mudar a ordem.</figcaption>
     </figure>
   </div>
   <div class="callout tip"><strong>Dica</strong>Soltar uma ferramenta em cima de uma ligação existente encaixa a caixa no meio, já conectada, e abre espaço empurrando o restante do fluxo. <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz qualquer alteração.</div>
@@ -332,7 +340,7 @@
         <li><strong>Cores</strong> separam colunas, funções, IF/THEN/ELSE, operadores lógicos (AND, OR, NOT), comparações, textos e números. Coluna inexistente e parêntese sem par ficam sublinhados em vermelho.</li>
         <li><strong>Autocompletar</strong>: comece a digitar e o PRO.DATA sugere funções; digite <code>[</code> e ele lista as colunas. <kbd>Enter</kbd> aceita; <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> mostra tudo.</li>
         <li><strong>Dica da função</strong>: dentro dos parênteses aparece o que cada argumento espera.</li>
-        <li><strong>Assistente</strong>: botões <em>Coluna</em>, <em>Função</em> (80 funções com descrição e exemplo) e operadores. Para calcular entre colunas da mesma linha: <code>Average([jan], [fev], [mar])</code>, <code>Sum</code>, <code>Median</code>, <code>Max</code>, <code>Min</code>. Diferente é <code>!=</code>. Para juntar textos use <code>Concat</code>.</li>
+        <li><strong>Assistente</strong>: botões <em>Coluna</em>, <em>Função</em> (82 funções com descrição e exemplo) e operadores. Para calcular entre colunas da mesma linha: <code>Average([jan], [fev], [mar])</code>, <code>Sum</code>, <code>Median</code>, <code>Mode</code> (moda), <code>StdDev</code> (desvio padrão), <code>Max</code>, <code>Min</code>. Diferente é <code>!=</code>. Para juntar textos use <code>Concat</code>.</li>
         <li><strong>Pensadas para o Brasil</strong>: <code>ToNumberBR('1.234,56')</code>, <code>FormatNumber([valor], 2)</code> → 1.234,56, <code>DigitsOnly</code> para CPF e CNPJ, <code>RemoveAccents</code>, e datas em português: <code>DateAdd([data], 1, 'mês')</code>, <code>MonthName</code>, <code>WeekdayName</code>.</li>
       </ul>
     </div>
@@ -517,8 +525,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.4.0-setup.exe</code> (139 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.4.0-portable.zip</code> (221 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.4.1-setup.exe</code> (139 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.4.1-portable.zip</code> (221 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
