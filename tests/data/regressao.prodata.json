@@ -1,0 +1,709 @@
+{
+ "id": "regressao",
+ "name": "Regressão: todas as ferramentas",
+ "containers": [],
+ "nodes": [
+  {
+   "id": "clientes",
+   "type": "io.input_data",
+   "label": "clientes",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   }
+  },
+  {
+   "id": "vendas",
+   "type": "io.input_data",
+   "label": "vendas",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "dataset": "transacoes_vendas.csv"
+   }
+  },
+  {
+   "id": "metas",
+   "type": "io.input_data",
+   "label": "metas",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "dataset": "metas_regionais_br.csv"
+   }
+  },
+  {
+   "id": "param",
+   "type": "io.text_input",
+   "label": "param",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "table": {
+     "columns": [
+      "taxa",
+      "faixa",
+      "ativo"
+     ],
+     "rows": [
+      [
+       "1,5",
+       "A",
+       "sim"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "id": "cleanse",
+   "type": "prep.cleanse",
+   "label": "cleanse",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "columns": [
+     "setor",
+     "segmento"
+    ],
+    "replace_null_string": true,
+    "case_mode": "upper"
+   }
+  },
+  {
+   "id": "formula",
+   "type": "prep.formula",
+   "label": "formula",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "formulas": [
+     {
+      "column": "anual",
+      "type": "Float64",
+      "expression": "Round([mrr_mensal] * 12, 2)"
+     },
+     {
+      "column": "tier",
+      "type": "String",
+      "expression": "IF [mrr_mensal] >= 6000 THEN 'A' ELSEIF [mrr_mensal] >= 3000 THEN 'B' ELSE 'C' ENDIF"
+     },
+     {
+      "column": "media",
+      "type": "Float64",
+      "expression": "Average([mrr_mensal], [nps], 10)"
+     },
+     {
+      "target": "existing",
+      "existing": "nps",
+      "type": "Int64",
+      "expression": "[nps] + 1"
+     }
+    ]
+   }
+  },
+  {
+   "id": "filtro_exp",
+   "type": "prep.filter",
+   "label": "filtro_exp",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "expression",
+    "expression": "[status] != 'INATIVO' OR [mrr_mensal] >= 5000"
+   }
+  },
+  {
+   "id": "filtro_sim",
+   "type": "prep.filter",
+   "label": "filtro_sim",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "simple",
+    "column": "uf",
+    "operator": "contains",
+    "value": "s"
+   }
+  },
+  {
+   "id": "select",
+   "type": "prep.select",
+   "label": "select",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "fields": [
+     {
+      "name": "setor",
+      "keep": false
+     },
+     {
+      "name": "nps",
+      "cast": "String"
+     },
+     {
+      "name": "tier",
+      "rename": "faixa_mrr"
+     }
+    ],
+    "order": [
+     "uf",
+     "id_cliente"
+    ]
+   }
+  },
+  {
+   "id": "unique",
+   "type": "prep.unique",
+   "label": "unique",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "keys": [
+     "uf",
+     "faixa_mrr"
+    ]
+   }
+  },
+  {
+   "id": "sort",
+   "type": "prep.sort",
+   "label": "sort",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "sorts": [
+     {
+      "column": "mrr_mensal",
+      "descending": true
+     },
+     {
+      "column": "id_cliente"
+     }
+    ]
+   }
+  },
+  {
+   "id": "primeiras",
+   "type": "prep.sample",
+   "label": "primeiras",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "first",
+    "n": 50
+   }
+  },
+  {
+   "id": "ultimas",
+   "type": "prep.sample",
+   "label": "ultimas",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "last",
+    "n": 20
+   }
+  },
+  {
+   "id": "sorteio",
+   "type": "prep.sample",
+   "label": "sorteio",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "random",
+    "n": 30,
+    "seed": 7
+   }
+  },
+  {
+   "id": "rid",
+   "type": "prep.record_id",
+   "label": "rid",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "column": "n",
+    "start": 100
+   }
+  },
+  {
+   "id": "acum",
+   "type": "prep.running_total",
+   "label": "acum",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "columns": [
+     "mrr_mensal"
+    ],
+    "group_by": [
+     "uf"
+    ]
+   }
+  },
+  {
+   "id": "texto",
+   "type": "prep.text_to_columns",
+   "label": "texto",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "column": "nome_empresa",
+    "delimiter": " "
+   }
+  },
+  {
+   "id": "texto_l",
+   "type": "prep.text_to_columns",
+   "label": "texto_l",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "column": "nome_empresa",
+    "delimiter": " ",
+    "mode": "rows"
+   }
+  },
+  {
+   "id": "vendas_cli",
+   "type": "transform.summarize",
+   "label": "vendas_cli",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "group_by": [
+     "id_cliente"
+    ],
+    "aggregations": [
+     {
+      "column": "valor_bruto",
+      "agg": "sum",
+      "alias": "total"
+     },
+     {
+      "column": "valor_bruto",
+      "agg": "mean",
+      "alias": "media"
+     },
+     {
+      "column": "valor_bruto",
+      "agg": "median",
+      "alias": "mediana"
+     },
+     {
+      "column": "valor_bruto",
+      "agg": "std",
+      "alias": "desvio"
+     },
+     {
+      "column": "produto",
+      "agg": "mode",
+      "alias": "moda"
+     },
+     {
+      "column": "produto",
+      "agg": "n_unique",
+      "alias": "produtos"
+     },
+     {
+      "column": "produto",
+      "agg": "concat",
+      "alias": "lista"
+     },
+     {
+      "agg": "count_all",
+      "alias": "linhas"
+     }
+    ]
+   }
+  },
+  {
+   "id": "join_duas",
+   "type": "transform.join",
+   "label": "join_duas",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "keys": [
+     {
+      "left": "id_cliente",
+      "right": "id_cliente"
+     }
+    ],
+    "keys_mode": "both"
+   }
+  },
+  {
+   "id": "join_esq",
+   "type": "transform.join",
+   "label": "join_esq",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "keys": [
+     {
+      "left": "id_cliente",
+      "right": "id_cliente"
+     }
+    ],
+    "keys_mode": "left"
+   }
+  },
+  {
+   "id": "join_dir",
+   "type": "transform.join",
+   "label": "join_dir",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "keys": [
+     {
+      "left": "id_cliente",
+      "right": "id_cliente"
+     }
+    ],
+    "keys_mode": "right"
+   }
+  },
+  {
+   "id": "join_sel",
+   "type": "transform.join",
+   "label": "join_sel",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "keys": [
+     {
+      "left": "uf",
+      "right": "uf"
+     }
+    ],
+    "right_prefix": "m_",
+    "fields": [
+     {
+      "name": "nps",
+      "keep": false
+     }
+    ],
+    "order": [
+     "uf"
+    ]
+   }
+  },
+  {
+   "id": "union_nome",
+   "type": "transform.union",
+   "label": "union_nome",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "by_name",
+    "source_column": "origem"
+   }
+  },
+  {
+   "id": "union_pos",
+   "type": "transform.union",
+   "label": "union_pos",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "mode": "by_position"
+   }
+  },
+  {
+   "id": "cross",
+   "type": "transform.crosstab",
+   "label": "cross",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "group_by": [
+     "uf"
+    ],
+    "header": "segmento",
+    "value": "mrr_mensal",
+    "agg": "sum"
+   }
+  },
+  {
+   "id": "transp",
+   "type": "transform.transpose",
+   "label": "transp",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "keys": [
+     "id_cliente"
+    ],
+    "columns": [
+     "mrr_mensal",
+     "meses_contrato"
+    ]
+   }
+  },
+  {
+   "id": "append",
+   "type": "transform.append_fields",
+   "label": "append",
+   "x": 0,
+   "y": 0,
+   "config": {}
+  },
+  {
+   "id": "sql",
+   "type": "transform.sql_query",
+   "label": "sql",
+   "x": 0,
+   "y": 0,
+   "config": {
+    "sql": "SELECT uf, count(*) AS n FROM input_1 GROUP BY uf ORDER BY uf"
+   }
+  },
+  {
+   "id": "browse",
+   "type": "io.browse",
+   "label": "browse",
+   "x": 0,
+   "y": 0,
+   "config": {}
+  }
+ ],
+ "edges": [
+  {
+   "id": "e0",
+   "source": "clientes",
+   "sourceHandle": "out",
+   "target": "cleanse",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e1",
+   "source": "cleanse",
+   "sourceHandle": "out",
+   "target": "formula",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "formula",
+   "sourceHandle": "out",
+   "target": "filtro_exp",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e3",
+   "source": "filtro_exp",
+   "sourceHandle": "T",
+   "target": "filtro_sim",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e4",
+   "source": "filtro_sim",
+   "sourceHandle": "T",
+   "target": "select",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e5",
+   "source": "select",
+   "sourceHandle": "out",
+   "target": "unique",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e6",
+   "source": "select",
+   "sourceHandle": "out",
+   "target": "sort",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e7",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "primeiras",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e8",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "ultimas",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e9",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "sorteio",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e10",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "rid",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e11",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "acum",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e12",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "texto",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e13",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "texto_l",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e14",
+   "source": "vendas",
+   "sourceHandle": "out",
+   "target": "vendas_cli",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e15",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "join_duas",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e16",
+   "source": "vendas_cli",
+   "sourceHandle": "out",
+   "target": "join_duas",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e17",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "join_esq",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e18",
+   "source": "vendas_cli",
+   "sourceHandle": "out",
+   "target": "join_esq",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e19",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "join_dir",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e20",
+   "source": "vendas_cli",
+   "sourceHandle": "out",
+   "target": "join_dir",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e21",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "join_sel",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e22",
+   "source": "metas",
+   "sourceHandle": "out",
+   "target": "join_sel",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e23",
+   "source": "primeiras",
+   "sourceHandle": "out",
+   "target": "union_nome",
+   "targetHandle": "in1"
+  },
+  {
+   "id": "e24",
+   "source": "ultimas",
+   "sourceHandle": "out",
+   "target": "union_nome",
+   "targetHandle": "in2"
+  },
+  {
+   "id": "e25",
+   "source": "primeiras",
+   "sourceHandle": "out",
+   "target": "union_pos",
+   "targetHandle": "in1"
+  },
+  {
+   "id": "e26",
+   "source": "ultimas",
+   "sourceHandle": "out",
+   "target": "union_pos",
+   "targetHandle": "in2"
+  },
+  {
+   "id": "e27",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "cross",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e28",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "transp",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e29",
+   "source": "primeiras",
+   "sourceHandle": "out",
+   "target": "append",
+   "targetHandle": "T"
+  },
+  {
+   "id": "e30",
+   "source": "param",
+   "sourceHandle": "out",
+   "target": "append",
+   "targetHandle": "S"
+  },
+  {
+   "id": "e31",
+   "source": "sort",
+   "sourceHandle": "out",
+   "target": "sql",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e32",
+   "source": "sql",
+   "sourceHandle": "out",
+   "target": "browse",
+   "targetHandle": "in"
+  }
+ ]
+}

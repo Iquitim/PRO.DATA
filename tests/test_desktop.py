@@ -55,3 +55,21 @@ def test_port_is_stable_with_fallback() -> None:
         assert desktop.choose_port(busy) != busy
     free = desktop._free_port()
     assert desktop.choose_port(free) == free
+
+
+def test_generated_name_is_always_sql_or_zip() -> None:
+    assert desktop.generated_name("fluxo.sql") == "fluxo.sql"
+    assert desktop.generated_name("fluxo.ZIP") == "fluxo.zip"
+    assert desktop.generated_name("../../etc/passwd") == "passwd.sql"
+    assert desktop.generated_name('a<b>:"c.exe') == "a b c.exe.sql"
+    assert desktop.generated_name("...") == "fluxo.sql"
+
+
+def test_write_generated_keeps_the_expected_extension(tmp_path: Path) -> None:
+    data = "data:application/sql;base64," + base64.b64encode(b"SELECT 1;").decode()
+    saved = desktop.write_generated(str(tmp_path / "outro.exe"), "fluxo.sql", data)
+    assert saved == tmp_path / "outro.exe.sql" and saved.read_bytes() == b"SELECT 1;"
+    with pytest.raises(ValueError, match="pasta"):
+        desktop.write_generated("relativo.sql", "fluxo.sql", data)
+    with pytest.raises(ValueError, match="não existe"):
+        desktop.write_generated(str(tmp_path / "nao" / "existe.sql"), "fluxo.sql", data)

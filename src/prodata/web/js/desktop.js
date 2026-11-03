@@ -72,6 +72,26 @@ export async function savePng(name, dataUrl) {
   return a.download;
 }
 
+/** Arquivo gerado na aba SQL (spec 020): "Salvar como" do Windows no programa; download comum no navegador. */
+export async function saveDownload(name, blob) {
+  if (native()) {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+    return call('save_generated', name, base64);
+  }
+  const url = URL.createObjectURL(blob);
+  const a = h('a', { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return name;
+}
+
 /** Mostra o arquivo no Explorer (só no desktop). */
 export async function reveal(path) {
   return native() ? call('reveal', path) : false;

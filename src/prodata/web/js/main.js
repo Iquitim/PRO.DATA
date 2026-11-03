@@ -21,6 +21,7 @@ import { initInspector } from './inspector.js';
 import { initLayout, openPanelsMenu, panelControls } from './layout.js';
 import { renderPalette } from './palette.js';
 import { initResults, showLog } from './results.js';
+import { handleSqlKey, initSqlView, renderSqlView } from './sql_view.js';
 import {
   canRedo, canUndo, emit, inspect, markSaved, mutate, on, redo, select, selectedIds, selectMany, setExecution, store, undo,
 } from './store.js';
@@ -388,11 +389,12 @@ function resolvedTheme() {
     || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 }
 
-function setView(view) {
+function setView(view, { sqlNode = null } = {}) {
   store.view = view;
   document.body.dataset.view = view;
   for (const b of document.querySelectorAll('#viewSwitch .segment')) b.setAttribute('aria-selected', String(b.dataset.view === view));
   if (view === 'dashboard') renderDashboard();
+  else if (view === 'sql') renderSqlView(sqlNode);
   else renderCanvas();
 }
 
@@ -583,6 +585,11 @@ function setupShortcuts() {
     if (mod && key === 'enter') { e.preventDefault(); run(e.shiftKey ? store.selection.nodeId : null); return; }
     if (mod && key === 's') { e.preventDefault(); if (e.shiftKey) saveAs(); else save(); return; }
     if (mod && key === 'o') { e.preventDefault(); openDialogList(); return; }
+    // Na aba SQL, nada altera o fluxo: Delete, Ctrl+D e Ctrl+Z não mexem nas caixas (spec 020).
+    if (store.view === 'sql') {
+      if (handleSqlKey(e)) e.stopPropagation();
+      return;
+    }
     if (isTyping(e.target) || document.querySelector('dialog[open]')) return;
     // No dashboard, as teclas mexem no layout (spec 014); atalhos do fluxo (Delete, Ctrl+D...) não valem.
     if (store.view === 'dashboard') {
@@ -635,12 +642,13 @@ async function boot() {
   buildTopbar();
   buildCanvasToolbar();
   buildStatusbar();
-  initCanvas($('#canvas'), { runTo: (id) => run(id), run: () => run(), refreshCache });
+  initCanvas($('#canvas'), { runTo: (id) => run(id), run: () => run(), refreshCache, viewSql: (id) => setView('sql', { sqlNode: id }) });
   enableFileDropOnCanvas($('#canvas'));
   buildLeftPanel();
   initResults($('#results'));
   initInsights($('#insights'), { openDashboard: () => setView('dashboard') });
   initDashboard($('#dashboard'), { run: () => run(), showDesigner: () => setView('designer') });
+  initSqlView($('#sqlView'));
   setupShortcuts();
   setView('designer');
 

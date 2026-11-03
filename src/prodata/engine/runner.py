@@ -100,6 +100,8 @@ class WorkflowRunner:
         self._lock = threading.Lock()
         # Andamento das execuções em curso, por fluxo (spec 018): a interface consulta para iluminar a caixa da vez.
         self._progress: dict[str, dict[str, Any]] = {}
+        # Assinatura de cada caixa na última execução: diz se o resultado guardado vale para o fluxo atual (spec 020).
+        self._ran: dict[str, dict[str, str]] = {}
 
     def run(
         self, workflow: Workflow, target_node_id: str | None = None, *, hold_exports: bool = False
@@ -120,6 +122,14 @@ class WorkflowRunner:
             return self._run_locked(workflow, order, progress, started, hold_exports)
         finally:
             self._progress.pop(workflow.id, None)
+
+    def _freshness(self, workflow: Workflow, node_id: str) -> str:
+        return f"{graph.upstream_signature(workflow, node_id)}:{self._sources_signature(workflow, node_id)}"
+
+    def is_fresh(self, workflow: Workflow, node_id: str) -> bool:
+        """O resultado guardado da caixa ainda corresponde à configuração e aos arquivos atuais?"""
+        ran = self._ran.get(workflow.id, {}).get(node_id)
+        return ran is not None and ran == self._freshness(workflow, node_id)
 
     def progress(self, workflow_id: str) -> dict[str, Any]:
         """Caixa em execução e caixas já concluídas da execução em curso (vazio se nada roda)."""
@@ -179,6 +189,10 @@ class WorkflowRunner:
                             }
                 results[node_id] = result
                 progress["done"][node_id] = result.status
+                if result.status in ("executed", "cached"):
+                    self._ran.setdefault(workflow.id, {})[node_id] = self._freshness(workflow, node_id)
+                else:
+                    self._ran.get(workflow.id, {}).pop(node_id, None)
                 name = node.label or (spec.name if spec else node.type)
                 logs.append(
                     LogEntry(

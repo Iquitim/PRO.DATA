@@ -67,6 +67,24 @@ rótulos legíveis às opções de um `Literal`.
 - Se o resultado depende de algo além da configuração e das entradas (um
   arquivo, por exemplo), informe `fingerprint=` para invalidar o cache.
 
-## 5. Teste
+## 5. SQL (opcional)
+
+Para a caixa aparecer na aba SQL, declare a tradução ao lado do `run`. Sem isso, ela
+aparece em vermelho como "sem SQL", e o código da saída para nela.
+
+```python
+@sql_for("prep.round")
+def round_sql(ctx: SqlContext, cfg: RoundConfig) -> dict[str, Fragment]:
+    source = ctx.input()
+    items = [f"round({q(c)}, {cfg.decimals}) AS {q(c)}" for c in cfg.columns]
+    return {"out": Fragment(f"SELECT * REPLACE ({join_list(items)})\nFROM {q(source.block)}", f"Arredonda {len(items)} coluna(s)")}
+```
+
+Use `q()` em nomes e `lit()` em valores, nunca texto direto. Fragmento devolve uma
+entrada por porta de saída; `explain` é a frase que aparece na trilha, e `notes` são as
+ressalvas. A tradução precisa dar o mesmo resultado que o `run`: acrescente o caso em
+`tests/test_sql_equivalence.py`, que usa dados com vazios, acentos e nomes estranhos.
+
+## 6. Teste
 
 Adicione um teste em `tests/test_nodes.py` e rode `uv run pytest`.

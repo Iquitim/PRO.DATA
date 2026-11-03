@@ -7,10 +7,12 @@ import logging
 import threading
 from collections.abc import Awaitable, Callable
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from prodata import __version__
@@ -80,11 +82,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["Content-Type"],
     )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_accepted_hosts(settings))
     install_error_handlers(app)
     for router in routers:
         app.include_router(router)
 
     app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
+
+    @app.middleware("http")
+    async def refuse_other_sites(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        # O CORS só esconde a resposta: um envio de arquivo vindo de outro site ainda seria executado.
+        origin = request.headers.get("origin")
+        if (
+            origin
+            and request.method not in ("GET", "HEAD", "OPTIONS")
+            and not _same_origin(origin, request.headers.get("host", ""), settings.cors_origins)
+        ):
+            return JSONResponse({"detail": "Pedido de outro site recusado."}, status_code=403)
+        return await call_next(request)
 
     @app.middleware("http")
     async def revalidate_static(
@@ -103,6 +120,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     log.info("PRO.DATA %s pronto (storage: %s)", __version__, settings.storage_dir)
     threading.Thread(target=_warm_up, name="prodata-warmup", daemon=True).start()
     return app
+
+
+def _accepted_hosts(settings: Settings) -> list[str]:
+    """Só o próprio computador: com outro nome de host, uma página externa leria a API (DNS rebinding)."""
+    if settings.host in ("0.0.0.0", "::"):
+        return ["*"]
+    return sorted({"127.0.0.1", "localhost", settings.host, *settings.allowed_hosts})
+
+
+def _same_origin(origin: str, host: str, allowed: list[str]) -> bool:
+    return origin in allowed or urlsplit(origin).netloc == host
 
 
 def _warm_up() -> None:

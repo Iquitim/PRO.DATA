@@ -1,0 +1,175 @@
+/* Aba SQL (spec 020). Só seletores da própria aba: Designer e Dashboard não mudam. */
+
+body[data-view="sql"] .sql-view { display: grid; }
+.sql-view {
+  display: none; position: absolute; inset: 0; z-index: 20;
+  grid-template-columns: minmax(280px, 348px) minmax(0, 1fr); background: var(--bg);
+}
+
+/* ------------------------------------------------------------------ coluna esquerda */
+.sql-left { display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-right: 1px solid var(--border); }
+.sql-panel-title {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3);
+}
+.sql-panel-title[hidden] { display: none; }
+.sql-all { margin-left: auto; padding: 0; border: 0; background: none; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--accent); }
+.sql-all[hidden] { display: none; }
+.sql-outs { display: flex; flex-direction: column; gap: 4px; max-height: 38%; overflow-y: auto; padding: 0 10px 10px; border-bottom: 1px solid var(--border); flex: none; }
+.sql-outs[hidden] { display: none; }
+.sql-out {
+  display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 6px;
+  padding: 5px 8px 5px 6px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+}
+.sql-out:hover { border-color: var(--text-3); }
+.sql-out.on { border-color: var(--accent); background: var(--accent-weak); }
+.sql-out input { margin: 0; accent-color: var(--accent); }
+.sql-out-pick { min-width: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.sql-out-name { display: block; font-weight: 600; }
+.sql-out-sub { display: block; font-size: 11.5px; color: var(--text-2); }
+.sql-temp { display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 8px; border: 1px dashed var(--accent); border-radius: var(--radius); background: var(--accent-weak); font-size: 12px; }
+.sql-temp .btn { margin-left: auto; flex: none; }
+.sql-more { align-self: flex-start; padding: 3px 8px; border: 0; background: none; cursor: pointer; font-size: 12px; color: var(--text-2); }
+.sql-more:hover { color: var(--text); }
+
+.sql-dot { display: inline-block; flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); }
+.sql-dot.ready, .sql-dot.ready_notes { background: var(--ok); }
+.sql-dot.partial { border-radius: 2px; background: var(--warn); }
+.sql-dot.mismatch { border-radius: 2px; background: var(--err); }
+.sql-dot.pending { background: none; box-shadow: inset 0 0 0 1.5px var(--text-3); }
+
+/* ------------------------------------------------------------------ trilha */
+.sql-trail-wrap { flex: 1; min-height: 0; overflow: auto; padding: 4px 0 16px; background: var(--canvas); }
+.sql-trail { position: relative; }
+.sql-trail > svg { position: absolute; left: 0; top: 0; pointer-events: none; }
+.sql-trail path { fill: none; stroke: var(--border-strong); stroke-width: 1.5; }
+.sql-trail path.on { stroke: var(--accent); stroke-width: 2; }
+.sql-trail path.preview { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 4 3; }
+.sql-trail path.nosql { stroke: var(--err); stroke-width: 2; stroke-dasharray: 4 3; }
+.sql-trail circle { fill: var(--surface); stroke: var(--border-strong); stroke-width: 1.5; }
+.sql-trail circle.on { fill: var(--accent); stroke: var(--accent); }
+.sql-trail circle.nosql { fill: var(--err); stroke: var(--err); }
+.sql-trail circle.out-mark { stroke-width: 2.5; }
+
+.sql-row { position: absolute; left: 0; right: 0; display: block; width: 100%; padding: 0 10px 0 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.sql-card {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; height: 100%; padding: 0 8px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm);
+  transition: border-color .12s, box-shadow .12s, opacity .12s;
+}
+.sql-row:hover .sql-card, .sql-row.hot .sql-card { border-color: var(--text-3); box-shadow: var(--shadow-md); }
+.sql-row.current .sql-card { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak); }
+.sql-row:focus-visible { outline: none; }
+.sql-row:focus-visible .sql-card { outline: 2px solid var(--focus); outline-offset: 1px; }
+.sql-row.off .sql-card { box-shadow: none; opacity: .5; }
+.sql-row.off:hover .sql-card { opacity: .85; }
+.sql-row.preview .sql-card { border-color: var(--accent); border-style: dashed; opacity: 1; }
+.sql-row.problem .sql-card { border-color: var(--warn); background: var(--warn-weak); }
+.sql-row.muted .sql-card { border-style: dashed; }
+/* Sem tradução: sempre em vermelho, mesmo fora do caminho (RF-2033). */
+.sql-row.nosql .sql-card { border-color: var(--err); background: var(--err-weak); opacity: 1; }
+.sql-row.nosql.off .sql-card { opacity: .82; }
+.sql-row.nosql .sql-label, .sql-row.nosql .sql-cap, .sql-map-node.nosql .sql-label, .sql-map-node.nosql .sql-cap { color: var(--err); }
+
+.sql-icon {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: var(--radius);
+  color: var(--cat, var(--cat-prep)); background: color-mix(in srgb, var(--cat, var(--cat-prep)) 13%, transparent);
+}
+[data-category="inout"] .sql-icon, .sql-map-node[data-category="inout"] .sql-icon { --cat: var(--cat-inout); }
+[data-category="prep"] .sql-icon { --cat: var(--cat-prep); }
+[data-category="transform"] .sql-icon { --cat: var(--cat-transform); }
+[data-category="bi"] .sql-icon { --cat: var(--cat-bi); }
+[data-category="ml"] .sql-icon { --cat: var(--cat-ml); }
+.sql-row.nosql .sql-icon, .sql-map-node.nosql .sql-icon { --cat: var(--err); }
+.sql-card-text { min-width: 0; }
+.sql-label { display: block; font-weight: 600; }
+.sql-cap { display: block; font-size: 11.5px; line-height: 1.3; color: var(--text-2); }
+.sql-tags { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.sql-rows { font: 500 11px var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.sql-tag { padding: 0 5px; border-radius: 999px; font: 600 10px var(--font); white-space: nowrap; background: var(--surface-3); color: var(--text-2); }
+.sql-tag.shared { background: var(--accent-weak); color: var(--accent); }
+.sql-tag.nosql { background: var(--err); color: #fff; }
+.sql-tag.problem { background: var(--warn); color: #fff; }
+.sql-tag.differs { background: var(--err-weak); color: var(--err); }
+.sql-tag.note { background: var(--warn-weak); color: var(--warn); }
+.sql-row.differs .sql-card { border-color: var(--err); }
+
+/* ------------------------------------------------------------------ código */
+.sql-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--surface); }
+.sql-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.sql-state { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 12.5px; background: var(--surface-3); color: var(--text-2); }
+.sql-state.ready, .sql-state.ready_notes { background: var(--ok-weak); color: var(--ok); }
+.sql-state.ready .sql-dot, .sql-state.ready_notes .sql-dot { background: currentColor; }
+.sql-state.partial { background: var(--warn-weak); color: var(--warn); }
+.sql-state.mismatch { background: var(--err-weak); color: var(--err); }
+.sql-sub { min-width: 0; font-size: 12.5px; color: var(--text-2); }
+.sql-dialect { padding: 1px 7px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font: 500 11px var(--mono); color: var(--text-2); cursor: help; }
+.sql-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.sql-notes { display: flex; flex-direction: column; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); font-size: 12.5px; }
+.sql-notes[hidden] { display: none; }
+.sql-note { display: flex; gap: 6px; align-items: flex-start; margin: 0; }
+.sql-note.bad { color: var(--err); }
+.sql-note svg { flex: none; margin-top: 2px; }
+.sql-notes-more summary { cursor: pointer; color: var(--text-2); }
+.sql-notes-more ul { margin: 4px 0 0; padding-left: 18px; color: var(--text-2); }
+.sql-diff { overflow-x: auto; max-height: 160px; }
+.sql-diff table { border-collapse: collapse; font: 11.5px var(--mono); }
+.sql-diff th, .sql-diff td { padding: 2px 8px; border: 1px solid var(--border); text-align: left; white-space: nowrap; }
+.sql-diff th { background: var(--surface-3); font-weight: 600; }
+.sql-search { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-bottom: 1px solid var(--border); }
+.sql-search[hidden] { display: none; }
+.sql-search input { max-width: 260px; }
+.sql-code { flex: 1; min-height: 0; overflow: auto; padding: 10px 0 28px; font: 12.5px/1.65 var(--mono); font-variant-ligatures: none; }
+.sql-code:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--focus); }
+.sql-part { width: max-content; min-width: 100%; padding: 3px 16px; border-left: 3px solid transparent; white-space: pre; }
+.sql-part.linked.hot { background: var(--accent-weak); border-left-color: var(--accent); }
+.sql-part.flash { animation: sql-flash 1s ease-out; }
+.sql-part.stop, .sql-part.stop .sql-t-c { color: var(--err); font-weight: 500; }
+@keyframes sql-flash { from { background: var(--accent-weak); border-left-color: var(--accent); } to { background: transparent; border-left-color: transparent; } }
+.sql-t-k { color: var(--fx-kw); font-weight: 500; }
+.sql-t-f { color: var(--fx-fn); }
+.sql-t-s { color: var(--fx-str); }
+.sql-t-n { color: var(--fx-num); }
+.sql-t-i { color: var(--fx-col); }
+.sql-t-c { color: var(--text-3); font-style: italic; }
+.sql-mark { background: color-mix(in srgb, var(--warn) 30%, transparent); color: inherit; border-radius: 2px; }
+.sql-mark.now { background: var(--warn); color: #fff; }
+
+/* ------------------------------------------------------------------ fluxo completo */
+.sql-map {
+  position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; background: var(--canvas);
+  background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px); background-size: 20px 20px;
+}
+.sql-map[hidden] { display: none; }
+.sql-map-head { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.sql-map-head .btn { margin-left: auto; }
+.sql-map-body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.sql-map-stage { position: absolute; transform-origin: 0 0; }
+.sql-map-stage > svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.sql-map-stage path { fill: none; stroke: var(--border-strong); stroke-width: 1.5; }
+.sql-map-stage path.lit { stroke: var(--accent); stroke-width: 2.5; }
+.sql-map-stage path.nosql { stroke: var(--err); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.sql-map-box { position: absolute; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--mc) 45%, transparent); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--mc) 6%, transparent); font-size: 11.5px; color: var(--text-2); }
+.sql-map-node {
+  position: absolute; display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 8px; padding: 0 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); color: inherit; text-align: left; cursor: pointer;
+}
+.sql-map-node.dim { opacity: .34; box-shadow: none; }
+.sql-map-node.lit { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-weak); }
+.sql-map-node.nosql { border-color: var(--err); background: var(--err-weak); opacity: 1; }
+.sql-map-node.nosql.dim { opacity: .82; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sql-part.flash { animation: none; }
+  .sql-card { transition: none; }
+}
+@media (max-width: 860px) {
+  .sql-view { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 45%) minmax(0, 1fr); }
+  .sql-left { border-right: 0; border-bottom: 1px solid var(--border); }
+}
+
+/* O acento do tema escuro é claro: o texto do botão principal precisa ser escuro para ter contraste. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .sql-actions .btn-primary { color: var(--bg); }
+}
+:root[data-theme="dark"] .sql-actions .btn-primary { color: var(--bg); }

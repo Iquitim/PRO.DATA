@@ -38,6 +38,46 @@ def topological_order(workflow: Workflow) -> list[str]:
     return order
 
 
+def reading_order(workflow: Workflow) -> list[str]:
+    """Ordem de dependência que segue cada cadeia até onde der: é a que se lê bem de cima a baixo (spec 020)."""
+    ids = [n.id for n in workflow.nodes]
+    indegree = dict.fromkeys(ids, 0)
+    children: dict[str, list[str]] = {i: [] for i in ids}
+    for e in workflow.edges:
+        children[e.source].append(e.target)
+        indegree[e.target] += 1
+    position = {i: index for index, i in enumerate(ids)}
+    ready = [i for i in ids if indegree[i] == 0]
+    order: list[str] = []
+    last: str | None = None
+    while ready:
+        following = [c for c in children[last] if c in ready] if last else []
+        current = following[0] if following else _needed_next(ready, order, children, indegree, position)
+        ready.remove(current)
+        order.append(current)
+        last = current
+        for child in children[current]:
+            indegree[child] -= 1
+            if indegree[child] == 0:
+                ready.append(child)
+    if len(order) != len(ids):
+        cyclic = sorted(i for i in ids if indegree[i] > 0)
+        raise GraphError(f"O fluxo contém um ciclo envolvendo: {', '.join(cyclic)}")
+    return order
+
+
+def _needed_next(
+    ready: list[str],
+    placed: list[str],
+    children: dict[str, list[str]],
+    indegree: dict[str, int],
+    position: dict[str, int],
+) -> str:
+    """Sem continuação direta: prefere o que destrava uma caixa já começada; depois, a ordem do arquivo."""
+    started = {c for i in placed for c in children[i] if indegree[c] > 0}
+    return min(ready, key=lambda i: (not (set(children[i]) & started), position[i]))
+
+
 def ancestors(workflow: Workflow, node_id: str) -> set[str]:
     parents: dict[str, list[str]] = {}
     for e in workflow.edges:

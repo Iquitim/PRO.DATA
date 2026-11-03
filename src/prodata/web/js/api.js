@@ -93,6 +93,20 @@ export const api = {
   saveWorkflow: (wf) => request('PUT', `/api/workflows/${enc(wf.id)}`, wf),
   deleteWorkflow: (id) => request('DELETE', `/api/workflows/${enc(id)}`),
 
+  sqlGenerate: (workflow, selection = [], temporaryNode = null) =>
+    request('POST', '/api/sql/generate', { workflow, selection, temporary_node: temporaryNode }),
+  sqlVerify: (workflow) => request('POST', '/api/sql/verify', { workflow }),
+  sqlVerifyStatus: (workflowId) => request('GET', `/api/sql/verify/${encodeURIComponent(workflowId)}`),
+  sqlDownload: async (workflow, selection, temporaryNode, mode) => {
+    const res = await fetch('/api/sql/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workflow, selection, temporary_node: temporaryNode, mode }),
+    });
+    if (!res.ok) throw new ApiError(`Erro ${res.status}`, res.status);
+    const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || 'fluxo.sql';
+    return { blob: await res.blob(), name };
+  },
   progress: (workflowId) => request('GET', `/api/execute/${encodeURIComponent(workflowId)}/progress`),
   execute: (workflow, targetNodeId = null, holdExports = false) =>
     request('POST', '/api/execute', { workflow, target_node_id: targetNodeId, hold_exports: holdExports }),

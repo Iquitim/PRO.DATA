@@ -19,7 +19,11 @@ from prodata.samples.workflows import demo_workflow
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(
-        storage_dir=tmp_path / "storage", max_upload_mb=1, log_level="WARNING", secrets_backend="memory"
+        storage_dir=tmp_path / "storage",
+        max_upload_mb=1,
+        log_level="WARNING",
+        secrets_backend="memory",
+        allowed_hosts=["testserver"],
     )
 
 

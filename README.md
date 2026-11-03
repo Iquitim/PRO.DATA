@@ -64,6 +64,11 @@ localmente.
   entre colunas da mesma linha com `Average`, `Sum`, `Median`, `Mode`, `StdDev`, `Max` e `Min`.
 - **Esquemas visuais** no Configurar do Cross Tab, do Transpose, do Join e do
   Summarize: o antes e o depois com uma amostra dos seus dados.
+- **Aba SQL**: o fluxo escrito em SQL do DuckDB, com um código por saída (só o
+  que existe entre as entradas e ela) ou um código unificado de várias saídas,
+  sem repetir etapas. Cada etapa é rodada e comparada com o resultado do fluxo:
+  o estado da saída diz se o código deu o mesmo resultado, e caixas sem tradução
+  ficam em vermelho. Copie ou baixe `.sql` ou `.zip` para o time de dados.
 - **Join como no Alteryx**: escolha se o J mantém as chaves dos dois lados, só
   da esquerda ou só da direita, e selecione, renomeie, converta e reordene as
   colunas do J sem precisar de um Select depois.
@@ -161,6 +166,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [017](specs/017-fontes-vivas-exportacao/spec.md) | Arquivos vinculados (fonte sempre atualizada), cache que percebe a fonte e renova por prazo, exportação que pergunta antes de sobrescrever, Venn seguro com colunas grandes |
 | [018](specs/018-versao-04/spec.md) | Tela de abertura, `.xlsb`, Select que reordena colunas e converte tipos com tolerância e aviso, Formula em coluna existente corrigida, média/soma entre colunas, Join que mantém as duas chaves, aviso de espaços em branco, caixa em execução brilhando |
 | [019](specs/019-join-select-summarize/spec.md) | Join com lado das chaves e Select embutido, esquema visual do Summarize, moda e desvio padrão (Summarize e Formula), compatibilidade com fluxos da 0.3.8 |
+| [020](specs/020-aba-sql/spec.md) | Aba SQL: código por saída e unificado, caminho por porta, trilha do fluxo, conferência com o motor por etapa e de ponta a ponta, entrega em `.sql` e `.zip` |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

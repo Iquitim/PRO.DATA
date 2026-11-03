@@ -127,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.4.1 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.5.0 · Windows</span><span>Outubro de 2026</span></div>
   </div>
 </section>
 
@@ -162,11 +162,12 @@
     <div><span>6</span>Explorando os resultados</div>
     <div><span>7</span>Indicadores e visuais</div>
     <div><span>8</span>Montando o dashboard</div>
-    <div><span>9</span>Organização e personalização</div>
-    <div><span>10</span>Segurança e privacidade</div>
-    <div><span>11</span>Instalação e requisitos</div>
-    <div><span>12</span>Escopo e limitações</div>
-    <div><span>13</span>Atalhos e perguntas frequentes</div>
+    <div><span>9</span>Do fluxo ao SQL</div>
+    <div><span>10</span>Organização e personalização</div>
+    <div><span>11</span>Segurança e privacidade</div>
+    <div><span>12</span>Instalação e requisitos</div>
+    <div><span>13</span>Escopo e limitações</div>
+    <div><span>14</span>Atalhos e perguntas frequentes</div>
   </div>
 </section>
 
@@ -466,7 +467,45 @@
 
 <!-- ================================================================ 9. ORGANIZAÇÃO -->
 <section class="chapter">
-  <div class="eyebrow">9 · Organização</div>
+  <div class="eyebrow">9 · Do fluxo ao SQL</div>
+  <h2>Levando a lógica para o banco</h2>
+  <p class="intro">O PRO.DATA é onde você constrói rápido e experimenta. A aba <strong>SQL</strong>, ao lado de Designer e Dashboard, mostra o que foi construído escrito em SQL e confere se o código dá o mesmo resultado, para que levar a lógica ao lake seja uma revisão, não uma reescrita.</p>
+  <figure>
+    <div class="frame"><img src="img/sql.png" alt="Aba SQL"></div>
+    <figcaption>À esquerda, as saídas e o caminho no fluxo; à direita, o código daquela saída.</figcaption>
+  </figure>
+  <h3>Uma saída, um código</h3>
+  <p>Cada saída do fluxo tem o próprio código, só com o que existe entre as entradas e ela: se a saída usa apenas o J de um Join, as saídas L e R nem aparecem. Clique numa saída para ver o caminho aceso na trilha. Marque outras saídas para juntar tudo num código só, em que as etapas comuns aparecem uma vez, com a marca "usada por 2".</p>
+  <div class="grid-2">
+    <div>
+      <h3>O estado da saída</h3>
+      <ul>
+        <li><strong>Conferido</strong>: etapa por etapa e de ponta a ponta, o SQL deu o mesmo resultado que o fluxo. Para rodar no Fabric, o código ainda precisa de adaptação.</li>
+        <li><strong>Conferido, com ressalvas</strong>: bateu, mas há pontos a revisar, como a ordem das linhas.</li>
+        <li><strong>Parcial</strong>: há uma caixa sem SQL no caminho. O código vai até ela.</li>
+        <li><strong>Não bate</strong>: o SQL deu outro resultado, e a tela diz quantas linhas diferem.</li>
+        <li><strong>Ainda não conferido</strong>: execute o fluxo para conferir.</li>
+      </ul>
+      <p>Caixas sem tradução, como as de Machine Learning, ficam em vermelho, com a etiqueta "sem SQL".</p>
+    </div>
+    <figure style="margin-top:0"><div class="frame"><img src="img/sql-parcial.png" alt="Saída parcial"></div>
+      <figcaption>A saída depende do modelo: o caminho para no Treino.</figcaption></figure>
+  </div>
+  <div class="grid-2">
+    <div>
+      <h3>Entregando para o time de dados</h3>
+      <p><strong>Copiar SQL</strong> copia o código que está na tela. <strong>Baixar</strong> gera um arquivo <code>.sql</code>, ou um <code>.zip</code> com um arquivo por saída, mais o unificado, pronto para mandar pelo Teams. Cada arquivo abre com um cabeçalho que diz o que ele produz, de que fontes precisa, o que foi conferido e o que ficou de fora.</p>
+      <p>O arquivo leva só a lógica. Dados, senhas e caminhos de pastas ficam de fora; a exceção é o <em>Text Input</em>, cujos valores digitados fazem parte do código, e o cabeçalho avisa.</p>
+      <p>O botão <strong>Fluxo completo</strong> mostra o seu desenho inteiro com o caminho aceso. No Designer, o botão direito numa caixa traz <strong>Ver SQL</strong>.</p>
+    </div>
+    <figure style="margin-top:0"><div class="frame"><img src="img/sql-fluxo.png" alt="Fluxo completo"></div>
+      <figcaption>Fluxo completo: o caminho da saída aceso, as caixas sem SQL em vermelho.</figcaption></figure>
+  </div>
+  <div class="callout tip"><strong>O dialeto desta versão</strong>O código é do DuckDB, o motor usado pelo próprio PRO.DATA, e roda sozinho nele. Spark SQL e T-SQL, os dialetos do Microsoft Fabric, ficam para uma próxima versão. Até lá, o time de dados usa o código como especificação exata do que a lógica faz.</div>
+</section>
+
+<section class="chapter">
+  <div class="eyebrow">10 · Organização</div>
   <h2>Organização e personalização</h2>
   <h3>Caixas de organização</h3>
   <p>Agrupe as etapas do fluxo em caixas com nome, descrição e cor (paleta <em>Organização</em>, botão <strong>Etapa</strong> ou tecla <kbd>G</kbd>). Arrastar o título move a caixa junto com tudo o que está dentro. Cada caixa tem um <strong>interruptor</strong>: desligada, as caixas de dentro deixam de executar — útil para pausar uma parte do processo sem apagar nada.</p>
@@ -507,7 +546,7 @@
 
 <!-- ================================================================ 9. SEGURANÇA -->
 <section class="chapter">
-  <div class="eyebrow">10 · Confiança</div>
+  <div class="eyebrow">11 · Confiança</div>
   <h2>Segurança e privacidade</h2>
   <div class="grid-2">
     <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador. Nenhum dado é enviado para a internet; o programa funciona offline.</p></div>
@@ -521,12 +560,12 @@
 
 <!-- ================================================================ 10. INSTALAÇÃO -->
 <section class="chapter">
-  <div class="eyebrow">11 · Primeiros passos</div>
+  <div class="eyebrow">12 · Primeiros passos</div>
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.4.1-setup.exe</code> (139 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.4.1-portable.zip</code> (221 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.0-setup.exe</code> (139 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.0-portable.zip</code> (221 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -547,7 +586,7 @@
 
 <!-- ================================================================ 11. ESCOPO E LIMITAÇÕES -->
 <section class="chapter">
-  <div class="eyebrow">12 · Transparência</div>
+  <div class="eyebrow">13 · Transparência</div>
   <h2>Escopo e limitações</h2>
   <p class="intro">O que esta versão faz, o que não faz e onde ela tem limites — para você decidir com clareza.</p>
   <div class="two-col">
@@ -563,6 +602,7 @@
         <li>Dashboard em canvas com 15 tipos de visual e imagem PNG</li>
         <li>Modelos de classificação e regressão</li>
         <li>Execução incremental e ponto de cache</li>
+        <li>Aba SQL: o fluxo em SQL do DuckDB, por saída, conferido com o resultado</li>
         <li>Aplicativo de desktop para Windows, offline</li>
       </ul>
     </div>
@@ -571,7 +611,9 @@
       <ul class="scope-out">
         <li>Uso em equipe com login e permissões (é um app individual)</li>
         <li>Agendamento automático de execuções</li>
-        <li>Gravar dados de volta no banco</li>
+        <li>Comandos que gravam ou alteram dados na caixa SQL: ela aceita só uma consulta SELECT</li>
+        <li>Gravar dados de volta no banco ou publicar no lake (o PRO.DATA gera o código; quem publica é o time de dados)</li>
+        <li>SQL nos dialetos do Microsoft Fabric (Spark SQL e T-SQL), previsto para uma próxima versão</li>
         <li>Outros bancos (MySQL, Oracle) e fontes na nuvem</li>
         <li>Versões para macOS e Linux</li>
         <li>Atualização automática do programa</li>
@@ -593,7 +635,7 @@
 
 <!-- ================================================================ 12. ATALHOS E FAQ -->
 <section class="chapter">
-  <div class="eyebrow">13 · Referência rápida</div>
+  <div class="eyebrow">14 · Referência rápida</div>
   <h2>Atalhos e perguntas frequentes</h2>
   <h3>Atalhos de teclado</h3>
   <table>

@@ -8,9 +8,20 @@ import duckdb
 import polars as pl
 from pydantic import BaseModel, Field
 
+from prodata.engine.sql.fragment import (
+    ROW_POSITION,
+    Fragment,
+    NoTranslationError,
+    SqlContext,
+    join_list,
+    numbered,
+    q,
+    single_select,
+    sql_for,
+)
 from prodata.forms import ui
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
-from prodata.nodes.prep import SelectField, apply_select
+from prodata.nodes.prep import ORDER_NOTE, SelectField, apply_select, select_items
 
 # ------------------------------------------------------------------ Join
 
@@ -270,13 +281,18 @@ class SqlConfig(ToolConfig):
     name="SQL (DuckDB)",
     category="transform",
     icon="terminal",
-    description="Consulta SQL analítica em memória sobre as entradas, usando DuckDB.",
+    description="Uma consulta SELECT em memória sobre as entradas, usando DuckDB.",
     config=SqlConfig,
     inputs=[Port("in", "1", "input_1"), Port("in2", "2", "input_2", required=False)],
     annotate=lambda c: " ".join(c.sql.split())[:40],
 )
 def sql_query(ctx: NodeContext, cfg: SqlConfig) -> NodeOutput:
     with duckdb.connect(":memory:") as con:
+        # Um fluxo recebido de outra pessoa executa ao abrir: esta caixa consulta, nunca grava.
+        if not single_select(con, cfg.sql.strip().rstrip(";")):
+            raise ValueError(
+                "A caixa SQL aceita só uma consulta SELECT, sem comandos que gravem ou alterem dados."
+            )
         con.register("input_1", ctx.input("in"))
         if "in2" in ctx.inputs:
             con.register("input_2", ctx.inputs["in2"])
@@ -284,3 +300,145 @@ def sql_query(ctx: NodeContext, cfg: SqlConfig) -> NodeOutput:
             return NodeOutput(tables={"out": con.sql(cfg.sql).pl()})
         except duckdb.Error as exc:
             raise ValueError(str(exc).split("\n\nLINE")[0]) from exc
+
+
+# ------------------------------------------------------------------ tradução para SQL (spec 020)
+
+
+@sql_for("transform.join")
+def join_sql(ctx: SqlContext, cfg: JoinConfig) -> dict[str, Fragment]:
+    left, right = ctx.input("L"), ctx.input("R")
+    keys = [k for k in cfg.keys if k.left and k.right]
+    if not keys:
+        raise ValueError("Defina ao menos um par de chaves.")
+    if missing := [k.left for k in keys if k.left not in left.columns]:
+        raise ValueError(f"Chave(s) inexistente(s) em [L]: {', '.join(missing)}")
+    if missing := [k.right for k in keys if k.right not in right.columns]:
+        raise ValueError(f"Chave(s) inexistente(s) em [R]: {', '.join(missing)}")
+
+    condition = " AND ".join(f"l.{q(k.left)} = r.{q(k.right)}" for k in keys)
+    renamed = {c: f"{cfg.right_prefix}{c}" if c in left.columns else c for c in right.columns}
+    left_keys = {k.left for k in keys}
+    right_keys = {k.right for k in keys}
+    # (nome como sai do Join, expressão, família), na mesma ordem do motor; o lado das chaves vem depois.
+    columns = [
+        (c, f"l.{q(c)}", left.kinds[c])
+        for c in left.columns
+        if not (cfg.keys_mode == "right" and c in left_keys)
+    ]
+    taken = {c[0] for c in columns}
+    for c in right.columns:
+        name = renamed[c]
+        if c in right_keys:
+            if cfg.keys_mode == "left":
+                continue
+            if cfg.keys_mode == "right" and c not in taken:
+                name = c  # sobrou um lado só: a chave volta ao nome original
+        columns.append((name, f"r.{q(c)}", right.kinds[c]))
+    items, what = select_items(columns, cfg.fields, cfg.order)
+    if not items:
+        raise ValueError("Todas as colunas do J foram descartadas: sobrou uma tabela sem colunas.")
+    label = ", ".join(k.left if k.left == k.right else f"{k.left} = {k.right}" for k in keys)
+    sides = f"FROM {q(left.block)} AS l\nINNER JOIN {q(right.block)} AS r\n  ON {condition}"
+    only = "SELECT l.*\nFROM {a} AS l\nWHERE NOT EXISTS (\n  SELECT 1 FROM {b} AS r WHERE {c}\n)"
+    only_right = "SELECT r.*\nFROM {b} AS r\nWHERE NOT EXISTS (\n  SELECT 1 FROM {a} AS l WHERE {c}\n)"
+    names = {"a": q(left.block), "b": q(right.block), "c": condition}
+    explain = f"Junta por {label} e mantém as linhas que casaram" + (f"; {', '.join(what)}" if what else "")
+    return {
+        "L": Fragment(only.format(**names), f"Linhas da esquerda sem par em {label}"),
+        "J": Fragment(f"SELECT\n  {join_list(items)}\n{sides}", explain),
+        "R": Fragment(only_right.format(**names), f"Linhas da direita sem par em {label}"),
+    }
+
+
+def _agg_sql(item: Aggregation) -> str:
+    col = q(item.column) if item.column else ""
+    positioned = f"ORDER BY {ROW_POSITION}"
+    return {
+        # Soma de um grupo só com vazios dá 0 no motor, e NULL no SQL puro.
+        "sum": f"COALESCE(sum({col}), 0)",
+        "mean": f"avg({col})",
+        "median": f"median({col})",
+        "mode": f"pd_moda(histogram({col}))",
+        "std": f"stddev_samp({col})",
+        "min": f"min({col})",
+        "max": f"max({col})",
+        "count": f"count({col})",
+        "count_all": "count(*)",
+        # O motor conta o vazio como um valor distinto; COUNT(DISTINCT) não.
+        "n_unique": f"count(DISTINCT {col}) + CASE WHEN count(*) > count({col}) THEN 1 ELSE 0 END",
+        "first": f"first({col} {positioned})",
+        "last": f"last({col} {positioned})",
+        "concat": f"COALESCE(array_to_string(pd_distintos(list(CAST({col} AS VARCHAR) {positioned}) FILTER (WHERE {col} IS NOT NULL)), ', '), '')",
+    }[item.agg]
+
+
+_AGG_WORDS = {"sum": "Soma", "mean": "Média", "median": "Mediana", "mode": "Moda", "std": "Desvio padrão", "min": "Mínimo", "max": "Máximo",
+              "count": "Conta", "count_all": "Conta as linhas", "n_unique": "Distintos", "first": "Primeiro", "last": "Último", "concat": "Junta"}  # fmt: skip
+
+
+@sql_for("transform.summarize")
+def summarize_sql(ctx: SqlContext, cfg: SummarizeConfig) -> dict[str, Fragment]:
+    source = ctx.input()
+    if missing := [c for c in cfg.group_by if c not in source.columns]:
+        raise ValueError(f"Coluna(s) de agrupamento inexistente(s): {', '.join(missing)}")
+    items = [a for a in cfg.aggregations if a.column or a.agg == "count_all"]
+    if missing := [a.column for a in items if a.agg != "count_all" and a.column not in source.columns]:
+        raise ValueError(f"Coluna(s) de agregação inexistente(s): {', '.join(missing)}")
+    aggs = [f"{_agg_sql(a)} AS {q(a.alias.strip() or f'{a.agg}_{a.column}')}" for a in items] or [
+        "count(*) AS linhas"
+    ]
+    ordered = any(a.agg in ("first", "last", "concat") for a in items)
+    origin = numbered(source.block) if ordered else q(source.block)
+    groups = ", ".join(q(c) for c in cfg.group_by)
+    sql = f"SELECT\n  {join_list([*[q(c) for c in cfg.group_by], *aggs])}\nFROM {origin}"
+    if groups:
+        sql += f"\nGROUP BY {groups}"
+    words = [f"{_AGG_WORDS[a.agg]} {a.column}".strip() for a in items] or ["Conta as linhas"]
+    explain = ", ".join(words) + (
+        f", por {', '.join(cfg.group_by)}" if cfg.group_by else ", na tabela inteira"
+    )
+    return {"out": Fragment(sql, explain, [ORDER_NOTE] if ordered else [])}
+
+
+@sql_for("transform.union")
+def union_sql(ctx: SqlContext, cfg: UnionConfig) -> dict[str, Fragment]:
+    frames = [ctx.inputs[p] for p in ("in1", "in2") if p in ctx.inputs]
+    if not frames:
+        raise ValueError("Conecte ao menos uma entrada.")
+    if cfg.mode == "by_position" and any(len(f.columns) != len(frames[0].columns) for f in frames):
+        raise ValueError("Para alinhar pela posição as entradas precisam ter o mesmo número de colunas.")
+    extra = f", {{i}} AS {q(cfg.source_column)}" if cfg.source_column else ""
+    selects = [f"SELECT *{extra.format(i=i + 1)} FROM {q(f.block)}" for i, f in enumerate(frames)]
+    glue = "\nUNION ALL\n" if cfg.mode == "by_position" else "\nUNION ALL BY NAME\n"
+    how = "pela posição das colunas" if cfg.mode == "by_position" else "pelo nome das colunas"
+    return {"out": Fragment(glue.join(selects), f"Empilha {len(frames)} tabelas {how}")}
+
+
+@sql_for("transform.sql_query")
+def sql_query_sql(ctx: SqlContext, cfg: SqlConfig) -> dict[str, Fragment]:
+    """A consulta do usuário entra como está, desde que seja um único SELECT (RF-2032)."""
+    source = cfg.sql.strip().rstrip(";").strip()
+    if not source:
+        raise ValueError("Escreva a consulta.")
+    with duckdb.connect(":memory:") as con:
+        try:
+            statements = con.extract_statements(source)
+        except duckdb.Error as exc:
+            raise ValueError(str(exc).split("\n")[0]) from exc
+    if len(statements) != 1 or statements[0].type != duckdb.StatementType.SELECT:
+        raise NoTranslationError("Só uma consulta SELECT pode entrar no código gerado.")
+    names = {"in": "input_1", "in2": "input_2"}
+    aliases = [
+        f"{alias} AS (SELECT * FROM {q(ctx.inputs[port].block)})"
+        for port, alias in names.items()
+        if port in ctx.inputs
+    ]
+    head = "WITH " + ",\n".join(aliases) + "\n" if aliases else ""
+    return {
+        "out": Fragment(
+            f"{head}SELECT * FROM (\n{source}\n)",
+            "Consulta SQL escrita no fluxo",
+            ["A consulta foi escrita à mão: revise se ela depende de algo do DuckDB."],
+        )
+    }

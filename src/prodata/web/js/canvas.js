@@ -824,6 +824,7 @@ function onContextMenu(e) {
       { label: 'Configurar', icon: 'settings', onSelect: () => select(id) },
       { label: 'Executar até aqui', icon: 'target', shortcut: 'Ctrl+Shift+Enter', onSelect: () => handlers.runTo?.(id) },
       { label: 'Ver resultados', icon: 'table', onSelect: () => inspect(id) },
+      { label: 'Ver SQL', icon: 'terminal', onSelect: () => handlers.viewSql?.(id) },
       ...cacheActions(n),
       'separator',
       { label: 'Copiar', icon: 'copy', shortcut: 'Ctrl+C', onSelect: () => copySelection({ nodeWidth: NODE_W }) },

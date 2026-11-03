@@ -310,7 +310,7 @@ _DUCK_TYPES = {
     "Date": "DATE",
     "Datetime": "TIMESTAMP",
 }
-_CASTS = {
+CASTS = {
     "Int64": "TRY_CAST(({}) AS BIGINT)",
     "Float64": "TRY_CAST(({}) AS DOUBLE)",
     "String": "CAST(({}) AS VARCHAR)",
@@ -430,7 +430,17 @@ def connect() -> duckdb.DuckDBPyConnection:
         return _base.cursor()
 
 
-def _check_columns(expression: str, columns: list[str]) -> None:
+def _one_command(con: duckdb.DuckDBPyConnection, sql: str) -> None:
+    """Uma fórmula é uma expressão: "1; COPY ..." executaria o segundo comando ao abrir o fluxo."""
+    try:
+        many = len(con.extract_statements(f"SELECT {sql} AS v FROM t")) > 1
+    except duckdb.Error:
+        return  # erro de sintaxe: a execução dá a mensagem certa
+    if many:
+        raise FormulaError("Uma fórmula não pode ter mais de um comando (encontrei um ';').")
+
+
+def check_columns(expression: str, columns: list[str]) -> None:
     missing = [c for c in referenced_columns(expression) if c not in columns]
     if missing:
         raise FormulaError("Coluna(s) inexistente(s): " + ", ".join(f"[{c}]" for c in missing))
@@ -451,9 +461,10 @@ def evaluate_columns(df: pl.DataFrame, formulas: list[dict[str, Any]]) -> pl.Dat
                 continue
             if replace and column not in current.columns:
                 raise FormulaError(f"A coluna [{column}] não existe para ser alterada.")
-            _check_columns(expression, current.columns)
+            check_columns(expression, current.columns)
             sql = transpile(expression)
-            cast = _CASTS.get(rule.get("type") or "Auto")
+            _one_command(con, sql)
+            cast = CASTS.get(rule.get("type") or "Auto")
             if cast:
                 sql = cast.format(sql)
             try:
@@ -469,9 +480,10 @@ def evaluate_columns(df: pl.DataFrame, formulas: list[dict[str, Any]]) -> pl.Dat
 
 def evaluate_mask(df: pl.DataFrame, expression: str) -> pl.Series:
     """Avalia uma condição e devolve uma máscara booleana sem nulos."""
-    _check_columns(expression, df.columns)
+    check_columns(expression, df.columns)
     sql = transpile(expression)
     with connect() as con:
+        _one_command(con, sql)
         con.register("t", df)
         try:
             return con.sql(f"SELECT COALESCE(CAST(({sql}) AS BOOLEAN), FALSE) AS m FROM t").pl().to_series()
@@ -482,13 +494,14 @@ def evaluate_mask(df: pl.DataFrame, expression: str) -> pl.Series:
 def validate(expression: str, columns: list[dict[str, str]]) -> dict[str, Any]:
     """Valida a expressão contra um esquema, sem executar sobre dados."""
     try:
-        _check_columns(expression, [c["name"] for c in columns])
+        check_columns(expression, [c["name"] for c in columns])
         sql = transpile(expression)
         defs = [
             f'NULL::{_DUCK_TYPES.get(c.get("type", "String"), "VARCHAR")} AS "{c["name"].replace('"', '""')}"'
             for c in columns
         ] or ["1 AS _dummy"]
         with connect() as con:
+            _one_command(con, sql)
             con.execute(f"WITH t AS (SELECT {', '.join(defs)}) SELECT {sql} FROM t")
         return {"valid": True, "error": None, "sql": sql}
     except (FormulaError, duckdb.Error) as exc:

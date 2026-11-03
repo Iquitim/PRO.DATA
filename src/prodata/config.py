@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     reload: bool = False
     log_level: str = "INFO"
     cors_origins: list[str] = ["http://127.0.0.1:8765", "http://localhost:8765"]
+    # Nomes de host aceitos além de 127.0.0.1, localhost e do próprio PRODATA_HOST (ver main.py).
+    allowed_hosts: list[str] = []
     max_upload_mb: int = 200
     seed_samples: bool = True
     secrets_backend: Literal["keyring", "memory"] = "keyring"

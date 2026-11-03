@@ -158,6 +158,22 @@ class DesktopApi:
         log.info("Imagem do dashboard salva em %s", path)
         return str(path)
 
+    def save_generated(self, suggested: str, data: str) -> str | None:
+        """Código da aba SQL (spec 020): "Salvar como" do Windows, só .sql ou .zip."""
+        import webview
+
+        name = generated_name(suggested)
+        chosen = self._dialog(
+            webview.FileDialog.SAVE,
+            save_filename=name,
+            file_types=(_ZIP_FILTER if name.endswith(".zip") else _SQL_FILTER,),
+        )
+        if not chosen:
+            return None
+        path = write_generated(chosen, name, data)
+        log.info("Código SQL salvo em %s", path)
+        return str(path)
+
     def set_dirty(self, dirty: bool) -> None:
         """A página avisa se há abas com alterações não salvas (usado ao fechar a janela)."""
         self._dirty = bool(dirty)
@@ -192,6 +208,9 @@ class DesktopApi:
 _WORKFLOW_FILTER = "Fluxos PRODATA (*.prodata.json)"
 _PNG_FILTER = "Imagem PNG (*.png)"
 _DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.xlsb;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
+_SQL_FILTER = "Código SQL (*.sql)"
+_ZIP_FILTER = "Arquivo compactado (*.zip)"
+_GENERATED_MAX_BYTES = 64 * 1024 * 1024
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_MAX_BYTES = 64 * 1024 * 1024
 
@@ -234,6 +253,31 @@ def splash_text(message: str) -> None:
 
 def close_splash() -> None:
     _splash("close")
+
+
+def generated_name(name: str) -> str:
+    """Nome saneado, sempre terminando em .sql ou .zip (constituição IV)."""
+    stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", Path(name.replace("\\", "/")).name)
+    stem = re.sub(r"\s+", " ", stem).strip(" .")
+    is_zip = stem.lower().endswith(".zip")
+    stem = re.sub(r"\.(sql|zip)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
+    return f"{stem or 'fluxo'}.{'zip' if is_zip else 'sql'}"
+
+
+def write_generated(raw_path: str, suggested: str, data: str) -> Path:
+    """Grava o arquivo no destino escolhido: caminho absoluto, pasta existente, extensão fixa."""
+    path = Path(raw_path)
+    if not path.is_absolute():
+        raise ValueError("Escolha a pasta e o nome do arquivo.")
+    extension = Path(generated_name(suggested)).suffix
+    path = path.with_name(Path(generated_name(path.name)).stem + extension)
+    if not path.parent.is_dir():
+        raise ValueError(f"A pasta não existe: {path.parent}")
+    raw = base64.b64decode(data.split(",", 1)[-1], validate=True)
+    if len(raw) > _GENERATED_MAX_BYTES:
+        raise ValueError("O arquivo gerado é grande demais.")
+    path.write_bytes(raw)
+    return path
 
 
 def main() -> None:

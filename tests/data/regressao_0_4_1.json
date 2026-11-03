@@ -1,0 +1,2260 @@
+{
+ "flows": {
+  "demo_0_3_8": {
+   "n_atingimento": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "total_mrr",
+       "clientes",
+       "r_uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente",
+       "atingimento_pct"
+      ],
+      "rows": 10,
+      "sha": "2cdb4a8c108ed450",
+      "types": [
+       "String",
+       "Float64",
+       "UInt32",
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.formula"
+   },
+   "n_chart_seg": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier",
+       "v_id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos"
+      ],
+      "rows": 368,
+      "sha": "1090172afa1a8efc",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.chart"
+   },
+   "n_chart_uf": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "total_mrr",
+       "clientes",
+       "r_uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente",
+       "atingimento_pct"
+      ],
+      "rows": 10,
+      "sha": "2cdb4a8c108ed450",
+      "types": [
+       "String",
+       "Float64",
+       "UInt32",
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.chart"
+   },
+   "n_cleanse": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente"
+      ],
+      "rows": 500,
+      "sha": "27ed322182cb5809",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.cleanse"
+   },
+   "n_clientes": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente"
+      ],
+      "rows": 500,
+      "sha": "306233706fe34eee",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.input_data"
+   },
+   "n_filter": {
+    "error": null,
+    "ports": {
+     "F": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier"
+      ],
+      "rows": 92,
+      "sha": "a613346df91e87e0",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String"
+      ]
+     },
+     "T": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier"
+      ],
+      "rows": 408,
+      "sha": "eb527ddda2c4d52e",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.filter"
+   },
+   "n_formula": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier"
+      ],
+      "rows": 500,
+      "sha": "54aefd4af3b6d662",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.formula"
+   },
+   "n_join": {
+    "error": null,
+    "ports": {
+     "J": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier",
+       "v_id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos"
+      ],
+      "rows": 368,
+      "sha": "1090172afa1a8efc",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32"
+      ]
+     },
+     "L": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier"
+      ],
+      "rows": 40,
+      "sha": "3b2ecc3253b1d673",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String"
+      ]
+     },
+     "R": {
+      "columns": [
+       "id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos"
+      ],
+      "rows": 136,
+      "sha": "388fb8ffdb710816",
+      "types": [
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.join"
+   },
+   "n_join_metas": {
+    "error": null,
+    "ports": {
+     "J": {
+      "columns": [
+       "uf",
+       "total_mrr",
+       "clientes",
+       "r_uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente"
+      ],
+      "rows": 10,
+      "sha": "7651032c74586125",
+      "types": [
+       "String",
+       "Float64",
+       "UInt32",
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String"
+      ]
+     },
+     "L": {
+      "columns": [
+       "uf",
+       "total_mrr",
+       "clientes"
+      ],
+      "rows": 0,
+      "sha": "097794444b736d0b",
+      "types": [
+       "String",
+       "Float64",
+       "UInt32"
+      ]
+     },
+     "R": {
+      "columns": [
+       "uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente"
+      ],
+      "rows": 0,
+      "sha": "da4a7f5941cc0177",
+      "types": [
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.join"
+   },
+   "n_kpi": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier",
+       "v_id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos"
+      ],
+      "rows": 368,
+      "sha": "1090172afa1a8efc",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.kpi_card"
+   },
+   "n_kpi_mes": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_transacao",
+       "id_cliente",
+       "produto",
+       "canal_venda",
+       "competencia",
+       "quantidade_licencas",
+       "valor_bruto",
+       "desconto_aplicado"
+      ],
+      "rows": 1800,
+      "sha": "3a6632eef9d72203",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Int64",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.kpi_card"
+   },
+   "n_metas": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente"
+      ],
+      "rows": 10,
+      "sha": "6b1f1ddf0830f03c",
+      "types": [
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.input_data"
+   },
+   "n_output": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier",
+       "v_id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos",
+       "risco_inadimplencia",
+       "confianca_pct"
+      ],
+      "rows": 368,
+      "sha": "2837ccdddf4729c9",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.output_data"
+   },
+   "n_pareto": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "receita_anual",
+       "tier",
+       "v_id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos"
+      ],
+      "rows": 368,
+      "sha": "1090172afa1a8efc",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.chart"
+   },
+   "n_predictor": {
+    "error": null,
+    "ports": {},
+    "status": "executed",
+    "type": "ml.predictor"
+   },
+   "n_stacked": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_transacao",
+       "id_cliente",
+       "produto",
+       "canal_venda",
+       "competencia",
+       "quantidade_licencas",
+       "valor_bruto",
+       "desconto_aplicado"
+      ],
+      "rows": 1800,
+      "sha": "3a6632eef9d72203",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Int64",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.chart"
+   },
+   "n_sum_uf": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "total_mrr",
+       "clientes"
+      ],
+      "rows": 10,
+      "sha": "65c618f745b5848a",
+      "types": [
+       "String",
+       "Float64",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.summarize"
+   },
+   "n_sum_vendas": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "total_compras",
+       "total_licencas",
+       "qtd_pedidos"
+      ],
+      "rows": 504,
+      "sha": "2cf005980e5041a1",
+      "types": [
+       "String",
+       "Float64",
+       "Int64",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.summarize"
+   },
+   "n_trainer": {
+    "error": null,
+    "ports": {},
+    "status": "executed",
+    "type": "ml.automl_trainer"
+   },
+   "n_vendas": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_transacao",
+       "id_cliente",
+       "produto",
+       "canal_venda",
+       "competencia",
+       "quantidade_licencas",
+       "valor_bruto",
+       "desconto_aplicado"
+      ],
+      "rows": 1800,
+      "sha": "3a6632eef9d72203",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Int64",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.input_data"
+   },
+   "n_venn": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_transacao",
+       "id_cliente",
+       "produto",
+       "canal_venda",
+       "competencia",
+       "quantidade_licencas",
+       "valor_bruto",
+       "desconto_aplicado"
+      ],
+      "rows": 1800,
+      "sha": "3a6632eef9d72203",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Int64",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "bi.venn"
+   }
+  },
+  "regressao": {
+   "acum": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "acumulado_mrr_mensal"
+      ],
+      "rows": 206,
+      "sha": "a702fa4e1d882699",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.running_total"
+   },
+   "append": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "taxa",
+       "faixa",
+       "ativo"
+      ],
+      "rows": 50,
+      "sha": "24c4a697e3e8b900",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "Float64",
+       "String",
+       "Boolean"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.append_fields"
+   },
+   "browse": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "n"
+      ],
+      "rows": 3,
+      "sha": "24e90a4f3d272828",
+      "types": [
+       "String",
+       "Int64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.browse"
+   },
+   "cleanse": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente"
+      ],
+      "rows": 500,
+      "sha": "0eff2a726c3b8502",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.cleanse"
+   },
+   "clientes": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente"
+      ],
+      "rows": 500,
+      "sha": "306233706fe34eee",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.input_data"
+   },
+   "cross": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "MID-MARKET",
+       "SMB",
+       "ENTERPRISE",
+       "CORPORATE",
+       "STARTUP"
+      ],
+      "rows": 3,
+      "sha": "c4d4df4c90fe2cb0",
+      "types": [
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.crosstab"
+   },
+   "filtro_exp": {
+    "error": null,
+    "ports": {
+     "F": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "tier",
+       "media"
+      ],
+      "rows": 45,
+      "sha": "fe44a6553a5c318c",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "T": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "tier",
+       "media"
+      ],
+      "rows": 455,
+      "sha": "b5b4841dbddfe0a5",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.filter"
+   },
+   "filtro_sim": {
+    "error": null,
+    "ports": {
+     "F": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "tier",
+       "media"
+      ],
+      "rows": 249,
+      "sha": "bbfb81719a45db95",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "T": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "tier",
+       "media"
+      ],
+      "rows": 206,
+      "sha": "1f07f398f877db05",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.filter"
+   },
+   "formula": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome_empresa",
+       "uf",
+       "segmento",
+       "setor",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "tier",
+       "media"
+      ],
+      "rows": 500,
+      "sha": "e4d18f925eff7758",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.formula"
+   },
+   "join_dir": {
+    "error": null,
+    "ports": {
+     "J": {
+      "columns": [
+       "uf",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "id_cliente",
+       "total",
+       "r_media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 189,
+      "sha": "9cf6e4d13e33dd5d",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     },
+     "L": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 17,
+      "sha": "e54715424dbde2fe",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "R": {
+      "columns": [
+       "id_cliente",
+       "total",
+       "media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 315,
+      "sha": "d1be1e03a5642908",
+      "types": [
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.join"
+   },
+   "join_duas": {
+    "error": null,
+    "ports": {
+     "J": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "r_id_cliente",
+       "total",
+       "r_media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 189,
+      "sha": "3dcab5dd2219ac58",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     },
+     "L": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 17,
+      "sha": "e54715424dbde2fe",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "R": {
+      "columns": [
+       "id_cliente",
+       "total",
+       "media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 315,
+      "sha": "d1be1e03a5642908",
+      "types": [
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.join"
+   },
+   "join_esq": {
+    "error": null,
+    "ports": {
+     "J": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "total",
+       "r_media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 189,
+      "sha": "0f80b70d12c4fb30",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     },
+     "L": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 17,
+      "sha": "e54715424dbde2fe",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "R": {
+      "columns": [
+       "id_cliente",
+       "total",
+       "media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 315,
+      "sha": "d1be1e03a5642908",
+      "types": [
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.join"
+   },
+   "join_sel": {
+    "error": null,
+    "ports": {
+     "J": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "m_uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente"
+      ],
+      "rows": 206,
+      "sha": "d41f057f71fc661f",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String"
+      ]
+     },
+     "L": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 0,
+      "sha": "23ba9bf58074976d",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "R": {
+      "columns": [
+       "uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente"
+      ],
+      "rows": 7,
+      "sha": "3aedfe4fdea4cd59",
+      "types": [
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.join"
+   },
+   "metas": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "região",
+       "meta_mrr",
+       "margem_alvo",
+       "gerente"
+      ],
+      "rows": 10,
+      "sha": "6b1f1ddf0830f03c",
+      "types": [
+       "String",
+       "String",
+       "Float64",
+       "Float64",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.input_data"
+   },
+   "param": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "taxa",
+       "faixa",
+       "ativo"
+      ],
+      "rows": 1,
+      "sha": "760b01c75337073a",
+      "types": [
+       "Float64",
+       "String",
+       "Boolean"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.text_input"
+   },
+   "primeiras": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 50,
+      "sha": "1d231bb63a442b8d",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.sample"
+   },
+   "rid": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "n",
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 206,
+      "sha": "688fc6d87e04111f",
+      "types": [
+       "Int64",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.record_id"
+   },
+   "select": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 206,
+      "sha": "27b91f9148661435",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.select"
+   },
+   "sort": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 206,
+      "sha": "27b91f9148661435",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.sort"
+   },
+   "sorteio": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 30,
+      "sha": "f04daa3105b2c475",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.sample"
+   },
+   "sql": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "n"
+      ],
+      "rows": 3,
+      "sha": "24e90a4f3d272828",
+      "types": [
+       "String",
+       "Int64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.sql_query"
+   },
+   "texto": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa_1",
+       "nome_empresa_2",
+       "nome_empresa_3",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 206,
+      "sha": "0b68d28b225c1da0",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.text_to_columns"
+   },
+   "texto_l": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 618,
+      "sha": "65a1eca92335bce1",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.text_to_columns"
+   },
+   "transp": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "nome",
+       "valor"
+      ],
+      "rows": 412,
+      "sha": "4baab701e61c8151",
+      "types": [
+       "String",
+       "String",
+       "String"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.transpose"
+   },
+   "ultimas": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 20,
+      "sha": "49da00f7b921ac61",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.sample"
+   },
+   "union_nome": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media",
+       "origem"
+      ],
+      "rows": 70,
+      "sha": "7ce1f7a59654d86e",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64",
+       "Int32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.union"
+   },
+   "union_pos": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 70,
+      "sha": "729045d4ccf3760b",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.union"
+   },
+   "unique": {
+    "error": null,
+    "ports": {
+     "D": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 197,
+      "sha": "805426df66680a83",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     },
+     "U": {
+      "columns": [
+       "uf",
+       "id_cliente",
+       "nome_empresa",
+       "segmento",
+       "status",
+       "mrr_mensal",
+       "meses_contrato",
+       "nps",
+       "inadimplente",
+       "anual",
+       "faixa_mrr",
+       "media"
+      ],
+      "rows": 9,
+      "sha": "483fa1b36457b41b",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Float64",
+       "Int64",
+       "String",
+       "Boolean",
+       "Float64",
+       "String",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "prep.unique"
+   },
+   "vendas": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_transacao",
+       "id_cliente",
+       "produto",
+       "canal_venda",
+       "competencia",
+       "quantidade_licencas",
+       "valor_bruto",
+       "desconto_aplicado"
+      ],
+      "rows": 1800,
+      "sha": "3a6632eef9d72203",
+      "types": [
+       "String",
+       "String",
+       "String",
+       "String",
+       "String",
+       "Int64",
+       "Float64",
+       "Float64"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "io.input_data"
+   },
+   "vendas_cli": {
+    "error": null,
+    "ports": {
+     "out": {
+      "columns": [
+       "id_cliente",
+       "total",
+       "media",
+       "mediana",
+       "desvio",
+       "moda",
+       "produtos",
+       "lista",
+       "linhas"
+      ],
+      "rows": 504,
+      "sha": "16b4545ccfd9b449",
+      "types": [
+       "String",
+       "Float64",
+       "Float64",
+       "Float64",
+       "Float64",
+       "String",
+       "UInt32",
+       "String",
+       "UInt32"
+      ]
+     }
+    },
+    "status": "executed",
+    "type": "transform.summarize"
+   }
+  }
+ },
+ "version": "0.4.1"
+}

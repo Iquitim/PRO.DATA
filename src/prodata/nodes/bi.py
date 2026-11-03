@@ -14,6 +14,7 @@ from typing import Any, Literal
 import polars as pl
 from pydantic import Field
 
+from prodata.engine.sql.fragment import Fragment, SqlContext, lit, q, sql_for
 from prodata.forms import ui
 from prodata.nodes.base import NodeContext, NodeOutput, ToolConfig, tool
 
@@ -634,3 +635,95 @@ def _cell(v: Any) -> Any:
     if isinstance(v, (int, float, str, bool)) or v is None:
         return v
     return str(v)
+
+
+# ------------------------------------------------------------------ tradução para SQL (spec 020)
+
+_VISUAL_NOTE = (
+    "Consulta base do visual, sem o limite de categorias e a formatação da tela. "
+    "Ela não é comparada com o gráfico: só as etapas antes dela são conferidas."
+)
+_SQL_AGG = {"sum": "sum", "mean": "avg", "min": "min", "max": "max", "median": "median"}
+
+
+def _need(ctx: SqlContext, *columns: str) -> None:
+    source = ctx.input()
+    if missing := [c for c in columns if c not in source.columns]:
+        raise ValueError(
+            "Escolha as colunas do visual."
+            if "" in missing
+            else f"Coluna(s) não encontrada(s): {', '.join(missing)}"
+        )
+
+
+def _passthrough(ctx: SqlContext, explain: str, visual: str) -> dict[str, Fragment]:
+    return {
+        "out": Fragment(f"SELECT * FROM {q(ctx.input().block)}", explain, [_VISUAL_NOTE], visual_sql=visual)
+    }
+
+
+@sql_for("bi.chart")
+def chart_sql(ctx: SqlContext, cfg: ChartConfig) -> dict[str, Fragment]:
+    block = q(ctx.input().block)
+    needs_y = cfg.agg != "count" or cfg.chart_type == "scatter"
+    _need(
+        ctx,
+        cfg.x_column,
+        *([cfg.y_column] if needs_y else []),
+        *([cfg.series_column] if cfg.series_column else []),
+    )
+    x = q(cfg.x_column)
+    if cfg.chart_type == "scatter":
+        return _passthrough(ctx, cfg.title, f"SELECT {x}, {q(cfg.y_column)}\nFROM {block}")
+    value = "count(*)" if cfg.agg == "count" else f"{_SQL_AGG[cfg.agg]}({q(cfg.y_column)})"
+    series = [q(cfg.series_column)] if cfg.series_column and cfg.chart_type in SERIES_CHARTS else []
+    groups = ", ".join([x, *series])
+    order = (
+        groups
+        if cfg.sort == "label" and cfg.chart_type != "pareto"
+        else f"valor {'ASC' if cfg.sort == 'value_asc' and cfg.chart_type != 'pareto' else 'DESC'}, {groups}"
+    )
+    return _passthrough(
+        ctx,
+        cfg.title,
+        f"SELECT {groups}, {value} AS valor\nFROM {block}\nGROUP BY {groups}\nORDER BY {order}",
+    )
+
+
+@sql_for("bi.kpi_card")
+def kpi_sql(ctx: SqlContext, cfg: KpiConfig) -> dict[str, Fragment]:
+    block = q(ctx.input().block)
+    if cfg.metric != "count":
+        _need(ctx, cfg.column)
+    value = {"count": "count(*)", "n_unique": f"count(DISTINCT {q(cfg.column)})"}.get(
+        cfg.metric
+    ) or f"COALESCE({_SQL_AGG[cfg.metric]}({q(cfg.column)}), 0)"
+    return _passthrough(ctx, cfg.title, f"SELECT {value} AS valor\nFROM {block}")
+
+
+@sql_for("bi.venn")
+def venn_sql(ctx: SqlContext, cfg: VennConfig) -> dict[str, Fragment]:
+    block = q(ctx.input().block)
+    _need(ctx, *(cfg.flag_columns if cfg.mode == "flags" else [cfg.key_column, cfg.group_column]))
+    if cfg.mode == "flags":
+        return _passthrough(
+            ctx, cfg.title, f"SELECT {', '.join(q(c) for c in cfg.flag_columns)}\nFROM {block}"
+        )
+    groups = ", ".join(lit(g) for g in cfg.groups if g.strip())
+    where = f"\nWHERE {q(cfg.group_column)} IN ({groups})" if groups else ""
+    return _passthrough(
+        ctx, cfg.title, f"SELECT DISTINCT {q(cfg.key_column)}, {q(cfg.group_column)}\nFROM {block}{where}"
+    )
+
+
+@sql_for("bi.table")
+def table_sql(ctx: SqlContext, cfg: TableConfig) -> dict[str, Fragment]:
+    block = q(ctx.input().block)
+    _need(ctx, *cfg.columns, *([cfg.sort_column] if cfg.sort_column else []))
+    columns = ", ".join(q(c) for c in cfg.columns) or "*"
+    order = (
+        f"\nORDER BY {q(cfg.sort_column)} {'DESC' if cfg.sort_desc else 'ASC'} NULLS LAST"
+        if cfg.sort_column
+        else ""
+    )
+    return _passthrough(ctx, cfg.title, f"SELECT {columns}\nFROM {block}{order}\nLIMIT {cfg.max_rows}")
