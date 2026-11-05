@@ -17,9 +17,11 @@ import sys
 import threading
 import time
 import urllib.request
+import webbrowser
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 APP_NAME = "PRO.DATA"
 log = logging.getLogger("prodata.desktop")
@@ -196,6 +198,11 @@ class DesktopApi:
         ).start()
         return False
 
+    def open_link(self, url: str) -> bool:
+        """Abre a documentação de uma API no navegador padrão. Só http e https."""
+        target = web_link(url)
+        return webbrowser.open(target) if target else False
+
     def reveal(self, path: str) -> bool:
         """Abre o Explorer com o arquivo selecionado (ou a pasta, se for uma)."""
         target = Path(path)
@@ -288,6 +295,15 @@ def _hide_leftover_splash() -> None:
     user32.EnumWindows(visit, 0)
     if hidden:
         log.warning("A caixa de abertura não fechou pelo sinal normal; janela escondida: %s", hidden)
+
+
+def web_link(url: str) -> str | None:
+    """O endereço, se for uma página da web comum. Nada de arquivos, programas ou credenciais no endereço."""
+    target = (url or "").strip()
+    parts = urlsplit(target)
+    if parts.scheme not in ("http", "https") or not parts.netloc or parts.username or parts.password:
+        return None
+    return target
 
 
 def generated_name(name: str) -> str:

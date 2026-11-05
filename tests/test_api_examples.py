@@ -8,15 +8,35 @@ import pytest
 
 from prodata.config import Settings
 from prodata.connectors import api as api_module
-from prodata.connectors.api import ApiDefinition, ApiStore, SavedApi, sample_document
+from prodata.connectors.api import (
+    ApiDefinition,
+    ApiError,
+    ApiParam,
+    ApiStore,
+    SavedApi,
+    read_api,
+    sample_document,
+)
 from prodata.connectors.secrets import MemorySecretStore
+from prodata.desktop import web_link
 from prodata.domain.workflow import Workflow
 from prodata.engine.runner import WorkflowRunner
 from prodata.main import build_services
-from prodata.samples.apis import ESTADOS_ID, MUNICIPIOS_ID, editor_examples, seed_example_apis
+from prodata.samples.apis import (
+    ESTADOS_ID,
+    MUNICIPIOS_ID,
+    editor_examples,
+    refresh_example_docs,
+    seed_example_apis,
+)
 from prodata.samples.workflows import DEMO_WORKFLOW_ID, add_api_section, demo_workflow
 
 API_NODES = {"n_api_estados", "n_api_municipios", "n_api_contagem", "n_api_join", "n_api_chart"}
+
+
+@pytest.fixture
+def serve_notes(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Request]:
+    return calls_to(monkeypatch, lambda _r: httpx.Response(200, json=[]))
 
 
 def calls_to(monkeypatch: pytest.MonkeyPatch, handler: Any) -> list[httpx.Request]:
@@ -208,3 +228,88 @@ def test_preview_of_csv_has_no_tree(client: Any, monkeypatch: pytest.MonkeyPatch
     )
     res = client.post("/api/apis/preview", json={"definition": {"url": "https://exemplo.com/x"}}).json()
     assert res["sample"] is None and res["total"] == 1
+
+
+# ------------------------------------------------------------------ documentação e anotações (spec 024)
+
+
+def test_docs_and_notes_do_not_go_in_the_request(serve_notes: Any) -> None:
+    definition = ApiDefinition(
+        url="https://exemplo.com/x",
+        docs_url="https://exemplo.com/docs",
+        params=[ApiParam(name="a", value="1", note="anotação interna")],
+    )
+    read_api(definition, lambda _s: None)
+    assert len(serve_notes) == 1
+    assert "docs" not in str(serve_notes[0].url) and "anota" not in str(serve_notes[0].url)
+    assert str(serve_notes[0].url).endswith("?a=1")
+
+
+def test_docs_and_notes_do_not_invalidate_results() -> None:
+    plain = SavedApi(id="a", name="A", url="https://x.com/y", params=[ApiParam(name="p", value="1")])
+    noted = SavedApi(
+        id="a",
+        name="A",
+        url="https://x.com/y",
+        params=[ApiParam(name="p", value="1", note="serve para isso")],
+        docs_url="https://x.com/docs",
+    )
+    assert plain.digest() == noted.digest()
+    changed = SavedApi(id="a", name="A", url="https://x.com/y", params=[ApiParam(name="p", value="2")])
+    assert plain.digest() != changed.digest()
+
+
+@pytest.mark.parametrize(
+    "bad", ["javascript:alert(1)", "file:///c:/x", "docs.exemplo.com", "https://u:s@exemplo.com/"]
+)
+def test_docs_link_must_be_a_web_page(bad: str) -> None:
+    with pytest.raises(ApiError):
+        ApiDefinition(url="https://exemplo.com/x", docs_url=bad).check()
+
+
+@pytest.mark.parametrize(
+    ("url", "ok"),
+    [
+        ("https://exemplo.com/docs", True),
+        ("http://exemplo.com/docs", True),
+        ("javascript:alert(1)", False),
+        ("file:///c:/windows/system32/calc.exe", False),
+        ("C:\\Windows\\calc.exe", False),
+        ("https://u:s@exemplo.com/", False),
+        ("", False),
+    ],
+)
+def test_only_web_pages_open_outside(url: str, ok: bool) -> None:
+    assert bool(web_link(url)) is ok
+
+
+def test_notes_are_saved_and_examples_have_docs(tmp_path: Path) -> None:
+    store = ApiStore(tmp_path / "apis.json", MemorySecretStore())
+    seed_example_apis(store)
+    saved = store.get(ESTADOS_ID)
+    assert saved.docs_url.startswith("https://") and saved.params[0].note
+    assert all(ApiDefinition.model_validate(e["source"]).docs_url for e in editor_examples())
+
+
+def test_old_examples_receive_docs_and_keep_changes(tmp_path: Path) -> None:
+    store = ApiStore(tmp_path / "apis.json", MemorySecretStore())
+    store.save(
+        SavedApi(
+            id=ESTADOS_ID,
+            name="Meu nome",
+            url="https://servicodados.ibge.gov.br/api/v1/localidades/estados",
+            params=[ApiParam(name="orderBy", value="id", note="minha nota")],
+        )
+    )
+    digest = store.get(ESTADOS_ID).digest()
+    refresh_example_docs(store)
+    updated = store.get(ESTADOS_ID)
+    assert updated.docs_url and updated.name == "Meu nome"
+    assert updated.params[0].value == "id" and updated.params[0].note == "minha nota"
+    assert updated.digest() == digest
+
+
+def test_refresh_does_not_bring_back_a_deleted_example(tmp_path: Path) -> None:
+    store = ApiStore(tmp_path / "apis.json", MemorySecretStore())
+    refresh_example_docs(store)
+    assert store.list() == []

@@ -124,11 +124,15 @@
 /* fios */
 .edge { pointer-events: auto; cursor: pointer; }
 .edge-hit { fill: none; stroke: transparent; stroke-width: 14px; }
-.edge-line { fill: none; stroke: var(--border-strong); stroke-width: 1.75px; transition: stroke 0.12s; }
-.edge.live .edge-line { stroke: color-mix(in srgb, var(--text-3) 70%, var(--border-strong)); }
+.edge-line { fill: none; stroke-width: 2px; stroke-linecap: round; opacity: .72; transition: stroke-width 0.12s, opacity 0.12s; }
+.edge.live .edge-line { opacity: 1; }
+.edge-arrow { fill: none; stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .edge.model .edge-line { stroke-dasharray: 5 4; }
-.edge:hover .edge-line { stroke: var(--text-2); }
-.edge.selected .edge-line { stroke: var(--accent); stroke-width: 2.5px; }
+.edge:hover .edge-line { stroke-width: 3px; opacity: 1; }
+.edge.selected .edge-line { stroke: var(--accent); stroke-width: 2.75px; opacity: 1; }
+.edge.selected .edge-arrow { stroke: var(--accent) !important; }
+.edge.held .edge-arrow { stroke: var(--brand-gold, #a9852f) !important; }
+.port.port-lit { transform: scale(1.25); border-color: var(--text); }
 .edge.drop-target .edge-line { stroke: var(--accent); stroke-width: 3px; stroke-dasharray: 6 4; }
 .edge-draft { fill: none; stroke: var(--accent); stroke-width: 2px; stroke-dasharray: 5 4; }
 
@@ -213,7 +217,28 @@ g.edge.held .edge-line { stroke: var(--brand-gold, #a9852f); stroke-dasharray: 6
 .node.run-wait .node-card { opacity: 0.6; }
 .node.run-done .node-card { transition: opacity 0.2s; }
 @keyframes pulse-dot { 50% { transform: scale(1.5); } }
+
+/* Animações discretas (spec 025): só ao executar e ao criar. Com o programa parado, nada se move. */
+.edge-flow { fill: none; stroke: var(--accent); stroke-width: 3px; stroke-linecap: round; stroke-dasharray: 1 13; pointer-events: none; animation: edge-flow .7s linear infinite; }
+@keyframes edge-flow { to { stroke-dashoffset: -14; } }
+.node.run-done .node-card::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  animation: node-done .55s ease-out 1 both;
+}
+@keyframes node-done {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); }
+  to { box-shadow: 0 0 0 9px transparent; }
+}
+.edge-new .edge-line { stroke-dasharray: 1; animation: edge-draw .32s ease-out 1 both; }
+@keyframes edge-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.edge-new .edge-arrow { animation: edge-arrive .32s ease-out 1 both; }
+@keyframes edge-arrive { 0%, 70% { opacity: 0; } to { opacity: 1; } }
+.node-enter .node-card { animation: node-enter .2s cubic-bezier(.2, .8, .3, 1.2) 1 both; }
+@keyframes node-enter { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .node.run-now .node-card, .node.run-now .node-status { animation: none; }
+  .edge-flow { display: none; }
+  .node.run-done .node-card::after { display: none; }
+  .edge-new .edge-line, .edge-new .edge-arrow, .node-enter .node-card { animation: none; }
   .node.run-now .node-card { box-shadow: 0 0 0 3px var(--accent), 0 0 14px 4px color-mix(in srgb, var(--accent) 45%, transparent); }
 }

@@ -65,6 +65,8 @@ class ApiParam(BaseModel):
     value: str = ""
     # Sigiloso: o valor vai para o cofre e ``value`` fica vazio.
     secret: bool = False
+    # Para que serve: anotação de quem cadastrou, não vai no pedido.
+    note: str = Field("", max_length=300)
 
 
 class ApiAuth(BaseModel):
@@ -108,6 +110,8 @@ class ApiDefinition(BaseModel):
     timeout_s: float = Field(30, gt=0, le=600)
     max_mb: int = Field(200, ge=1, le=4096)
     retries: int = Field(3, ge=0, le=10)
+    # Onde estão os parâmetros que a API aceita: só para consulta, nunca é chamado pelo programa.
+    docs_url: str = ""
 
     @field_validator("url")
     @classmethod
@@ -116,6 +120,8 @@ class ApiDefinition(BaseModel):
 
     def check(self) -> None:
         check_url(self.url)
+        if self.docs_url.strip():
+            check_url(self.docs_url.strip(), "da documentação")
         if self.auth.type == "oauth2":
             check_url(self.auth.token_url, "do token")
         if self.method == "POST" and self.body_type == "json" and self.body.strip():
@@ -154,7 +160,12 @@ class SavedApi(ApiDefinition):
 
     def digest(self) -> str:
         """Muda quando a definição muda; entra no fingerprint de quem lê a fonte."""
-        raw = json.dumps(self.model_dump(mode="json"), sort_keys=True).encode()
+        # Link e anotações não mudam a chamada: editá-los não pode refazer nem invalidar nada.
+        data = self.model_dump(mode="json", exclude={"docs_url"})
+        for group in ("params", "headers"):
+            for item in data[group]:
+                item.pop("note", None)
+        raw = json.dumps(data, sort_keys=True).encode()
         return hashlib.sha256(raw).hexdigest()[:16]
 
 
@@ -877,14 +888,14 @@ def run_loop(
 ) -> LoopResult:
     """Chama a API uma vez para cada combinação de valores e junta as respostas às linhas de entrada.
 
-    ``columns`` diz de qual coluna vem cada parâmetro; sem escolha, vale a coluna de mesmo nome.
+    ``columns`` diz de qual coluna vem cada variável; sem escolha, vale a coluna de mesmo nome.
     """
     source.check()
     wanted = source.placeholders()
     if not wanted:
         raise ApiError(
-            "Esta API não pede nenhum parâmetro: use o Input Data. "
-            "Para pedir um valor, escreva {parâmetro} no endereço, nos parâmetros ou no corpo."
+            "Esta API não pede nenhuma variável: use o Input Data. "
+            "Para o endereço mudar a cada chamada, escreva o nome entre chaves nele, como {sigla}."
         )
     origin = {p: (columns or {}).get(p) or p for p in wanted}
     if missing := [p for p in wanted if origin[p] not in df.columns]:

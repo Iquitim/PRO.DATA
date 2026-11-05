@@ -47,13 +47,55 @@ function portPoint(n, portId, output) {
   return { x: n.x + (output ? NODE_W : 0), y: n.y + (nodeHeight(n) * (idx + 1)) / (ports.length + 1) };
 }
 
+/** Quanto o fio sai reto das portas. Fios muito verticais ganham mais, para chegarem de frente na porta. */
+const ARROW_GAP = 9; // distância até o centro da porta, para a ponta não entrar nela
+const ARROW_LENGTH = 5;
+const ARROW_WIDTH = 4;
+const edgeBend = (a, b) => Math.max(40, Math.abs(b.x - a.x) * 0.5, Math.min(Math.abs(b.y - a.y) * 0.35, 110));
+
 function curve(a, b) {
-  const dx = Math.max(40, Math.abs(b.x - a.x) * 0.5);
+  const dx = edgeBend(a, b);
   return `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
 }
 
+/** Seta na chegada: fica sobre o próprio fio e aponta para onde ele está indo, de qualquer ângulo. */
+function edgeArrow(a, b) {
+  const dx = edgeBend(a, b);
+  const at = (u) => {
+    const v = 1 - u;
+    const k1 = 3 * v * v * u; const k2 = 3 * v * u * u; const k3 = u * u * u; const k0 = v * v * v;
+    return {
+      x: k0 * a.x + k1 * (a.x + dx) + k2 * (b.x - dx) + k3 * b.x,
+      y: k0 * a.y + k1 * a.y + k2 * b.y + k3 * b.y,
+    };
+  };
+  const gap = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+  const walk = (from, distance, start) => {
+    const STEP = 0.002;
+    for (let u = start - STEP; u > 0; u -= STEP) {
+      if (gap(at(u), from) < distance) continue;
+      // Em fios longos, um passo anda vários pixels: refina até a distância certa.
+      let far = u;
+      let near = Math.min(start, u + STEP);
+      for (let i = 0; i < 8; i += 1) {
+        const mid = (far + near) / 2;
+        if (gap(at(mid), from) >= distance) far = mid; else near = mid;
+      }
+      return { p: at(far), u: far };
+    }
+    return { p: at(0), u: 0 };
+  };
+  const tip = walk(b, ARROW_GAP, 1);
+  const back = walk(tip.p, ARROW_LENGTH, tip.u).p;
+  const size = gap(tip.p, back) || 1;
+  const ux = (tip.p.x - back.x) / size;
+  const uy = (tip.p.y - back.y) / size;
+  const wing = (side) => `${(back.x - uy * side * ARROW_WIDTH).toFixed(1)} ${(back.y + ux * side * ARROW_WIDTH).toFixed(1)}`;
+  return `M ${wing(1)} L ${tip.p.x.toFixed(1)} ${tip.p.y.toFixed(1)} L ${wing(-1)}`;
+}
+
 function curveMid(a, b) {
-  const dx = Math.max(40, Math.abs(b.x - a.x) * 0.5);
+  const dx = edgeBend(a, b);
   // Ponto t=0.5 da Bézier cúbica: (P0 + 3P1 + 3P2 + P3) / 8
   return {
     x: (a.x + 3 * (a.x + dx) + 3 * (b.x - dx) + b.x) / 8,
@@ -236,12 +278,21 @@ export function showProgress(progress) {
     el.classList.toggle('run-wait', !!progress && order.has(id) && !done && progress.running !== id);
   }
   els.viewport.classList.toggle('is-running', !!progress);
+  const running = progress?.running || null;
+  if (running !== flowTarget) {
+    flowTarget = running;
+    applyFlow();
+  }
 }
 
 function renderNodes() {
   const wf = store.workflow;
   held = heldBy();
   const alive = new Set();
+  // Caixa recém-criada surge com um leve crescimento; abrir um fluxo não anima nada.
+  const unseen = nodesWorkflow === wf.id ? wf.nodes.filter((n) => !nodeEls.has(n.id)) : [];
+  if (unseen.length <= MAX_ANIMATED_NEW) for (const n of unseen) enteringUntil.set(n.id, performance.now() + ENTER_MS);
+  nodesWorkflow = wf.id;
   for (const n of wf.nodes) {
     alive.add(n.id);
     const key = nodeKey(n);
@@ -251,6 +302,9 @@ function renderNodes() {
       continue;
     }
     const el = buildNode(n);
+    // A caixa nova costuma ser refeita logo em seguida, ao ser selecionada: a animação continua nela.
+    if (enteringUntil.get(n.id) > performance.now()) el.classList.add('node-enter');
+    else enteringUntil.delete(n.id);
     if (current) current.el.replaceWith(el);
     else els.nodes.append(el);
     nodeEls.set(n.id, { el, key });
@@ -263,12 +317,68 @@ function renderNodes() {
   }
 }
 
+// Cor do fio: a família da caixa, um pouco suavizada para não competir com as caixas (spec 025).
+const edgeColor = (n) => `color-mix(in srgb, var(--cat-${toolOf(n)?.category || 'prep'}) 72%, var(--border-strong))`;
+const MAX_FLOW_EDGES = 300;
+const MAX_ANIMATED_NEW = 3;
+let flowTarget = null;
+let knownEdges = { workflow: null, ids: new Set() };
+let nodesWorkflow = null;
+const ENTER_MS = 200;
+const enteringUntil = new Map();
+
+/** O dado correndo pelos fios que chegam à caixa em execução. Fora da execução, nada se move. */
+function applyFlow() {
+  for (const old of els.svg.querySelectorAll('.edge-flow')) old.remove();
+  const wf = store.workflow;
+  if (!flowTarget || !wf || wf.edges.length > MAX_FLOW_EDGES) return;
+  for (const e of wf.edges) {
+    if (e.target !== flowTarget) continue;
+    const group = els.svg.querySelector(`g[data-edge="${CSS.escape(e.id)}"]`);
+    const line = group?.querySelector('.edge-line');
+    if (!line) continue;
+    const flow = line.cloneNode();
+    flow.setAttribute('class', 'edge-flow');
+    flow.removeAttribute('stroke');
+    flow.removeAttribute('pathLength');
+    group.append(flow);
+  }
+}
+
+/** Passar o mouse num fio acende as portas das duas pontas. */
+function litPorts(edgeId, on) {
+  const e = store.workflow?.edges.find((x) => x.id === edgeId);
+  if (!e) return;
+  for (const [node_, port, side] of [[e.source, e.sourceHandle, 'out'], [e.target, e.targetHandle, 'in']]) {
+    els.nodes.querySelector(`.port.${side}[data-node="${CSS.escape(node_)}"][data-port="${CSS.escape(port)}"]`)?.classList.toggle('port-lit', on);
+  }
+}
+
+function watchEdgeHover() {
+  if (els.svg.dataset.watching) return;
+  els.svg.dataset.watching = '1';
+  const handler = (on) => (ev) => {
+    const id = ev.target.closest?.('g.edge')?.dataset.edge;
+    if (id) litPorts(id, on);
+  };
+  els.svg.addEventListener('mouseover', handler(true));
+  els.svg.addEventListener('mouseout', handler(false));
+}
+
 function renderEdges() {
   const wf = store.workflow;
   const byId = new Map(wf.nodes.map((n) => [n.id, n]));
   const paths = [];
+  const defs = [];
   const pills = [];
+  watchEdgeHover();
+  // Um fio acabou de ser criado: ele se desenha. Abrir um fluxo não anima nada.
+  const unseen = knownEdges.workflow === wf.id ? wf.edges.filter((e) => !knownEdges.ids.has(e.id)) : [];
+  const drawIn = new Set(unseen.length <= MAX_ANIMATED_NEW ? unseen.map((e) => e.id) : []);
+  knownEdges = { workflow: wf.id, ids: new Set(wf.edges.map((e) => e.id)) };
+  let index = -1;
   for (const e of wf.edges) {
+    index += 1;
     const s = byId.get(e.source);
     const t = byId.get(e.target);
     if (!s || !t) continue;
@@ -280,8 +390,12 @@ function renderEdges() {
     const model = toolOf(s)?.outputs.find((p) => p.id === e.sourceHandle)?.kind === 'model';
     // Ligação entre caixas puladas pelo cache (ou chegando no ponto de cache): tracejada em dourado.
     const skipped = held.has(e.source) && (held.has(e.target) || held.get(e.source).id === e.target);
-    paths.push(`<g class="edge${store.selection.edgeId === e.id ? ' selected' : ''}${model ? ' model' : ''}${fresh ? ' live' : ''}${skipped ? ' held' : ''}" data-edge="${e.id}">
-      <path class="edge-hit" d="${d}"/><path class="edge-line" d="${d}"/></g>`);
+    const fromColor = edgeColor(s);
+    const toColor = edgeColor(t);
+    defs.push(`<linearGradient id="edge-grad-${index}" gradientUnits="userSpaceOnUse" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"><stop offset="0" style="stop-color:${fromColor}"/><stop offset="1" style="stop-color:${toColor}"/></linearGradient>`);
+    const isNew = drawIn.has(e.id) && !model;
+    paths.push(`<g class="edge${store.selection.edgeId === e.id ? ' selected' : ''}${model ? ' model' : ''}${fresh ? ' live' : ''}${skipped ? ' held' : ''}${isNew ? ' edge-new' : ''}" data-edge="${e.id}">
+      <path class="edge-hit" d="${d}"/><path class="edge-line" d="${d}" stroke="url(#edge-grad-${index})"${isNew ? ' pathLength="1"' : ''}/><path class="edge-arrow" style="stroke:${toColor}" d="${edgeArrow(a, b)}"/></g>`);
     const touchesSelection = [e.source, e.target].includes(store.selection.nodeId);
     if (fresh && tele.kind === 'data' && touchesSelection) {
       const m = curveMid(a, b);
@@ -297,8 +411,9 @@ function renderEdges() {
   if (gesture?.type === 'connect' && gesture.moved) {
     paths.push(`<path class="edge-draft" d="${curve(gesture.from, gesture.to)}"/>`);
   }
-  els.svg.innerHTML = paths.join('');
+  els.svg.innerHTML = `<defs>${defs.join('')}</defs>${paths.join('')}`;
   els.pills.replaceChildren(...pills);
+  applyFlow();
 }
 
 function renderContainers() {
@@ -423,7 +538,7 @@ function edgeSamples(steps) {
     if (!s || !t) continue;
     const a = portPoint(s, e.sourceHandle, true);
     const b = portPoint(t, e.targetHandle, false);
-    const dx = Math.max(40, Math.abs(b.x - a.x) * 0.5);
+    const dx = edgeBend(a, b);
     const c1 = { x: a.x + dx, y: a.y };
     const c2 = { x: b.x - dx, y: b.y };
     const points = [];

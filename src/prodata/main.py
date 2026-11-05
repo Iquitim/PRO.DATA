@@ -28,7 +28,7 @@ from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
 from prodata.nodes import REGISTRY
-from prodata.samples.apis import seed_example_apis
+from prodata.samples.apis import refresh_example_docs, seed_example_apis
 from prodata.samples.datasets import ensure_sample_datasets
 from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, add_api_section, demo_workflow
 from prodata.services.workflows import WorkflowRepository
@@ -58,6 +58,7 @@ def build_services(settings: Settings) -> Services:
             if add_api_section(saved):
                 workflows.save(Workflow.model_validate(saved))
                 seed_example_apis(apis)
+        refresh_example_docs(apis)
     return Services(
         settings=settings,
         datasets=datasets,

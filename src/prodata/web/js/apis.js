@@ -7,6 +7,7 @@ import { DND_DATASET, viewportCenter } from './canvas.js';
 import { slug } from './connections.js';
 import { previewTable } from './datasets.js';
 import { button, fmt, h } from './dom.js';
+import { openLink } from './desktop.js';
 import { arrow, linkHover, mini } from './explainers.js';
 import { icon } from './icons.js';
 import { API_PREFIX, commit, emit, on, placeholdersOf, store } from './store.js';
@@ -22,7 +23,7 @@ export async function refreshApis() {
 const blank = () => ({
   id: '', name: '', url: '', method: 'GET', params: [], headers: [], body: '', body_type: 'json',
   auth: { type: 'none', key_name: 'X-API-Key', key_in: 'header', username: '', token_url: '', client_id: '', scope: '' },
-  format: 'auto', records_path: '', explode_path: '', flatten: true,
+  format: 'auto', records_path: '', explode_path: '', flatten: true, docs_url: '',
   pagination: { type: 'none', page_param: 'page', start_page: 1, size_param: '', page_size: 100, offset_param: 'offset', limit_param: 'limit', cursor_param: 'cursor', cursor_path: 'next_cursor', next_path: '', max_pages: 100 },
   timeout_s: 30, max_mb: 200, retries: 3, cache_results: false, hold_on_open: false,
 });
@@ -47,7 +48,7 @@ function marked(text, cls = '') {
   const out = [];
   let last = 0;
   for (const m of (text || '').matchAll(/\{([^{}"':\r\n]+)\}/g)) {
-    out.push(text.slice(last, m.index), h('span', { class: 'req-col', title: `Parâmetro: no API Loop, você escolhe a coluna que preenche ${m[1]}` }, m[0]));
+    out.push(text.slice(last, m.index), h('span', { class: 'req-col', title: `Variável: muda a cada chamada. No API Loop, você escolhe a coluna que preenche ${m[1]}` }, m[0]));
     last = m.index + m[0].length;
   }
   out.push((text || '').slice(last));
@@ -55,6 +56,28 @@ function marked(text, cls = '') {
 }
 
 const DOTS = '••••••';
+
+// Outras formas de escrever uma variável, comuns em documentações e ao copiar da barra do navegador.
+const LOOSE_FORMS = [
+  /\{\{\s*([^{}"':\r\n]+?)\s*\}\}/g,
+  /%7B(.+?)%7D/gi,
+  /<([^<>/?&#\s]+)>/g,
+  /(?<=\/):([A-Za-z_][\w-]*)(?=[/?#]|$)/g,
+  /(?<==):([A-Za-z_][\w-]*)(?=[&#]|$)/g,
+];
+
+/** O que no endereço parece uma variável fora do formato {nome}. Só sugere: quem decide é a pessoa. */
+export function looseVariables(url) {
+  const found = new Map();
+  for (const form of LOOSE_FORMS) {
+    for (const m of (url || '').matchAll(form)) {
+      let name = m[1];
+      try { name = decodeURIComponent(name); } catch { /* fica como está */ }
+      if (name.trim() && !/[{}"':\r\n]/.test(name)) found.set(m[0], name.trim());
+    }
+  }
+  return [...found].map(([text, name]) => ({ text, name }));
+}
 
 function authLines(state) {
   const a = state.auth;
@@ -89,8 +112,8 @@ function requestPreview(state) {
     headers.length ? h('div', { class: 'req-headers' }, headers.map(([k, v]) => h('div', {}, h('span', { class: 'req-key' }, `${k}: `), marked(v)))) : null,
     state.method === 'POST' && state.body.trim() ? h('div', { class: 'req-headers' }, marked(state.body.length > 160 ? `${state.body.slice(0, 160)}…` : state.body)) : null,
     h('div', { class: 'req-legend' },
-      h('span', { class: 'req-host' }, 'servidor'), h('span', { class: 'req-path' }, 'caminho'), h('span', { class: 'req-param' }, 'parâmetros'),
-      h('span', { class: 'req-col' }, '{parâmetro}')));
+      h('span', { class: 'req-host' }, 'servidor'), h('span', { class: 'req-path' }, 'caminho'), h('span', { class: 'req-param' }, 'parâmetros fixos'),
+      h('span', { class: 'req-col' }, '{variável}')));
 }
 
 /** Sequência de pedidos da paginação, com os nomes configurados (RF-2223). */
@@ -212,7 +235,7 @@ function secretField(state, slot, label, help) {
 }
 
 function pairs(state, list, kind, redraw) {
-  const rows = list.map((p, i) => h('div', { class: 'api-pair' },
+  const rows = list.map((p, i) => h('div', { class: 'api-pair-box' }, h('div', { class: 'api-pair' },
     text(p, 'name', { placeholder: 'Nome', 'aria-label': 'Nome' }),
     p.secret
       ? h('input', {
@@ -221,12 +244,13 @@ function pairs(state, list, kind, redraw) {
         placeholder: state.stored.includes(`${kind}:${p.name}`) ? 'Guardado no cofre' : 'Valor sigiloso',
         oninput: (e) => { state.secrets[`${kind}:${p.name}`] = e.target.value; },
       })
-      : text(p, 'value', { placeholder: 'Valor, ou {parâmetro}', 'aria-label': 'Valor', oninput: () => state.onChange() }),
+      : text(p, 'value', { placeholder: 'Valor', 'aria-label': 'Valor', oninput: () => state.onChange() }),
     h('label', { class: 'api-secret', title: 'Guarda o valor no cofre do sistema, fora do arquivo' },
       h('input', { type: 'checkbox', checked: p.secret, onchange: (e) => { p.secret = e.target.checked; redraw(); } }), icon('lock', 12)),
-    button({ icon: 'trash', size: 'sm', variant: 'ghost', title: 'Remover', onClick: () => { list.splice(i, 1); redraw(); } })));
+    button({ icon: 'trash', size: 'sm', variant: 'ghost', title: 'Remover', onClick: () => { list.splice(i, 1); redraw(); } })),
+  text(p, 'note', { class: 'input input-sm api-note', placeholder: 'Para que serve (opcional)', 'aria-label': `Para que serve ${p.name || 'este item'}`, maxlength: 300 })));
   return h('div', { class: 'stack-xs' }, rows,
-    button({ icon: 'plus', label: 'Adicionar', size: 'sm', variant: 'ghost', onClick: () => { list.push({ name: '', value: '', secret: false }); redraw(); } }));
+    button({ icon: 'plus', label: 'Adicionar', size: 'sm', variant: 'ghost', onClick: () => { list.push({ name: '', value: '', secret: false, note: '' }); redraw(); } }));
 }
 
 function authPane(state, redraw) {
@@ -296,27 +320,62 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     const { id, name, cache_results, hold_on_open, secrets, stored, onChange, set_secrets, missing_secrets, ...d } = state;
     return d;
   };
+  const notVariables = new Set();
+  let urlInput = null;
+  const looseHint = ({ text: found, name }) => h('div', { class: 'api-loose' },
+    h('p', {}, h('code', {}, found), ' parece uma variável escrita de outro jeito. Aqui, ela é escrita entre chaves.'),
+    h('div', { class: 'row' },
+      button({ label: `Converter para {${name}}`, size: 'sm', onClick: () => {
+        state.url = state.url.split(found).join(`{${name}}`);
+        if (urlInput) urlInput.value = state.url;
+        state.onChange();
+      } }),
+      button({ label: 'Não é variável', size: 'sm', variant: 'ghost', onClick: () => { notVariables.add(found); state.onChange(); } })));
   const drawNotices = () => {
     const url = state.url.trim();
     const needed = placeholdersOf(state);
     notices.replaceChildren(...[
+      ...looseVariables(url).filter((v) => !notVariables.has(v.text)).map(looseHint),
       url.toLowerCase().startsWith('http://') && !LOCAL.test(url)
         ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Endereço sem criptografia (http): credenciais e dados viajam abertos na rede.') : null,
       state.method === 'POST'
         ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Um POST pode gravar dados no servidor. Ele não roda sozinho ao abrir o fluxo.') : null,
       needed.length
         ? h('div', { class: 'api-kind is-param' },
-          h('strong', {}, icon('repeat', 14), ` Com parâmetro: pede ${needed.map((n) => `{${n}}`).join(', ')}`),
-          h('p', {}, 'Precisa de um valor para responder. Entra no fluxo como API Loop: lá você escolhe de qual coluna da tabela vem cada valor, e cada um gera uma chamada.'),
-          h('p', {}, 'Valor só para o teste aqui:'),
-          ...needed.map((n) => h('label', { class: 'sheet-port' }, h('span', { class: 'ellipsis' }, n),
-            h('input', { class: 'input input-sm', value: samples[n] || '', 'aria-label': `Valor de teste para ${n}`, oninput: (e) => { samples[n] = e.target.value; } }))))
+          h('strong', {}, icon('repeat', 14), ` Com variável: pede ${needed.map((n) => `{${n}}`).join(', ')}`),
+          h('p', {}, 'O endereço tem um espaço a preencher, diferente a cada chamada. Entra no fluxo como API Loop: lá você escolhe de qual coluna da tabela vem o valor.'))
         : url ? h('div', { class: 'api-kind' },
-          h('strong', {}, icon('globe', 14), ' Chamada direta: não pede parâmetro'),
-          h('p', {}, 'A API devolve os dados de uma vez e vira uma tabela no Input Data. Para pedir um valor, escreva {nome} no endereço, como …/estados/{sigla}/municipios.')) : null,
+          h('strong', {}, icon('globe', 14), ' Chamada direta: o endereço é sempre o mesmo'),
+          h('p', {}, 'A API devolve os dados de uma vez e vira uma tabela no Input Data. Para o endereço mudar a cada chamada, crie uma variável na aba Parâmetros.')) : null,
     ].filter(Boolean));
   };
-  state.onChange = () => { drawNotices(); drawRequest(); };
+  const docsAction = () => (/^https?:\/\//i.test(state.docs_url.trim())
+    ? button({ icon: 'link', label: 'Abrir a documentação da API', size: 'sm', onClick: () => openLink(state.docs_url.trim()) })
+    : h('p', { class: 'field-help' }, 'Guarde o link no campo "Documentação da API", acima, para consultar depois.'));
+
+  /** Na aba Parâmetros, o que muda a cada chamada aparece junto do que é fixo. */
+  const varsBox = h('div', { class: 'api-section api-vars' });
+  const whereIs = (name) => {
+    const mark = `{${name}}`;
+    if (state.url.includes(mark)) return 'no endereço';
+    const param = state.params.find((p) => !p.secret && p.value?.includes(mark));
+    if (param) return `no parâmetro ${param.name || 'sem nome'}`;
+    const header = state.headers.find((p) => !p.secret && p.value?.includes(mark));
+    return header ? `no cabeçalho ${header.name || 'sem nome'}` : 'no corpo';
+  };
+  const drawVars = () => {
+    const needed = placeholdersOf(state);
+    varsBox.replaceChildren(
+      h('div', { class: 'api-section-title' }, 'Variáveis: mudam a cada chamada'),
+      needed.length
+        ? h('p', { class: 'field-help' }, 'No fluxo, o valor vem de uma coluna da tabela, no API Loop. Aqui, digite um valor só para testar.')
+        : h('p', { class: 'field-help' }, 'Nenhuma. Para o endereço mudar a cada chamada, escreva o nome entre chaves nele, como …/estados/', h('code', { class: 'req-col' }, '{sigla}'), '/municipios.'),
+      ...needed.map((n) => h('label', { class: 'api-var' },
+        h('code', { class: 'req-col' }, `{${n}}`),
+        h('span', { class: 'ellipsis muted' }, whereIs(n)),
+        h('input', { class: 'input input-sm', value: samples[n] || '', placeholder: 'Valor de teste', 'aria-label': `Valor de teste para ${n}`, oninput: (e) => { samples[n] = e.target.value; } }))));
+  };
+  state.onChange = () => { drawNotices(); drawRequest(); drawVars(); };
 
   const tabs = h('div', { class: 'segmented small' });
   const drawTabs = () => {
@@ -332,15 +391,18 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     const redraw = () => { drawPane(); drawNotices(); drawRequest(); };
     pane.replaceChildren({
       params: () => h('div', { class: 'stack-sm' },
-        how(h('p', {}, 'Cada linha entra no endereço como ', h('code', {}, '?nome=valor'), '. Para filtrar, ordenar ou limitar, veja a documentação da API. Um valor como ', h('code', {}, '{parâmetro}'), ' muda a cada chamada, no API Loop.')),
-        pairs(state, state.params, 'param', redraw)),
+        varsBox,
+        h('div', { class: 'api-section' }, h('div', { class: 'api-section-title' }, 'Parâmetros fixos: sempre iguais'),
+          h('p', { class: 'field-help' }, 'Opções que entram no fim do endereço como ', h('code', {}, '?nome=valor'), ', em toda chamada. Cada API tem as suas, quase sempre opcionais: a lista está na documentação dela.'),
+          docsAction(),
+          pairs(state, state.params, 'param', redraw))),
       headers: () => h('div', { class: 'stack-sm' },
         how('Informações que acompanham o pedido, fora do endereço. A credencial tem aba própria: use o cadeado para qualquer outro valor sigiloso.'),
         pairs(state, state.headers, 'header', redraw)),
       body: () => h('div', { class: 'stack-sm' },
         field('Tipo', choice(state, 'body_type', [['json', 'JSON'], ['text', 'Texto']])),
         field('Corpo', h('textarea', { class: 'input mono', rows: 8, spellcheck: false, oninput: (e) => { state.body = e.target.value; state.onChange(); } }, state.body),
-          'Num JSON, escreva o parâmetro entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
+          'Num JSON, escreva a variável entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
       auth: () => h('div', { class: 'stack-sm' }, authScheme(state), authPane(state, redraw)),
       pages: () => h('div', { class: 'stack-sm' }, pagesScheme(state.pagination), pagesPane(state, redraw)),
       answer: () => h('div', { class: 'stack-sm' },
@@ -382,7 +444,11 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
       const secrets = Object.fromEntries(Object.entries(state.secrets).filter(([, v]) => v));
       const res = await api.previewApi({ definition: definition(), id: state.id, secrets, values: samples });
       if (res.needs_values) {
-        meta.replaceChildren(h('span', { class: 'text-warning' }, icon('alert', 14), ` Preencha um valor de teste para: ${res.needs_values.join(', ')}.`));
+        meta.replaceChildren(h('span', { class: 'text-warning' }, icon('alert', 14), ` Preencha um valor de teste para ${res.needs_values.map((n) => `{${n}}`).join(', ')}, na aba Parâmetros.`));
+        tab = 'params';
+        drawTabs();
+        drawPane();
+        varsBox.querySelector('input')?.focus();
         grid.replaceChildren();
         return;
       }
@@ -429,14 +495,17 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     api.apiExamples().then((list) => examples.append(h('div', { class: 'api-example-list' }, list.map((ex) => h('button', {
       type: 'button', class: 'api-example', title: ex.what,
       onclick: () => { close(); openApiEditor({ preset: ex.source, values: ex.values, onSaved }); },
-    }, h('strong', {}, ex.title), h('span', {}, ex.source.name), h('em', { class: 'api-example-kind' }, placeholdersOf(ex.source).length ? 'com parâmetro' : 'direta')))))).catch(() => examples.remove());
+    }, h('strong', {}, ex.title), h('span', {}, ex.source.name), h('em', { class: 'api-example-kind' }, placeholdersOf(ex.source).length ? 'com variável' : 'direta')))))).catch(() => examples.remove());
   }
   const form = h('div', { class: 'api-form stack-sm' },
     examples,
     field('Nome', text(state, 'name', { placeholder: 'Ex.: Clientes do CRM' })),
+    field('Documentação da API (opcional)', h('div', { class: 'row' },
+      text(state, 'docs_url', { placeholder: 'https://… onde a API explica o que aceita', 'aria-label': 'Endereço da documentação', oninput: () => { if (tab === 'params') drawPane(); } }),
+      button({ icon: 'link', title: 'Abrir a documentação', onClick: () => openLink(state.docs_url.trim()) }))),
     h('div', { class: 'api-url' },
       choice(state, 'method', [['GET', 'GET'], ['POST', 'POST']], () => { drawTabs(); drawPane(); state.onChange(); }),
-      text(state, 'url', { placeholder: 'https://api.exemplo.com/v1/clientes/{id}', 'aria-label': 'Endereço da API', class: 'input mono', oninput: () => state.onChange() }),
+      (urlInput = text(state, 'url', { placeholder: 'https://api.exemplo.com/v1/clientes/{id}', 'aria-label': 'Endereço da API', class: 'input mono', oninput: () => state.onChange() })),
       button({ label: 'Testar', icon: 'play', onClick: test })),
     requestBox, notices, tabs, pane,
     h('label', { class: 'switch', title: 'Ligado: abrir um fluxo não chama esta API. Ela espera o clique em Executar.' },
@@ -450,6 +519,7 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
   drawPane();
   drawNotices();
   drawRequest();
+  drawVars();
   const { close } = openDialog({
     title: source ? `Editar API · ${source.name}` : 'Nova API',
     size: 'xl',
@@ -511,8 +581,8 @@ export function renderApisSection(root) {
     const direct = store.apis.filter((a) => !placeholdersOf(a).length);
     const param = store.apis.filter((a) => placeholdersOf(a).length);
     list.replaceChildren(...(store.apis.length
-      ? [...group('Chamada direta', 'Não pedem parâmetro: viram tabela no Input Data', direct),
-        ...group('Com parâmetro', 'Pedem um valor: entram como API Loop, ligadas a uma tabela', param)]
+      ? [...group('Chamada direta', 'O endereço é sempre o mesmo: viram tabela no Input Data', direct),
+        ...group('Com variável', 'O endereço muda a cada chamada: entram como API Loop, ligadas a uma tabela', param)]
       : [h('p', { class: 'muted pad' }, 'Nenhuma API. Cadastre uma para ler dados da web.')]));
   };
   on('apis', draw);

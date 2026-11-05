@@ -250,7 +250,7 @@ function apiSource(field, value, set, ctx, id) {
   return h('div', { class: 'stack-xs' },
     h('div', { class: 'row' },
       h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
-        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com {parâmetro} na aba Dados'),
+        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com variável na aba Dados'),
         usable.map((a) => h('option', { value: a.id, selected: a.id === value }, a.name)),
         value && !known ? h('option', { value, selected: true }, `${value} (não serve aqui ou foi excluída)`) : null),
       button({ icon: 'edit', title: 'Editar a API', disabled: !current, onClick: () => current && ctx.onEditApi?.(current) }),
@@ -258,12 +258,12 @@ function apiSource(field, value, set, ctx, id) {
     wants.length ? h('p', { class: 'field-help' }, `Esta API pede ${wants.map((w) => `{${w}}`).join(', ')}.`) : null);
 }
 
-/** Uma linha por parâmetro da API: de qual coluna da tabela vem o valor (spec 023). */
+/** Uma linha por variável da API: de qual coluna da tabela vem o valor (spec 023). */
 function apiParams(field, value, set, ctx, id) {
   const current = ctx.currentApi?.();
-  if (!current) return h('p', { class: 'field-help' }, 'Escolha a API acima para ver os parâmetros que ela pede.');
+  if (!current) return h('p', { class: 'field-help' }, 'Escolha a API acima para ver as variáveis que ela pede.');
   const wants = ctx.columnsWanted?.(current) || [];
-  if (!wants.length) return h('p', { class: 'field-help' }, 'Esta API não pede parâmetro: leia direto com o Input Data.');
+  if (!wants.length) return h('p', { class: 'field-help' }, 'Esta API não tem variável: leia direto com o Input Data.');
   const cols = (ctx.columns?.() || []).map((c) => c.name);
   if (!cols.length) return h('p', { class: 'field-help' }, `Ligue uma tabela na entrada da caixa para escolher de onde vem ${wants.map((w) => `{${w}}`).join(', ')}. Se ela vier de outra caixa, execute o fluxo antes.`);
   const map = { ...(value || {}) };

@@ -331,8 +331,8 @@ function apiLoop(n, cfg, rows, answers) {
     onclick: () => inspect(n.id, port),
   }, h('b', {}, letter), h('span', {}, label), h('strong', {}, counts[port] === undefined ? '—' : fmt.int(counts[port])))));
   const notes = [];
-  if (!source) notes.push('Escolha acima uma API que peça parâmetro.');
-  else if (!wants.length) notes.push('Esta API não pede parâmetro: leia direto com o Input Data.');
+  if (!source) notes.push('Escolha acima uma API que tenha uma variável, como {sigla}.');
+  else if (!wants.length) notes.push('Esta API não tem variável: leia direto com o Input Data.');
   if (missing.length) notes.push(`Escolha acima a coluna de ${missing.map((p) => `{${p}}`).join(', ')}.`);
   if (source && wants.length && !missing.length) notes.push(`${wants.map((p) => `{${p}}`).join(' e ')} recebe${wants.length > 1 ? 'm' : ''} o valor de ${wants.map((p) => `[${colOf(p)}]`).join(' e ')}: cada valor vira uma chamada, e as respostas se juntam numa tabela só.`);
   if (repeated) notes.push(`Valores iguais são chamados uma vez: nesta amostra, ${fmt.int(data.length)} linhas pedem ${fmt.int(seen.length)} chamadas.`);

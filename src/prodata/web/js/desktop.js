@@ -92,6 +92,14 @@ export async function saveDownload(name, blob) {
   return name;
 }
 
+/** Abre uma página da web fora do programa: no navegador padrão, no desktop; numa aba nova, no navegador. */
+export async function openLink(url) {
+  if (!/^https?:\/\//i.test(url || '')) return false;
+  if (native()) return call('open_link', url);
+  window.open(url, '_blank', 'noopener');
+  return true;
+}
+
 /** Mostra o arquivo no Explorer (só no desktop). */
 export async function reveal(path) {
   return native() ? call('reveal', path) : false;

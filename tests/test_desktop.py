@@ -73,3 +73,13 @@ def test_write_generated_keeps_the_expected_extension(tmp_path: Path) -> None:
         desktop.write_generated("relativo.sql", "fluxo.sql", data)
     with pytest.raises(ValueError, match="não existe"):
         desktop.write_generated(str(tmp_path / "nao" / "existe.sql"), "fluxo.sql", data)
+
+
+def test_open_link_only_opens_web_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    opened: list[str] = []
+    monkeypatch.setattr(desktop.webbrowser, "open", lambda url: opened.append(url) or True)
+    api = desktop.DesktopApi()
+    assert api.open_link("https://exemplo.com/docs") is True
+    assert api.open_link("file:///c:/windows/system32/calc.exe") is False
+    assert api.open_link("javascript:alert(1)") is False
+    assert opened == ["https://exemplo.com/docs"]

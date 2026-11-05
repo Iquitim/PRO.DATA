@@ -589,7 +589,7 @@ def test_missing_column_is_explained(serve: Any) -> None:
 
 
 def test_api_without_placeholder_is_refused(serve: Any) -> None:
-    with pytest.raises(ApiError, match="não pede nenhum parâmetro"):
+    with pytest.raises(ApiError, match="não pede nenhuma variável"):
         loop(pl.DataFrame({"id": [1]}), ApiDefinition(url=URL))
 
 

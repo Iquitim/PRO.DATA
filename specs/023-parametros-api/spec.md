@@ -1,6 +1,6 @@
-# Spec 023 — Versão 0.5.7: API com e sem parâmetro
+# Spec 023 — Versões 0.5.7 e 0.5.8: API com e sem variável
 
-Status: Implementada · Criada: 2026-11-05 · Versão alvo: 0.5.7
+Status: Implementada · Criada: 2026-11-05 · Versões: 0.5.7 e 0.5.8
 
 ## Contexto (o que foi verificado no código)
 
@@ -22,6 +22,17 @@ Relato de uso da 0.5.6: há dois tipos de API, e a tela não os diferencia; na c
 | RF-2304 | A aba Dados separa as APIs em **Chamada direta** (viram tabela no Input Data) e **Com parâmetro** (entram como API Loop), e mostra o que cada uma pede. |
 | RF-2305 | O cadastro diz, enquanto se digita, de que tipo é a API, o que isso significa e como passar de um tipo ao outro. Os exemplos indicam o tipo. |
 | RF-2306 | O esquema "Como funciona" do API Loop mostra o vínculo entre parâmetro e coluna. A tela passa a dizer `{parâmetro}` em vez de `{coluna}`. |
+
+### Revisão da 0.5.8: "variável"
+
+Na 0.5.7, RF-2306 chamou `{sigla}` de parâmetro, a mesma palavra da aba Parâmetros, que mostra `view=nivelado`. Em uso, isso confundiu: a tela dizia "pede `{sigla}`", mas a aba não a listava, e uma API com `orderBy=nome` aparecia como "não pede parâmetro". Esta revisão substitui RF-2306.
+
+| ID | Requisito |
+|----|-----------|
+| RF-2307 | `{sigla}` passa a se chamar **variável**: o que muda a cada chamada. **Parâmetro fixo** é o `?nome=valor` que vale para toda chamada. Os tipos de API passam a ser Chamada direta e Com variável. |
+| RF-2308 | A aba Parâmetros mostra as duas coisas, separadas: as variáveis encontradas, com onde cada uma está e o valor de teste, e os parâmetros fixos. A lista acompanha o que se digita no endereço. |
+| RF-2309 | O API Loop diz "De onde vem cada variável". |
+| RF-2310 | Se o endereço tiver algo que parece uma variável fora do formato `{nome}` (`:nome`, `<nome>`, `{{nome}}` ou `%7Bnome%7D`), a tela avisa e oferece converter com um clique, ou marcar que não é variável. Nada muda sem o clique. Um valor real, como `SP`, não é detectável: continua a cargo de quem cadastra. |
 
 ## Critérios de aceite
 

@@ -112,6 +112,41 @@
   .stat { border: 1px solid var(--line); border-radius: 7pt; padding: 9pt 10pt; }
   .stat b { display: block; font-size: 16pt; font-weight: 720; color: var(--blue); letter-spacing: -0.02em; }
   .stat span { font-size: 8.5pt; color: var(--ink-2); }
+
+  /* ---------- paginação: nada de título, legenda ou sobra sozinhos ---------- */
+  p, li { orphans: 3; widows: 3; }
+  h2, h3, h4, .eyebrow { break-after: avoid; }
+  h3 + p, h3 + table tr:first-child { break-before: avoid; }
+  figure.small { max-width: 76mm; }
+  figure.m80 { max-width: 80%; margin-left: auto; margin-right: auto; }
+  figure.m60 { max-width: 60%; margin-left: auto; margin-right: auto; }
+  figure.m50 { max-width: 50%; margin-left: auto; margin-right: auto; }
+  .side { display: grid; grid-template-columns: 1fr 66mm; gap: 14pt; align-items: start; margin-bottom: 8pt; }
+  .side.wide { grid-template-columns: 1fr 84mm; }
+  .side figure { margin: 0; }
+  .side > div > :last-child { margin-bottom: 0; }
+
+  /* ---------- didático e comercial ---------- */
+  .cover .kicker { margin-top: 30mm; font-size: 10pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-soft); }
+  .cover h1 { margin-top: 5mm; }
+  .goal { display: flex; gap: 7pt; padding: 7pt 10pt; margin: 0 0 10pt; font-size: 9.5pt; color: var(--blue); border-left: 3pt solid var(--gold); background: var(--soft); border-radius: 0 6pt 6pt 0; break-inside: avoid; }
+  .goal b { white-space: nowrap; }
+  .try { padding: 9pt 11pt; margin: 10pt 0; font-size: 9.3pt; background: var(--green-weak); border-radius: 7pt; break-inside: avoid; }
+  .try > strong:first-child { display: block; margin-bottom: 3pt; color: #145c3a; font-size: 9.5pt; }
+  .try ol { margin: 0; padding-left: 14pt; color: #1d4634; }
+  .try li { margin-bottom: 2pt; }
+  table.ba th:first-child { color: var(--red); }
+  table.ba th:last-child { color: var(--green); }
+  table.ba td { width: 50%; }
+  table.ba td:last-child { font-weight: 600; color: var(--ink); }
+  .case { border: 1px solid var(--line); border-top: 3pt solid var(--blue); border-radius: 7pt; padding: 9pt 11pt; break-inside: avoid; }
+  .case h4 { color: var(--blue); }
+  .case p { margin: 0 0 4pt; font-size: 9.3pt; color: var(--ink-2); }
+  .case small { display: block; font-size: 8.3pt; color: var(--gold-strong); font-weight: 600; }
+  .anatomy { padding: 9pt 11pt; margin: 8pt 0 10pt; font: 9.5pt/1.5 'JetBrains Mono', monospace; background: var(--soft); border: 1px solid var(--line); border-radius: 7pt; overflow-wrap: anywhere; break-inside: avoid; }
+  .anatomy .v { padding: 0 2pt; font-weight: 700; background: #e6d9b8; border-radius: 3pt; }
+  .anatomy .f { color: #5b3fb5; font-weight: 700; }
+  .anatomy small { display: block; margin-top: 5pt; font: 8.5pt 'Open Sans', sans-serif; color: var(--ink-2); }
 </style>
 </head>
 <body>
@@ -123,81 +158,87 @@
       <img src="../../src/prodata/web/brand/protege-escudo-claro.svg" alt="Grupo Protege">
       <div><div class="brand-name">PRO.DATA</div><div class="brand-org">Grupo Protege</div></div>
     </div>
-    <h1>Guia do Produto</h1>
+    <div class="kicker">Guia do Produto</div>
+    <h1>Do dado bruto à decisão.</h1>
     <div class="rule"></div>
-    <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
+    <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.5.7 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.5.8 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
-<!-- ================================================================ SUMÁRIO / O QUE É -->
+<!-- ================================================================ O QUE MUDA -->
 <section>
   <div class="eyebrow">Visão geral</div>
-  <h2>O que é o PRO.DATA</h2>
-  <p class="intro">O PRO.DATA é um programa para quem trabalha com dados no dia a dia — analistas, controladoria, comercial, operações — e quer sair da planilha frágil sem precisar virar programador.</p>
-  <p>Em vez de fórmulas espalhadas por várias abas, você monta um <strong>fluxo</strong>: caixas ligadas por linhas, em que cada caixa faz uma coisa (ler um arquivo, limpar, filtrar, juntar, calcular, resumir, gerar um gráfico). O fluxo fica salvo, pode ser executado de novo com dados novos em segundos e mostra o resultado de <strong>cada etapa</strong>, então dá para ver exatamente de onde veio cada número.</p>
-
+  <h2>O que muda no seu dia a dia</h2>
+  <p class="intro">O PRO.DATA é para quem trabalha com dados no dia a dia, como analistas, controladoria, comercial e operações, e quer sair da planilha frágil sem virar programador.</p>
+  <p>Em vez de fórmulas espalhadas por várias abas, você monta um <strong>fluxo</strong>: caixas ligadas por fios, em que cada caixa faz uma coisa. Uma lê o arquivo, outra limpa, outra cruza, outra resume, outra desenha o gráfico. O fluxo fica salvo, roda de novo com dados novos e mostra o resultado de <strong>cada etapa</strong>.</p>
+  <table class="ba">
+    <tr><th>Na planilha</th><th>Com o PRO.DATA</th></tr>
+    <tr><td>Refazer o mesmo relatório todo mês, copiando e colando</td><td>Trocar o arquivo e clicar em Executar</td></tr>
+    <tr><td>PROCV que quebra ou some com linhas sem avisar</td><td>Join que mostra o que casou e o que ficou sem par</td></tr>
+    <tr><td>"De onde veio esse número?"</td><td>Clicar na caixa e ver os dados daquela etapa</td></tr>
+    <tr><td>Espaço invisível e vazio descobertos na reunião</td><td>Perfil de qualidade que aponta o problema antes</td></tr>
+    <tr><td>A lógica fica na cabeça de quem fez</td><td>Um desenho que qualquer um lê, e o mesmo processo em SQL para o time de dados</td></tr>
+    <tr><td>Enviar um print do gráfico</td><td>Dashboard em imagem ou em HTML, com filtros que funcionam no arquivo</td></tr>
+  </table>
   <div class="stat-row">
-    <div class="stat"><b>30</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
-    <div class="stat"><b>6</b><span>formatos de arquivo + PostgreSQL e SQL Server</span></div>
+    <div class="stat"><b>30</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
-    <div class="stat"><b>100%</b><span>local: funciona offline, os dados ficam na sua máquina</span></div>
+    <div class="stat"><b>1</b><span>clique para refazer o processo inteiro com dados novos</span></div>
+    <div class="stat"><b>100%</b><span>do processamento no seu computador, sem nuvem</span></div>
   </div>
-
-  <h3>Para quem é</h3>
-  <div class="grid-3">
-    <div class="card"><h4>Analistas de negócio</h4><p>Que hoje cruzam planilhas manualmente todo mês e querem automatizar sem depender de TI.</p></div>
-    <div class="card"><h4>Times de dados</h4><p>Que precisam de uma ferramenta visual para prototipar e documentar transformações rapidamente.</p></div>
-    <div class="card"><h4>Gestores</h4><p>Que querem indicadores confiáveis e rastreáveis, do arquivo de origem até o gráfico.</p></div>
-  </div>
-
   <h3>Neste guia</h3>
   <div class="toc">
-    <div><span>1</span>Por que usar o PRO.DATA</div>
+    <div><span>1</span>O que dá para resolver</div>
     <div><span>2</span>Conhecendo a tela</div>
-    <div><span>3</span>Como funciona, em 5 passos</div>
+    <div><span>3</span>Seu primeiro fluxo</div>
     <div><span>4</span>Trazendo dados</div>
-    <div><span>5</span>Montando o fluxo</div>
-    <div><span>6</span>Explorando os resultados</div>
-    <div><span>7</span>Indicadores e visuais</div>
-    <div><span>8</span>Montando o dashboard</div>
-    <div><span>9</span>Do fluxo ao SQL</div>
-    <div><span>10</span>Organização e personalização</div>
-    <div><span>11</span>Segurança e privacidade</div>
-    <div><span>12</span>Instalação e requisitos</div>
-    <div><span>13</span>Escopo e limitações</div>
-    <div><span>14</span>Atalhos e perguntas frequentes</div>
+    <div><span>5</span>Dados de APIs</div>
+    <div><span>6</span>Montando o fluxo</div>
+    <div><span>7</span>Explorando os resultados</div>
+    <div><span>8</span>Indicadores e visuais</div>
+    <div><span>9</span>Montando o dashboard</div>
+    <div><span>10</span>Do fluxo ao SQL</div>
+    <div><span>11</span>Organização</div>
+    <div><span>12</span>Segurança e privacidade</div>
+    <div><span>13</span>Instalação e requisitos</div>
+    <div><span>14</span>Escopo e limitações</div>
+    <div><span>15</span>Atalhos e perguntas</div>
   </div>
 </section>
 
-<!-- ================================================================ 1. POR QUE -->
+<!-- ================================================================ 1. CASOS -->
 <section class="chapter">
-  <div class="eyebrow">1 · Benefícios</div>
-  <h2>Por que usar o PRO.DATA</h2>
-  <p class="intro">Seis motivos práticos, do primeiro arquivo ao dashboard.</p>
+  <div class="eyebrow">1 · Na prática</div>
+  <h2>O que dá para resolver</h2>
+  <p class="intro">Situações comuns, e as ferramentas que resolvem cada uma. Todas aparecem no fluxo de demonstração que acompanha o programa.</p>
   <div class="grid-2">
-    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></div>
-      <h4>Visual, sem programação</h4><p>Arraste ferramentas, ligue as caixas e configure por listas e formulários. As colunas aparecem para escolher — nada de digitar nomes e errar.</p></div>
-    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
-      <h4>Rápido de verdade</h4><p>Motor colunar moderno (Polars e DuckDB). O fluxo de demonstração inteiro roda em meio segundo; reexecutar sem mudanças leva milissegundos, porque só o que mudou é recalculado.</p></div>
-    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M9 15l2 2 4-4"/></svg></div>
-      <h4>Feito para dados brasileiros</h4><p>CSV com ponto e vírgula, vírgula decimal e acentos de sistemas antigos (Windows-1252) são reconhecidos sozinhos. Abre e funciona.</p></div>
-    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-      <h4>Seus dados ficam com você</h4><p>Tudo roda no seu computador, sem nuvem e sem internet. Senhas de banco ficam no cofre do Windows. Conexões com banco são somente leitura.</p></div>
-    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/></svg></div>
-      <h4>Do dado ao dashboard</h4><p>Indicadores e gráficos nascem dentro do próprio fluxo e se atualizam a cada execução. Sem exportar para outra ferramenta.</p></div>
-    <div class="card"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg></div>
-      <h4>Transparente e auditável</h4><p>Clique em qualquer caixa e veja os dados que saíram dela, com perfil de qualidade de cada coluna. Erros aparecem na própria caixa, com o motivo.</p></div>
+    <div class="case"><h4>Fechamento que se refaz sozinho</h4><p>Vincule a planilha da pasta da rede e monte as regras uma vez. No mês seguinte, é só clicar em Executar: o PRO.DATA percebe que o arquivo mudou e recalcula só o que depende dele.</p><small>Input Data · Formula · Summarize · Output Data</small></div>
+    <div class="case"><h4>Cruzar bases sem perder linhas</h4><p>Clientes com vendas, metas com realizado. O Join separa o que casou do que ficou sem par de cada lado, então a linha que não encontrou correspondência aparece, em vez de sumir.</p><small>Join · Select · Data Cleansing</small></div>
+    <div class="case"><h4>Confiar no número antes da reunião</h4><p>O perfil de cada coluna mostra vazios, valores distintos e espaços invisíveis. E, para explicar um total, basta clicar nas caixas e seguir o caminho do dado.</p><small>Perfil · Filtros · Browse</small></div>
+    <div class="case"><h4>Trazer dados de sistemas e da web</h4><p>Consulte bancos em modo somente leitura e leia APIs, inclusive uma chamada para cada linha da sua tabela, como buscar o detalhe de cada cliente.</p><small>Consultas de banco · APIs · API Loop</small></div>
+    <div class="case"><h4>Um relatório para mandar a quem decide</h4><p>Monte a página com KPIs, Pareto e Venn. Baixe em imagem para o e-mail ou em HTML, que abre sem o PRO.DATA e mantém os filtros funcionando.</p><small>KPI Card · Chart · Venn · Dashboard</small></div>
+    <div class="case"><h4>Passar a lógica ao time de dados</h4><p>A aba SQL escreve o que foi construído e confere etapa por etapa se o código dá o mesmo resultado. O protótipo vira especificação, sem reescrever do zero.</p><small>Aba SQL · .sql e .zip</small></div>
   </div>
-  <div class="callout tip"><strong>Em resumo</strong>O PRO.DATA troca o "copiar, colar e torcer" das planilhas por um processo visual, repetível e verificável — que roda em segundos e cabe no seu notebook.</div>
+  <h3>Por que dá certo</h3>
+  <div class="grid-3">
+    <div class="card"><h4>Feito para dados brasileiros</h4><p>Ponto e vírgula, vírgula decimal e acentos de sistemas antigos são reconhecidos sozinhos. Há fórmulas para CPF, CNPJ e datas em português.</p></div>
+    <div class="card"><h4>Rápido de verdade</h4><p>Motor colunar moderno (Polars e DuckDB). Ao executar de novo, só o que mudou é recalculado.</p></div>
+    <div class="card"><h4>Seus dados ficam com você</h4><p>Roda no seu computador. Senhas no cofre do Windows e bancos em somente leitura. A rede só é usada para as fontes que você cadastra.</p></div>
+  </div>
+  <div class="grid-3" style="margin-top:9pt">
+    <div class="card"><h4>Do dado ao dashboard</h4><p>Indicadores e gráficos nascem no próprio fluxo e se atualizam a cada execução, sem exportar para outra ferramenta.</p></div>
+    <div class="card"><h4>Transparente</h4><p>Erros aparecem na caixa, com o motivo. Fluxos são salvos em arquivo legível, que dá para versionar e auditar.</p></div>
+    <div class="card"><h4>Ensina enquanto você usa</h4><p>Cross Tab, Join, Summarize e API Loop mostram um esquema do antes e depois com os seus próprios dados.</p></div>
+  </div>
 </section>
 
 <!-- ================================================================ 2. TELA -->
 <section class="chapter">
-  <div class="eyebrow">2 · Interface</div>
+  <div class="eyebrow">2 · Primeiros passos</div>
   <h2>Conhecendo a tela</h2>
-  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 9).</p>
+  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 11).</p>
   <figure>
     <div class="frame">
       <img src="img/overview.png" alt="Tela principal do PRO.DATA">
@@ -211,41 +252,46 @@
     <figcaption>Tela principal com o fluxo de demonstração "Pipeline 360° de clientes".</figcaption>
   </figure>
   <div class="legend">
-    <div><b>1</b><span><strong>Barra superior</strong> — nome do fluxo, alternância Designer/Dashboard, abrir, salvar e tema.</span></div>
-    <div><b>2</b><span><strong>Ferramentas · Dados · Configurar</strong> — a paleta de ferramentas, seus arquivos e conexões, e a configuração da caixa selecionada.</span></div>
+    <div><b>1</b><span><strong>Barra superior</strong> — nome do fluxo, as telas Designer, Dashboard e SQL, abrir, salvar e tema.</span></div>
+    <div><b>2</b><span><strong>Ferramentas · Dados · Configurar</strong> — a paleta de ferramentas; seus arquivos, consultas e APIs; e a configuração da caixa selecionada.</span></div>
     <div><b>3</b><span><strong>Canvas</strong> — onde o fluxo é montado. Arraste caixas, ligue saídas a entradas, agrupe em etapas.</span></div>
     <div><b>4</b><span><strong>Resultados</strong> — a tabela da caixa selecionada, com perfil de qualidade, filtros e log de execução.</span></div>
     <div><b>5</b><span><strong>Gráficos e resumos</strong> — indicadores e gráficos produzidos pelo fluxo, atualizados a cada execução.</span></div>
     <div><b>6</b><span><strong>Executar</strong> — roda o fluxo (atalho <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). Só o que mudou é recalculado.</span></div>
   </div>
+  <h3>As cores das caixas</h3>
+  <p>Cada família de ferramentas tem uma cor, e os fios levam a cor de uma caixa até a outra. Dá para ler um fluxo de longe: verde lê e grava dados, azul prepara, roxo combina, laranja vira indicador e ciano é Machine Learning. A seta mostra o sentido em que o dado anda e, durante a execução, ele corre pelo fio até a caixa da vez.</p>
 </section>
 
-<!-- ================================================================ 3. COMO FUNCIONA -->
+<!-- ================================================================ 3. PRIMEIRO FLUXO -->
 <section class="chapter">
-  <div class="eyebrow">3 · Fluxo de trabalho</div>
-  <h2>Como funciona, em 5 passos</h2>
-  <p class="intro">Do arquivo bruto ao indicador pronto para a reunião.</p>
+  <div class="eyebrow">3 · Mão na massa</div>
+  <h2>Seu primeiro fluxo</h2>
+  <p class="intro">Uma pergunta real: <strong>quanto cada estado representa no faturamento mensal?</strong> Em cinco passos, com os arquivos de exemplo que já vêm no programa.</p>
   <div class="steps">
-    <div class="step"><div><h4>Traga os dados</h4><p>Arraste um arquivo (CSV, Excel, Parquet, JSON) para a aba <strong>Dados</strong> ou crie ali uma consulta a um banco PostgreSQL ou SQL Server. O PRO.DATA mostra uma prévia e detecta formato, separadores e acentos sozinho.</p></div></div>
-    <div class="step"><div><h4>Monte o fluxo</h4><p>Arraste ferramentas para o canvas e ligue umas às outras: limpar, filtrar, calcular colunas, juntar tabelas, resumir. Soltar uma caixa em cima de uma ligação existente a encaixa no meio automaticamente.</p></div></div>
-    <div class="step"><div><h4>Configure cada caixa</h4><p>Ao clicar numa caixa, a aba <strong>Configurar</strong> abre com um formulário próprio dela. Colunas aparecem em listas; expressões são validadas enquanto você digita.</p></div></div>
-    <div class="step"><div><h4>Execute e confira</h4><p>Clique em <strong>Executar</strong>. A caixa que está rodando brilha e a barra de status conta o andamento ("Executando… 3/8"); ao final, cada caixa ganha um indicador de status e mostra o número de linhas. Clique em qualquer saída para ver os dados que passaram por ali.</p></div></div>
-    <div class="step"><div><h4>Apresente</h4><p>Caixas de BI publicam indicadores e gráficos no <strong>Dashboard</strong>, onde você monta a página do seu jeito e baixa a imagem para o e-mail ou a apresentação. No mês seguinte, basta trocar o arquivo e executar de novo.</p></div></div>
+    <div class="step"><div><h4>Comece um fluxo novo</h4><p>Clique em <strong>+</strong> ao lado das abas. O canvas abre vazio.</p></div></div>
+    <div class="step"><div><h4>Traga os dados</h4><p>Na aba <strong>Dados</strong>, arraste <code>clientes_enterprise.csv</code> para o canvas. Nasce uma caixa <em>Input Data</em>, e o PRO.DATA já reconheceu separador e acentos.</p></div></div>
+    <div class="step"><div><h4>Resuma por estado</h4><p>Em <strong>Ferramentas</strong>, arraste <em>Summarize</em> e ligue a saída da primeira caixa à entrada dela. Em <strong>Agrupar por</strong>, escolha <code>uf</code>; em <strong>Agregações</strong>, some <code>mrr_mensal</code>. O esquema <strong>Como funciona</strong> já mostra o que vai acontecer.</p></div></div>
+    <div class="step"><div><h4>Peça o gráfico</h4><p>Arraste <em>Chart</em>, ligue ao Summarize e escolha <code>uf</code> como categoria e a coluna da soma como valor.</p></div></div>
+    <div class="step"><div><h4>Execute</h4><p>Clique em <strong>Executar</strong>. O dado corre pelos fios, cada caixa confirma com um pulso verde, e o gráfico aparece no <strong>Dashboard</strong>. Clique em qualquer caixa para ver a tabela daquela etapa.</p></div></div>
   </div>
-  <figure>
-    <div class="frame"><img src="img/flow-crop.png" alt="Fluxo completo"></div>
-    <figcaption>Um fluxo completo, organizado em etapas: ingestão e preparação, junção e indicadores, um modelo preditivo e os visuais de vendas.</figcaption>
+  <figure class="m60">
+    <div class="frame"><img src="img/primeiro-fluxo.png" alt="Primeiro fluxo com três caixas, a tabela e o gráfico"></div>
+    <figcaption>O resultado: três caixas, a tabela de cada etapa à direita e o gráfico logo abaixo.</figcaption>
   </figure>
+  <div class="callout ok"><strong>No mês seguinte</strong>Se o arquivo mudar, é só clicar em Executar. Nada precisa ser refeito: é essa a diferença para a planilha.</div>
+  <p><strong>Agora veja um fluxo completo.</strong> O exemplo <em>Pipeline 360° de clientes</em> vem pronto, separado em etapas, e os próximos capítulos o usam nos quadros <strong>Experimente</strong>.</p>
 </section>
 
 <!-- ================================================================ 4. DADOS -->
 <section class="chapter">
   <div class="eyebrow">4 · Entrada de dados</div>
   <h2>Trazendo dados</h2>
+  <div class="goal"><b>Ao final:</b> <span>você sabe ler arquivos e bancos, e quando copiar ou vincular um arquivo.</span></div>
   <h3>Arquivos</h3>
   <p>Envie arquivos pela aba <strong>Dados</strong> (clicando ou arrastando) ou solte-os direto no canvas. Antes de usar, a <strong>prévia</strong> mostra o que foi detectado e as primeiras linhas — e qualquer ajuste aparece na hora.</p>
   <p><strong>Enviar ou vincular?</strong> Enviar faz uma <em>cópia</em> do arquivo. Para uma planilha que é atualizada todo dia numa pasta da rede ou no OneDrive, use <strong>Vincular arquivo</strong>: o PRO.DATA lê o original onde ele está, sem copiar. A cada execução, se o arquivo mudou, ele é relido e só o que depende dele roda de novo; a aba Dados e o Configurar mostram quando o arquivo foi modificado e avisam se ele foi movido ou renomeado. O PRO.DATA nunca grava no arquivo vinculado.</p>
-  <figure>
+  <figure class="m80">
     <div class="frame"><img src="img/preview-crop.png" alt="Prévia de arquivo com detecção automática"></div>
     <figcaption>Um CSV no padrão brasileiro (ponto e vírgula, vírgula decimal, Windows-1252) reconhecido sem nenhuma configuração.</figcaption>
   </figure>
@@ -260,67 +306,89 @@
 
   <h3>Bancos de dados</h3>
   <p>Cadastre conexões com <strong>PostgreSQL</strong> e <strong>SQL Server</strong> e teste com um clique. Depois, na própria aba <strong>Dados</strong>, crie <strong>consultas de banco</strong>: escolha uma tabela da lista ou escreva o SQL, veja a prévia e dê um nome. A consulta fica ao lado dos arquivos e é usada exatamente como eles: arraste para o canvas ou escolha no <em>Input Data</em>, a mesma ferramenta que lê arquivos.</p>
-  <figure class="narrow">
+  <figure class="m50">
     <div class="frame"><img src="img/connection-crop.png" alt="Cadastro de conexão com banco de dados"></div>
     <figcaption>A senha vai para o Gerenciador de Credenciais do Windows — nunca para arquivos do projeto.</figcaption>
   </figure>
   <div class="callout ok"><strong>Seguro por padrão</strong>As conexões são somente leitura: apenas consultas de leitura (<code>SELECT</code>/<code>WITH</code>) são aceitas, e comandos que alteram dados são recusados antes de chegar ao banco. Por padrão, cada execução consulta o banco de novo; a opção "Reaproveitar resultado" evita consultas repetidas quando os dados não mudam.</div>
 
-  <h3>APIs</h3>
-  <p>Uma API responde a um endereço com dados, e o PRO.DATA transforma a resposta em tabela. Há dois tipos, e a tela diz qual é o seu enquanto você digita:</p>
+  <div class="try"><strong>Experimente</strong><ol><li>Abra a aba <strong>Dados</strong> e clique em <code>metas_regionais_br.csv</code>.</li><li>Veja na prévia o que foi detectado sozinho: separador, codificação e decimal.</li></ol></div>
+</section>
+
+<!-- ================================================================ 5. APIS -->
+<section class="chapter">
+  <div class="eyebrow">5 · Dados de APIs</div>
+  <h2>Dados de APIs, sem programar</h2>
+  <p class="intro">Uma API é um endereço na internet que responde com dados, em vez de uma página. O PRO.DATA faz a chamada e transforma a resposta em tabela, pronta para cruzar com o resto.</p>
+  <div class="goal"><b>Ao final:</b> <span>você sabe cadastrar uma API, testar, e buscar um dado para cada linha da sua tabela.</span></div>
+  <h3>Três conceitos que explicam tudo</h3>
+  <div class="anatomy">…/estados/<span class="v">{sigla}</span>/municipios<span class="f">?view=nivelado</span>
+    <small><strong>{sigla}</strong> é a <strong>variável</strong>: um espaço no endereço, preenchido com um valor diferente a cada chamada. <strong>view=nivelado</strong> é um <strong>parâmetro fixo</strong>: ajusta a resposta e é igual em toda chamada.</small></div>
   <table>
-    <tr><th>Tipo</th><th>Como é</th><th>No fluxo</th></tr>
-    <tr><td class="tool">Chamada direta</td><td>Não pede nada: o endereço já traz os dados. Ex.: todos os estados.</td><td><strong>Input Data</strong></td></tr>
-    <tr><td class="tool">Com parâmetro</td><td>Precisa de um valor, escrito como <code>{sigla}</code> no endereço. Ex.: os municípios de um estado.</td><td><strong>API Loop</strong>, ligado a uma tabela</td></tr>
+    <tr><th>Tipo de API</th><th>Como é</th><th>Exemplo</th><th>No fluxo</th></tr>
+    <tr><td class="tool">Chamada direta</td><td>O endereço é sempre o mesmo</td><td>Todos os estados</td><td><strong>Input Data</strong></td></tr>
+    <tr><td class="tool">Com variável</td><td>O endereço tem um espaço a preencher</td><td>Os municípios de um estado</td><td><strong>API Loop</strong>, ligado a uma tabela</td></tr>
   </table>
-  <p>Em <strong>Dados &gt; APIs &gt; Nova</strong>, comece de um dos <strong>exemplos prontos</strong> com APIs públicas ou digite o endereço: o quadro <strong>O que será enviado</strong> mostra o pedido sendo montado, com a credencial sempre oculta.</p>
-  <figure>
-    <div class="frame"><img src="img/api-nova.png" alt="Nova API, com exemplos e explicação"></div>
-    <figcaption>Antes do primeiro teste, a tela explica o caminho do pedido até a tabela.</figcaption>
-  </figure>
-  <p>Com <strong>Testar</strong>, a resposta real aparece ao lado da tabela que ela gerou. Passar o mouse num campo acende a coluna, e clicar em <strong>Usar como linhas</strong> numa lista da resposta escolhe de onde vêm as linhas, sem digitar caminho. Campos aninhados viram colunas (<code>dono.nome</code>), e uma lista interna pode virar linhas.</p>
-  <figure>
+  <p>A variável é reconhecida sozinha quando o nome está entre chaves. Se você colar um endereço com um valor real, como <code>…/estados/SP/municipios</code>, troque o valor por <code>{sigla}</code>. Se a documentação escrever <code>:sigla</code> ou <code>&lt;sigla&gt;</code>, a tela avisa e converte com um clique.</p>
+  <h3>Cadastrar e testar</h3>
+  <div class="steps">
+    <div class="step"><div><h4>Comece de um exemplo</h4><p>Em <strong>Dados &gt; APIs &gt; Nova</strong>, escolha um exemplo pronto ou cole o endereço.</p></div></div>
+    <div class="step"><div><h4>Confira o pedido</h4><p><strong>O que será enviado</strong> mostra o pedido sendo montado, com a credencial sempre oculta.</p></div></div>
+    <div class="step"><div><h4>Ajuste o que precisar</h4><p>A aba <strong>Parâmetros</strong> separa variáveis de parâmetros fixos. <strong>Autenticação</strong> aceita token, chave, usuário e senha ou OAuth 2. <strong>Páginas</strong> lê respostas divididas em partes.</p></div></div>
+    <div class="step"><div><h4>Clique em Testar</h4><p>A resposta real aparece ao lado da tabela que ela gerou.</p></div></div>
+  </div>
+  <figure class="m80">
     <div class="frame"><img src="img/api-editor.png" alt="Resposta da API ao lado da tabela"></div>
-    <figcaption>A resposta real do IBGE e a tabela que sai dela.</figcaption>
+    <figcaption>A resposta real do IBGE e a tabela que sai dela. Passar o mouse num campo acende a coluna; <strong>Usar como linhas</strong> escolhe de onde vêm as linhas, sem digitar caminho.</figcaption>
   </figure>
-  <p>As abas <strong>Autenticação</strong> (token, chave de API, usuário e senha ou OAuth 2) e <strong>Páginas</strong> (número de página, deslocamento, cursor ou link) têm um esquema que usa os nomes configurados. O PRO.DATA lê até acabar ou até o limite de páginas, e avisa se parou com dados faltando. Depois de salva, a API é mais uma fonte do <strong>Input Data</strong>.</p>
-  <div class="callout tip"><strong>Veja funcionando no exemplo</strong>A etapa <em>5 · API pública do IBGE</em> do fluxo de demonstração lê os estados, busca os municípios de cada um, cruza com os clientes e faz um gráfico por região. Abrir o exemplo não chama a internet: ela espera o clique em <strong>Executar</strong>. Sem rede, só essa etapa dá erro. Qualquer API pode se comportar assim, com a opção <em>Só chamar quando eu clicar em Executar</em>.</div>
-  <h3>Uma chamada por linha: API Loop</h3>
-  <p>Uma API com parâmetro entra no fluxo como <strong>API Loop</strong>. Ligue uma tabela na entrada e, em <strong>De onde vem cada parâmetro</strong>, escolha a coluna: <code>{sigla}</code> ← <code>uf</code>. A caixa chama a API uma vez para cada valor e junta as respostas numa tabela só. A entrada pode ser a saída de outra API, como a lista de estados alimentando os municípios de cada um.</p>
-  <figure class="narrow">
-    <div class="frame"><img src="img/api-params.png" alt="Escolha da coluna que preenche o parâmetro"></div>
-    <figcaption>Cada parâmetro da API, com a coluna que o preenche. Sem escolha, vale a coluna de mesmo nome.</figcaption>
-  </figure>
-  <div class="grid-2">
+  <div class="side">
     <div>
-      <p>O esquema <strong>Como funciona</strong> mostra tudo com os seus dados: a entrada, cada chamada montada com o valor no lugar e a saída. Passar o mouse num valor destaca o caminho dele.</p>
+      <h3 style="margin-top:0">Como saber quais parâmetros existem?</h3>
+      <p>Cada API tem os seus, quase sempre opcionais, e a lista está na documentação dela. Não existe uma lista única.</p>
       <ul>
-        <li>A saída <strong>R</strong> traz as respostas ao lado da linha que as pediu; a <strong>E</strong>, as chamadas que falharam e o motivo.</li>
-        <li>Valores iguais são chamados uma vez só.</li>
-        <li>Chamadas ao mesmo tempo, chamadas por segundo e um limite total protegem a API e a sua cota.</li>
-        <li>O API Loop e os POST não rodam ao abrir um fluxo: esperam o clique em <strong>Executar</strong>.</li>
+        <li>Guarde o link em <strong>Documentação da API</strong>: o botão abre a página no navegador.</li>
+        <li>Anote em cada parâmetro <strong>para que serve</strong>: fica salvo para quem usar a API depois.</li>
+        <li>Teste primeiro só com o endereço e acrescente o que precisar.</li>
       </ul>
     </div>
-    <figure style="margin:0"><div class="frame"><img src="img/api-loop.png" alt="Esquema do API Loop"></div><figcaption>Da tabela de estados às chamadas e às respostas.</figcaption></figure>
+    <figure><div class="frame"><img src="img/api-vars.png" alt="Cadastro com a variável sigla e o parâmetro fixo view"></div><figcaption>A variável e o parâmetro fixo, separados, com o link da documentação.</figcaption></figure>
   </div>
+  <h3>Uma chamada por linha: API Loop</h3>
+  <div class="side">
+    <div>
+      <p>Com uma API que tem variável, a caixa <strong>API Loop</strong> faz uma chamada para cada linha da tabela de entrada e junta as respostas numa tabela só. A entrada pode vir de outra API: a lista de estados alimenta os municípios de cada um.</p>
+      <p>Ligue a tabela e, em <strong>De onde vem cada variável</strong>, escolha a coluna:</p>
+      <figure class="small"><div class="frame"><img src="img/api-params.png" alt="Escolha da coluna que preenche a variável"></div></figure>
+      <ul style="margin-top:8pt">
+        <li>A saída <strong>R</strong> traz as respostas ao lado da linha que as pediu; a <strong>E</strong>, o que falhou e o motivo.</li>
+        <li>Valores iguais são chamados uma vez só.</li>
+        <li>Chamadas por segundo e um limite total protegem a API e a sua cota.</li>
+        <li>O Loop não roda ao abrir um fluxo: espera o clique em <strong>Executar</strong>.</li>
+      </ul>
+    </div>
+    <figure class="tall"><div class="frame"><img src="img/api-loop.png" alt="Esquema do API Loop"></div><figcaption>O esquema, com os seus dados: entrada, chamadas e saída.</figcaption></figure>
+  </div>
+  <div class="try"><strong>Experimente</strong><ol><li>No exemplo, clique em <strong>Executar</strong>: a etapa <em>5 · API pública do IBGE</em> busca os estados e os municípios de cada um. Abrir o fluxo não chama a internet; sem rede, só essa etapa dá erro.</li><li>Clique na caixa <em>Municípios por estado</em> e passe o mouse num valor do esquema para ver o caminho dele.</li></ol></div>
 </section>
 
 <!-- ================================================================ 5. FLUXO -->
 <section class="chapter">
-  <div class="eyebrow">5 · Ferramentas</div>
+  <div class="eyebrow">6 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
   <p class="intro">30 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
     <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
-    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da aba Dados: arquivos (com detecção automática de formato) ou consultas de banco.</td></tr>
+    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da aba Dados: arquivos (com detecção automática de formato) consultas de banco ou APIs.</td></tr>
+    <tr><td class="tool">API Loop</td><td>Chama uma API para cada linha da tabela e junta as respostas, com as falhas numa saída própria.</td></tr>
     <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
     <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
-    <tr><td class="tool">Output Data</td><td>Exporta para Excel (padrão, com o nome da planilha; vários Output Data podem montar um arquivo com várias planilhas), CSV, Parquet, JSON ou Arrow, na pasta que você escolher. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
+    <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher. No Excel, ligue várias tabelas na mesma caixa: cada uma vira uma planilha. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
     <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
     <tr><td class="tool">Select</td><td>Escolhe, renomeia, reordena (arrastando) e muda o tipo das colunas. Entende números no padrão brasileiro, datas como 29/10/2026 e sim/não, e avisa quantos valores não converteram.</td></tr>
     <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
     <tr><td class="tool">Formula</td><td>Cria colunas calculadas ou altera colunas existentes (SE/ENTÃO, texto, matemática, datas).</td></tr>
+    <tr><td class="tool">Multi-Row Formula</td><td>Fórmula que olha outras linhas: preencher para baixo, diferença para a linha anterior.</td></tr>
     <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
     <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
     <tr><td class="tool">Sort · Sample</td><td>Ordena; tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
@@ -344,7 +412,7 @@
 
   <h3>Configurando uma caixa</h3>
   <p>Clique na caixa e a aba <strong>Configurar</strong> abre ao lado, com um formulário só dela. Na direita, a tabela já mostra o resultado — no exemplo, as três saídas do Join com a contagem de cada uma.</p>
-  <figure>
+  <figure class="m60">
     <div class="frame"><img src="img/join.png" alt="Configuração do Join"></div>
     <figcaption>As chaves de junção são escolhidas em listas que já conhecem as colunas de cada lado.</figcaption>
   </figure>
@@ -370,7 +438,6 @@
   </div>
   <div class="callout tip"><strong>Dica</strong>Soltar uma ferramenta em cima de uma ligação existente encaixa a caixa no meio, já conectada, e abre espaço empurrando o restante do fluxo. <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz qualquer alteração.</div>
 
-  <div class="avoid">
   <h3>Escrevendo fórmulas</h3>
   <div style="display:grid; grid-template-columns: 1fr 44%; gap: 14pt; align-items: start">
     <div>
@@ -385,9 +452,7 @@
     </div>
     <figure style="margin:0"><div class="frame"><img src="img/formula-crop.png" alt="Editor de fórmulas com sugestões"></div><figcaption>Sugestão de função enquanto se digita, com descrição e exemplo.</figcaption></figure>
   </div>
-  </div>
 
-  <div class="avoid">
   <h3>Editando com agilidade</h3>
   <div style="display:grid; grid-template-columns: 1fr 44%; gap: 14pt; align-items: start">
     <ul>
@@ -399,60 +464,58 @@
     </ul>
     <figure style="margin:0"><div class="frame"><img src="img/menu-crop.png" alt="Menu do botão direito numa caixa"></div><figcaption>Menu do botão direito numa caixa.</figcaption></figure>
   </div>
-  </div>
 
-  <div class="avoid">
-    <h3>Fórmula que olha outras linhas</h3>
-    <div class="grid-2">
-      <div>
-        <p>A <strong>Multi-Row Formula</strong> usa <code>[Row-1:valor]</code> para a linha anterior e <code>[Row+1:valor]</code> para a seguinte, com as mesmas funções da Formula.</p>
-        <ul>
-          <li><strong>Preencher para baixo</strong>: <code>IF IsNull([uf]) THEN [Row-1:uf] ELSE [uf] ENDIF</code></li>
-          <li><strong>Diferença para a linha anterior</strong>: <code>[valor] - [Row-1:valor]</code></li>
-          <li>Com <strong>Agrupar por</strong>, as referências não atravessam grupos.</li>
-          <li>O cálculo segue a ordem em que as linhas chegam: use um <strong>Sort</strong> antes.</li>
-        </ul>
-      </div>
-      <figure style="margin:0"><div class="frame"><img src="img/multirow.png" alt="Configuração da Multi-Row Formula"></div><figcaption>Preenchendo para baixo os vazios de uma coluna.</figcaption></figure>
+  <h3>Fórmula que olha outras linhas</h3>
+  <div class="side">
+    <div>
+      <p>A <strong>Multi-Row Formula</strong> usa <code>[Row-1:valor]</code> para a linha anterior e <code>[Row+1:valor]</code> para a seguinte, com as mesmas funções da Formula.</p>
+      <ul>
+        <li><strong>Preencher para baixo</strong>: <code>IF IsNull([uf]) THEN [Row-1:uf] ELSE [uf] ENDIF</code></li>
+        <li><strong>Diferença para a linha anterior</strong>: <code>[valor] - [Row-1:valor]</code></li>
+        <li>Com <strong>Agrupar por</strong>, as referências não atravessam grupos.</li>
+        <li>O cálculo segue a ordem em que as linhas chegam: use um <strong>Sort</strong> antes.</li>
+      </ul>
     </div>
+    <figure><div class="frame"><img src="img/multirow.png" alt="Configuração da Multi-Row Formula"></div><figcaption>Preenchendo os vazios de uma coluna.</figcaption></figure>
   </div>
-  <div class="avoid">
-    <h3>Várias planilhas no mesmo Excel</h3>
-    <div class="grid-2">
-      <div><p>Com o formato Excel, o <strong>Output Data</strong> oferece uma entrada nova sempre que a anterior é ligada, até 8. Cada tabela vira uma planilha do mesmo arquivo, e o Configurar dá o nome de cada uma.</p></div>
-      <figure style="margin:0"><div class="frame"><img src="img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
+  <h3>Várias planilhas no mesmo Excel</h3>
+  <div class="side">
+    <div>
+      <p>Com o formato Excel, o <strong>Output Data</strong> oferece uma entrada nova sempre que a anterior é ligada, até 8. Cada tabela vira uma planilha do mesmo arquivo, e o Configurar dá o nome de cada uma.</p>
+      <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes × vendas</em> e veja o esquema do Join: quantas linhas casaram e o que ficou sem par.</li><li>Clique em <strong>L</strong>, <strong>J</strong> ou <strong>R</strong> para abrir aquelas linhas.</li></ol></div>
     </div>
+    <figure><div class="frame"><img src="img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
   </div>
 </section>
 
 <!-- ================================================================ 6. RESULTADOS -->
 <section class="chapter">
-  <div class="eyebrow">6 · Análise</div>
+  <div class="eyebrow">7 · Análise</div>
   <h2>Explorando os resultados</h2>
   <p class="intro">Cada caixa guarda o resultado da última execução. Clique nela — ou em uma de suas saídas — e a tabela mostra os dados correspondentes.</p>
   <div class="grid-2">
     <div>
       <h3 style="margin-top:0">Filtros exploratórios</h3>
       <p>Para investigar sem mexer no fluxo, use o botão <strong>Filtros</strong> da tabela, o funil no cabeçalho de cada coluna ou o botão direito sobre uma célula ("Filtrar = valor", "Excluir valor").</p>
-      <p>As condições viram etiquetas que você edita ou remove, e o contador mostra quantas linhas sobraram. Esses filtros <strong>não alteram o fluxo salvo</strong>.</p>
+      <p>As condições viram etiquetas que você edita ou remove, e o contador mostra quantas linhas sobraram. Esses filtros <strong>não alteram o fluxo salvo</strong>, e o perfil passa a considerar só as linhas filtradas.</p>
     </div>
     <div>
       <h3 style="margin-top:0">Perfil de qualidade</h3>
       <p>A aba <strong>Perfil</strong> descreve cada coluna: percentual preenchido, vazio e nulo, valores distintos, mais frequentes e estatísticas (mínimo, média, mediana, máximo).</p>
       <p>Espaços invisíveis aparecem: células só com espaços mostram <em>vazio (espaços)</em>, espaço sobrando no início ou no fim aparece como ␣ e o cabeçalho da coluna traz um aviso com as contagens — "SP " não casa com "SP" num Join.</p>
-      <p>Com filtros ativos, o perfil considera só as linhas filtradas — ótimo para comparar grupos.</p>
     </div>
-    <figure style="margin-top:0"><div class="frame"><img src="img/filters-crop.png" alt="Filtros exploratórios"></div>
+    <figure class="m60" style="margin-top:0"><div class="frame"><img src="img/filters-crop.png" alt="Filtros exploratórios"></div>
       <figcaption>"uf = SP" e "mrr_mensal ≥ 3000": 105 de 500 clientes.</figcaption></figure>
-    <figure style="margin-top:0"><div class="frame"><img src="img/profile-crop.png" alt="Perfil das colunas"></div>
+    <figure class="m60" style="margin-top:0"><div class="frame"><img src="img/profile-crop.png" alt="Perfil das colunas"></div>
       <figcaption>Perfil da saída combinada do Join.</figcaption></figure>
   </div>
   <div class="callout ok"><strong>Da exploração para o processo</strong>Quando a investigação vira regra, o botão <strong>Criar nó Filter</strong> transforma os filtros em uma caixa Filter já conectada ao fluxo.</div>
+  <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes</em> e, na tabela, em <strong>Filtros</strong>: filtre <code>uf</code> por SP.</li><li>Repare que o cabeçalho das colunas passa a mostrar a soma e a contagem só das linhas filtradas.</li></ol></div>
 </section>
 
 <!-- ================================================================ 7. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">7 · Apresentação</div>
+  <div class="eyebrow">8 · Apresentação</div>
   <h2>Indicadores e visuais</h2>
   <p class="intro">Os números nascem dentro do fluxo: as caixas de BI calculam e o Dashboard mostra. Quando os dados mudam, basta executar de novo.</p>
   <table>
@@ -485,7 +548,7 @@
     <li>Passar o mouse mostra o valor de cada barra, ponto ou região. Clicar no título leva à caixa que gerou o visual.</li>
     <li>Cada <strong>Summarize</strong> do fluxo também vira, automaticamente, um gráfico no painel <strong>Gráficos e resumos</strong>, abaixo do canvas.</li>
   </ul>
-  <figure class="narrow">
+  <figure class="m50">
     <div class="frame"><img src="img/dash-export.png" alt="Imagem PNG do dashboard"></div>
     <figcaption>A imagem que sai do botão <strong>Baixar imagem</strong> no dashboard da demonstração, pronta para o e-mail ou a apresentação.</figcaption>
   </figure>
@@ -493,10 +556,11 @@
 
 <!-- ================================================================ 8. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">8 · Apresentação</div>
+  <div class="eyebrow">9 · Apresentação</div>
   <h2>Montando o dashboard</h2>
   <p class="intro">O fluxo define <strong>o que</strong> mostrar; o dashboard define <strong>onde e como</strong>. Mudar cores ou posições não executa nada de novo.</p>
-  <figure>
+  <div class="goal"><b>Ao final:</b> <span>você monta a página, filtra e entrega em imagem ou em um arquivo que abre em qualquer navegador.</span></div>
+  <figure class="m80">
     <div class="frame"><img src="img/dash-guides.png" alt="Dashboard no modo Editar, com guias de alinhamento"></div>
     <figcaption>O dashboard da demonstração no modo Editar: ao arrastar um gráfico, as guias douradas mostram o alinhamento com os vizinhos.</figcaption>
   </figure>
@@ -520,7 +584,7 @@
   </div>
   <h3>Formatar cada visual</h3>
   <p>Com um item selecionado, o painel <strong>Formato</strong> ajusta título, subtítulo, fundo, borda, cantos e sombra; os <strong>nomes na legenda e nas categorias</strong> (ex.: SP → São Paulo) e a posição da legenda; cores (paleta da marca, paleta alternativa, uma cor ou uma cor por categoria — com aviso quando a cor some no fundo); rótulos de dados, formato dos números, legenda e eixos; e, em tabelas e KPIs, <strong>cores por faixa</strong> (bom, atenção, crítico, sempre com ícone).</p>
-  <figure>
+  <figure class="m80">
     <div class="frame"><img src="img/dash-edit.png" alt="Modo Editar com o painel Formato"></div>
     <figcaption>O Pareto selecionado e o painel Formato à direita.</figcaption>
   </figure>
@@ -534,18 +598,19 @@
   <h3>O dashboard em um arquivo HTML</h3>
   <p><strong>Baixar HTML</strong> gera um arquivo só, que abre em qualquer navegador, sem o PRO.DATA e sem internet, com os detalhes ao passar o mouse e os <strong>filtros funcionando</strong>. Para isso, o arquivo leva as colunas que os visuais e os filtros usam, e nada além delas. Antes de salvar, a tela mostra quanto dado vai dentro.</p>
   <div class="callout warn"><strong>Cuidado ao compartilhar</strong>Quem recebe o arquivo pode ver todos os dados que ele leva, mesmo o que estiver filtrado fora na hora de abrir.</div>
-  <figure class="narrow">
+  <figure class="m50">
     <div class="frame"><img src="img/dash-html.png" alt="Aviso antes de salvar o HTML"></div>
     <figcaption>O aviso lista as colunas e o tamanho antes de gerar o arquivo.</figcaption>
   </figure>
+  <div class="try"><strong>Experimente</strong><ol><li>Abra o <strong>Dashboard</strong>, clique em <strong>Adicionar filtro</strong> e escolha <code>uf</code>.</li><li>Marque SP: os visuais com a coluna mudam na hora, sem executar o fluxo.</li><li>Clique em <strong>Baixar HTML</strong> e abra o arquivo: o filtro continua funcionando.</li></ol></div>
 </section>
 
-<!-- ================================================================ 9. ORGANIZAÇÃO -->
+<!-- ================================================================ 10. SQL -->
 <section class="chapter">
-  <div class="eyebrow">9 · Do fluxo ao SQL</div>
+  <div class="eyebrow">10 · Do fluxo ao SQL</div>
   <h2>Levando a lógica para o banco</h2>
   <p class="intro">O PRO.DATA é onde você constrói rápido e experimenta. A aba <strong>SQL</strong>, ao lado de Designer e Dashboard, mostra o que foi construído escrito em SQL e confere se o código dá o mesmo resultado, para que levar a lógica ao lake seja uma revisão, não uma reescrita.</p>
-  <figure>
+  <figure class="m80">
     <div class="frame"><img src="img/sql.png" alt="Aba SQL"></div>
     <figcaption>À esquerda, as saídas e o caminho no fluxo; à direita, o código daquela saída.</figcaption>
   </figure>
@@ -576,11 +641,12 @@
     <figure style="margin-top:0"><div class="frame"><img src="img/sql-fluxo.png" alt="Fluxo completo"></div>
       <figcaption>Fluxo completo: o caminho da saída aceso, as caixas sem SQL em vermelho.</figcaption></figure>
   </div>
+  <div class="try"><strong>Experimente</strong><ol><li>Abra a aba <strong>SQL</strong> e clique na saída <em>Exportar</em>: o caminho para em vermelho, na caixa do modelo.</li><li>Clique em <strong>Mostrar visuais</strong> e escolha <em>Gráfico por UF</em>: esse caminho não passa pelo modelo, e o estado mostra <strong>Conferido, com ressalvas</strong>.</li></ol></div>
   <div class="callout tip"><strong>O dialeto desta versão</strong>O código é do DuckDB, o motor usado pelo próprio PRO.DATA, e roda sozinho nele. Spark SQL e T-SQL, os dialetos do Microsoft Fabric, ficam para uma próxima versão. Até lá, o time de dados usa o código como especificação exata do que a lógica faz.</div>
 </section>
 
 <section class="chapter">
-  <div class="eyebrow">10 · Organização</div>
+  <div class="eyebrow">11 · Organização</div>
   <h2>Organização e personalização</h2>
   <h3>Caixas de organização</h3>
   <p>Agrupe as etapas do fluxo em caixas com nome, descrição e cor (paleta <em>Organização</em>, botão <strong>Etapa</strong> ou tecla <kbd>G</kbd>). Arrastar o título move a caixa junto com tudo o que está dentro. Cada caixa tem um <strong>interruptor</strong>: desligada, as caixas de dentro deixam de executar — útil para pausar uma parte do processo sem apagar nada.</p>
@@ -599,8 +665,8 @@
   </div>
   <h3>Painéis do seu jeito</h3>
   <p>Os três painéis — ferramentas/configuração, resultados e gráficos — podem ser arrastados pela alça <span class="muted">⠿</span> para a esquerda, a direita ou embaixo, ou ocultados. O botão <strong>Painéis</strong>, na barra superior, reexibe e restaura o padrão. O arranjo é lembrado.</p>
-  <p><strong>Telas menores</strong>: os painéis encolhem na proporção da janela e a interface fica <strong>compacta</strong> sozinha em monitores menores (largura abaixo de 1440 ou altura abaixo de 800). No menu Painéis dá para fixar a densidade: Automática, Confortável ou Compacta.</p>
-  <figure class="narrow">
+  <p><strong>Telas menores</strong>: a interface fica <strong>compacta</strong> sozinha em monitores menores, e no menu Painéis dá para fixar a densidade.</p>
+  <figure class="m50">
     <div class="frame"><img src="img/layoutAlt.png" alt="Arranjo alternativo dos painéis"></div>
     <figcaption>Um arranjo alternativo: resultados embaixo e gráficos empilhados à direita.</figcaption>
   </figure>
@@ -608,20 +674,18 @@
   <p>Cada fluxo aberto ganha uma aba logo abaixo da barra superior, com seu próprio resultado e seu próprio desfazer. Um ponto laranja indica alterações não salvas. Ao fechar uma aba — ou o programa — com alterações, o PRO.DATA pergunta: <strong>Salvar</strong>, <strong>Não salvar</strong> ou <strong>Cancelar</strong>. As abas salvas reabrem sozinhas na próxima vez.</p>
   <h3>Onde ficam seus arquivos</h3>
   <p><strong>Salvar</strong> guarda o fluxo na biblioteca do PRO.DATA. <strong>Salvar como…</strong> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>) grava um arquivo <code>.prodata.json</code> na pasta que você escolher — do projeto, da rede ou do OneDrive — e daí em diante <kbd>Ctrl</kbd>+<kbd>S</kbd> salva nele. <strong>Abrir arquivo…</strong> abre fluxos de qualquer pasta, e os recentes ficam listados. No <em>Output Data</em>, o campo <strong>Pasta de destino</strong> abre o seletor de pastas do Windows; depois de executar, o botão "Mostrar na pasta" leva até o arquivo gerado.</p>
-  <div class="avoid">
   <h3>Ponto de cache</h3>
   <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: só o resultado dela fica guardado (inclusive depois de fechar o programa), e por isso as caixas anteriores deixam de executar — aparecem douradas e tracejadas, com "Pulada pelo cache", e a barra de status conta quantas foram puladas. O aviso da caixa lista as puladas e tem o botão <strong>Mostrar as puladas</strong>. Mudou algo antes do ponto, ou um arquivo de origem foi atualizado? O cache se refaz sozinho. Para fontes de banco, que só mudam por dentro, escolha em <strong>Renovar</strong> "também todo dia" ou "a cada hora". Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
-  <figure>
+  <figure class="m50">
     <div class="frame"><img src="img/cache-crop.png" alt="Ponto de cache no Join"></div>
     <figcaption>Ponto de cache no Join: as caixas anteriores aparecem "em cache" e a tabela mostra o que chega pela entrada [R].</figcaption>
   </figure>
-  </div>
   <p class="muted">Também disponíveis: tema claro e escuro, desfazer/refazer, zoom e "ajustar à tela".</p>
 </section>
 
 <!-- ================================================================ 9. SEGURANÇA -->
 <section class="chapter">
-  <div class="eyebrow">11 · Confiança</div>
+  <div class="eyebrow">12 · Confiança</div>
   <h2>Segurança e privacidade</h2>
   <div class="grid-2">
     <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador e funciona offline. A única saída para a rede é a que você cadastra: bancos e APIs. O programa não envia nada por conta própria.</p></div>
@@ -636,12 +700,12 @@
 
 <!-- ================================================================ 10. INSTALAÇÃO -->
 <section class="chapter">
-  <div class="eyebrow">12 · Primeiros passos</div>
+  <div class="eyebrow">13 · Comece agora</div>
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.7-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.7-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.8-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.8-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -654,15 +718,15 @@
   </table>
   <h3>Primeira execução</h3>
   <div class="steps">
-    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 12): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
-    <div class="step"><div><h4>Explore o exemplo</h4><p>O fluxo de demonstração já vem pronto e executado. Clique nas caixas, abra o Dashboard, experimente os filtros.</p></div></div>
-    <div class="step"><div><h4>Comece o seu</h4><p>Botão <strong>Novo fluxo</strong>, envie um arquivo na aba Dados e arraste-o para o canvas.</p></div></div>
+    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 14): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
+    <div class="step"><div><h4>Explore o exemplo</h4><p>O fluxo de demonstração já vem pronto. Clique em <strong>Executar</strong>, clique nas caixas, abra o Dashboard e siga os quadros <strong>Experimente</strong> deste guia.</p></div></div>
+    <div class="step"><div><h4>Comece o seu</h4><p>Siga o capítulo 3 com um arquivo seu: envie na aba Dados e arraste para o canvas.</p></div></div>
   </div>
 </section>
 
 <!-- ================================================================ 11. ESCOPO E LIMITAÇÕES -->
 <section class="chapter">
-  <div class="eyebrow">13 · Transparência</div>
+  <div class="eyebrow">14 · Transparência</div>
   <h2>Escopo e limitações</h2>
   <p class="intro">O que esta versão faz, o que não faz e onde ela tem limites — para você decidir com clareza.</p>
   <div class="two-col">
@@ -676,11 +740,11 @@
         <li>Exportação para Excel, CSV, Parquet, JSON e Arrow, em qualquer pasta</li>
         <li>Abas, copiar/colar e editor de fórmulas com autocompletar</li>
         <li>Perfil de qualidade e filtros exploratórios</li>
-        <li>Dashboard em canvas com 15 tipos de visual e imagem PNG</li>
+        <li>Dashboard em canvas com filtros na página, 15 tipos de visual, imagem PNG e HTML</li>
         <li>Modelos de classificação e regressão</li>
         <li>Execução incremental e ponto de cache</li>
         <li>Aba SQL: o fluxo em SQL do DuckDB, por saída, conferido com o resultado</li>
-        <li>Aplicativo de desktop para Windows, offline</li>
+        <li>Aplicativo de desktop para Windows, que funciona offline (exceto as fontes em rede que você cadastrar)</li>
       </ul>
     </div>
     <div>
@@ -694,8 +758,8 @@
         <li>Outros bancos (MySQL, Oracle) e fontes na nuvem</li>
         <li>Versões para macOS e Linux</li>
         <li>Atualização automática do programa</li>
-        <li>Publicar dashboards na web</li>
-        <li>Dashboard em PDF, com várias páginas ou com filtros que cruzam os gráficos</li>
+        <li>Publicar dashboards num servidor</li>
+        <li>Dashboard em PDF, com várias páginas ou com filtro ao clicar num gráfico</li>
       </ul>
     </div>
   </div>
@@ -706,13 +770,12 @@
     <tr><td class="tool">Modelos de ML</td><td>Ficam em memória e são treinados novamente quando o programa é reaberto (sem impacto no resultado, só no tempo da primeira execução).</td></tr>
     <tr><td class="tool">Aviso do Windows</td><td>O instalador ainda não é assinado digitalmente; por isso o SmartScreen mostra "Editor desconhecido" na primeira execução.</td></tr>
     <tr><td class="tool">Visuais com muitos dados</td><td>A dispersão desenha uma amostra fixa de até 2.000 pontos (e avisa no rodapé); gráficos mostram até 50 categorias e 8 séries, somando o restante em "Outros". No Venn de 3 grupos os círculos são ilustrativos — os números trazem a proporção.</td></tr>
-    <tr><td class="tool">Filtros exploratórios</td><td>São lembrados enquanto o programa está aberto e não são salvos com o fluxo (por definição, são exploração; use "Criar nó Filter" para torná-los permanentes).</td></tr>
   </table>
 </section>
 
 <!-- ================================================================ 12. ATALHOS E FAQ -->
 <section class="chapter">
-  <div class="eyebrow">14 · Referência rápida</div>
+  <div class="eyebrow">15 · Referência rápida</div>
   <h2>Atalhos e perguntas frequentes</h2>
   <h3>Atalhos de teclado</h3>
   <table>
@@ -731,13 +794,13 @@
   </table>
   <h3>Perguntas frequentes</h3>
   <div class="avoid"><h4>Preciso saber programar?</h4><p>Não. Tudo é feito por arrastar, ligar e preencher formulários. Quem conhece SQL ou fórmulas tem recursos extras, mas eles são opcionais.</p></div>
-  <div class="avoid"><h4>Meus dados vão para a nuvem?</h4><p>Não. O PRO.DATA roda só no seu computador e funciona sem internet.</p></div>
+  <div class="avoid"><h4>Meus dados vão para a nuvem?</h4><p>Não. O PRO.DATA roda no seu computador e funciona sem internet. A rede só é usada para as fontes que você cadastrar, como um banco ou uma API. O exemplo do IBGE só chama a internet quando você clica em Executar.</p></div>
   <div class="avoid"><h4>Posso estragar meu banco de dados?</h4><p>Não. As conexões são somente leitura; comandos que alteram dados são bloqueados.</p></div>
   <div class="avoid"><h4>Como atualizo um relatório mensal?</h4><p>Envie o arquivo novo com o mesmo nome (o PRO.DATA pergunta se deve substituir) e clique em Executar. Se a planilha é atualizada sozinha numa pasta, use <strong>Vincular arquivo</strong>: basta clicar em Executar.</p></div>
   <div class="avoid"><h4>A exportação vai apagar o arquivo de ontem?</h4><p>Não sem perguntar. Se o arquivo de saída já existe, ao clicar em Executar o PRO.DATA pergunta: substituir, criar um novo com data e hora no nome, ou (no Excel) adicionar a planilha. Dá para lembrar a escolha na caixa. Ao abrir o programa, essas exportações esperam o seu Executar.</p></div>
   <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
   <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na aba Dados.</p></div>
-  <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, clique em <strong>Baixar imagem</strong>: o PNG sai em alta resolução, pronto para colar no e-mail ou na apresentação. O layout fica salvo no arquivo do fluxo.</p></div>
+  <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, <strong>Baixar imagem</strong> gera um PNG em alta resolução, pronto para o e-mail ou a apresentação. <strong>Baixar HTML</strong> gera um arquivo que abre em qualquer navegador, com os filtros funcionando; a tela avisa quais dados vão dentro dele.</p></div>
   <div class="avoid"><h4>Desinstalar apaga meus fluxos?</h4><p>Não. Fluxos, arquivos e conexões ficam na sua pasta de dados e continuam lá para uma futura reinstalação.</p></div>
 </section>
 

@@ -43,7 +43,7 @@ class InputDataConfig(ReadOptions, ToolConfig):
     dataset: str = Field(
         "",
         title="Fonte",
-        description="Arquivo, consulta de banco ou API cadastrados na aba Dados. APIs que pedem parâmetro ficam no API Loop.",
+        description="Arquivo, consulta de banco ou API cadastrados na aba Dados. APIs com variável, como {sigla}, ficam no API Loop.",
         json_schema_extra=ui(widget="dataset"),
     )
     limit: int = Field(0, ge=0, title="Limite de linhas", description="0 = todas as linhas.")
@@ -147,12 +147,12 @@ class ApiLoopConfig(ToolConfig):
     source: str = Field(
         "",
         title="API",
-        description="Só aparecem as que pedem parâmetro. As outras são lidas direto no Input Data.",
+        description="Só aparecem as que têm variável, como {sigla}. As outras são lidas direto no Input Data.",
         json_schema_extra=ui(widget="api_source"),
     )
     columns: dict[str, str] = Field(
         default_factory=dict,
-        title="De onde vem cada parâmetro",
+        title="De onde vem cada variável",
         description="Cada valor da coluna escolhida gera uma chamada à API.",
         json_schema_extra=ui(widget="api_params"),
     )
@@ -205,7 +205,7 @@ def _loop_on_request(_ctx: NodeContext, _cfg: ApiLoopConfig) -> str | None:
     name="API Loop",
     category="inout",
     icon="repeat",
-    description="Para APIs que pedem parâmetro: chama uma vez para cada linha da tabela, com o valor da coluna que você escolher, e junta as respostas. A tabela pode vir de outra API.",
+    description="Para APIs com variável, como {sigla}: chama uma vez para cada linha da tabela, com o valor da coluna que você escolher, e junta as respostas. A tabela pode vir de outra API.",
     config=ApiLoopConfig,
     outputs=[Port("out", "R", "Respostas"), Port("errors", "E", "Chamadas com erro")],
     fingerprint=_loop_signature,

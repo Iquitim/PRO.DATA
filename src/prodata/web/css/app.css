@@ -845,3 +845,19 @@ details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
 .api-param { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 6px; }
 .api-param code { font: 12px var(--mono); }
 .api-param-arrow { color: var(--text-3); }
+
+/* Variáveis e parâmetros fixos (spec 023) */
+.api-section { display: flex; flex-direction: column; gap: 6px; }
+.api-section-title { font-size: 12px; font-weight: 600; color: var(--text); }
+.api-section .field-help { margin: 0; }
+.api-var { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr); align-items: center; gap: 8px; font-size: 12px; }
+.api-var code { font: 12px var(--mono); }
+
+/* Documentação e anotações da API (spec 024) */
+.api-pair-box { display: flex; flex-direction: column; gap: 3px; }
+.api-note { font-size: 12px; }
+
+/* Variável escrita de outro jeito (spec 023) */
+.api-loose { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; font-size: 12px; color: var(--text-2); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); border: 1px solid var(--warn); border-radius: 6px; }
+.api-loose p { margin: 0; }
+.api-loose code { font: 12px var(--mono); font-weight: 700; color: var(--text); }
