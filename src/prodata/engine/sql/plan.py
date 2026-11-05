@@ -13,7 +13,7 @@ import duckdb
 import polars as pl
 from pydantic import ValidationError
 
-from prodata.connectors.api import ApiStore
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.domain.workflow import Workflow
 from prodata.engine import graph

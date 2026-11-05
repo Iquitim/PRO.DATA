@@ -1,6 +1,6 @@
 [project]
 name = "prodata"
-version = "0.5.8"
+version = "0.5.9"
 description = "Plataforma visual de pipelines de dados (ETL colunar, BI e AutoML) sobre Polars, DuckDB e Apache Arrow."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -60,18 +60,25 @@ line-length = 110
 target-version = "py314"
 src = ["src", "tests"]
 
+[tool.ruff.lint.mccabe]
+# Acima disso, a função já pede divisão: vale para o que entrar de novo.
+max-complexity = 15
+
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "N"]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "N", "C90", "S"]
 ignore = [
     "RUF001", "RUF002", "RUF003",  # acentos em strings/comentários em PT-BR
     "E501",    # o formatter cuida do comprimento; strings longas de UI ficam inteiras
     "B008",    # File()/Form() em defaults é o idioma do FastAPI
     "N806",    # X, X_tr... é a convenção de ML
     "PTH105",  # os.replace é a troca atômica explícita
+    # Nomes vão sempre por q() e valores por lit(); o texto escrito pela pessoa só roda em conexão travada (engine/sandbox.py) ou somente leitura.
+    "S608",
+    "S101",    # assert só para o verificador de tipos estreitar valores, nunca para validar entrada
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["B011"]
+"tests/**" = ["B011", "S"]
 
 [tool.mypy]
 python_version = "3.14"

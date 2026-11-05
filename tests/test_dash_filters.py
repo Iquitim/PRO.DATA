@@ -186,7 +186,7 @@ SP = {"id": "f1", "column": "uf", "kind": "list", "selected": ["SP"]}
 def test_filtered_recalculates_without_running_the_flow(client: Any) -> None:
     out = run_and_post(client, "filtered", flow(client, [SP]))
     assert out["widgets"]["k"]["value"] == 4.0
-    assert [s["label"] for s in out["widgets"]["c"]["series"]] == ["SP"]
+    assert "c" not in out["widgets"]  # gráfico por uf: mantém as categorias e apaga as de fora, na tela
     assert out["no_column"] == {"sem": ["uf"]}
     assert "sem" not in out["widgets"]
 

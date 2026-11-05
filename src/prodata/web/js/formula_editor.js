@@ -48,7 +48,9 @@ function classify(tokens, columns, caret) {
       case 'col': {
         const closed = t.text.endsWith(']') && t.text.length > 1;
         const name = t.text.slice(1, closed ? -1 : undefined);
-        classes[i] = `fx-col${!closed || (known.size && !known.has(name)) ? ' fx-bad' : ''}`;
+        // [Row-1:coluna] pode citar a própria coluna nova: quem confere esse caso é a validação do servidor.
+        const rowRef = /^Row[+-]\d+:/i.test(name);
+        classes[i] = `fx-col${!closed || (!rowRef && known.size && !known.has(name)) ? ' fx-bad' : ''}`;
         break;
       }
       case 'str': classes[i] = 'fx-str'; break;
@@ -156,7 +158,7 @@ const KIND_LABEL = { function: 'ƒ', column: '[ ]', keyword: 'if', logical: '&' 
  * Cria o editor. `columns()` devolve as colunas da entrada; `onChange(texto)` a cada alteração.
  * Devolve o elemento raiz.
  */
-export function formulaEditor({ id, value = '', placeholder = '', rows = 3, columns = () => [], onChange = () => {} }) {
+export function formulaEditor({ id, value = '', placeholder = '', rows = 3, columns = () => [], onChange = () => {}, rowRefs = false }) {
   const hl = h('pre', { class: 'fx-hl', 'aria-hidden': 'true' });
   const mirror = h('div', { class: 'fx-hl fx-mirror', 'aria-hidden': 'true' });
   const area = h('textarea', {
@@ -325,6 +327,17 @@ export function formulaEditor({ id, value = '', placeholder = '', rows = 3, colu
     type: 'button', class: 'fx-tool', title: 'Inserir função (com descrição e exemplo)', onmousedown: keepFocus,
     onclick: (e) => openCatalog(e.currentTarget, (doc) => insert(`${doc.name}(|)`)),
   }, h('i', { class: 'fx-fx' }, 'ƒx'), 'Função', icon('chevron-down', 12));
+  // Multi-Row: as referências a outras linhas, sem precisar decorar a escrita.
+  const rowButton = (label, title, prefix, iconName) => h('button', {
+    type: 'button', class: 'fx-tool fx-row-ref', title, onmousedown: keepFocus,
+    onclick: (e) => {
+      const cols = columns();
+      const r = e.currentTarget.getBoundingClientRect();
+      showMenu(r.left, r.bottom + 4, cols.length
+        ? cols.map((c) => ({ label: c.name, icon: iconName, shortcut: c.type, onSelect: () => insert(`[${prefix}:${c.name}]`) }))
+        : [{ label: 'Execute o fluxo para ver as colunas', icon: 'info', disabled: true, onSelect: () => {} }]);
+    },
+  }, icon(iconName, 13), label, icon('chevron-down', 12));
   const chip = ([op, title], opts) => h('button', {
     type: 'button', class: ['fx-chip', opts.cls], title, onmousedown: (e) => e.preventDefault(),
     onclick: () => insert(op, { spaced: true }),
@@ -332,6 +345,8 @@ export function formulaEditor({ id, value = '', placeholder = '', rows = 3, colu
   // Coluna e Função sempre visíveis; operadores aparecem enquanto o campo está em foco.
   const toolbar = h('div', { class: 'fx-toolbar' },
     columnButton, fnButton,
+    rowRefs ? rowButton('Linha anterior', 'Inserir o valor da linha de cima: [Row-1:coluna]', 'Row-1', 'arrow-up') : null,
+    rowRefs ? rowButton('Linha seguinte', 'Inserir o valor da linha de baixo: [Row+1:coluna]', 'Row+1', 'arrow-down') : null,
     h('span', { class: 'fx-hint-key' }, h('kbd', {}, 'Ctrl'), '+', h('kbd', {}, 'Espaço'), ' sugere'),
     h('div', { class: 'fx-ops' },
       OPERATORS.map((o) => chip(o, { cls: 'fx-cmp' })),

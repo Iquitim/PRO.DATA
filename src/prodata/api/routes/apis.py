@@ -8,15 +8,9 @@ from fastapi import APIRouter, Path, Query, Response
 from pydantic import BaseModel, Field
 
 from prodata.api.deps import ServicesDep
-from prodata.connectors.api import (
-    ApiClient,
-    ApiDefinition,
-    ApiInfo,
-    SavedApi,
-    is_insecure,
-    rows_to_frame,
-    sample_document,
-)
+from prodata.connectors.api import ApiClient
+from prodata.connectors.api_model import ApiDefinition, ApiInfo, SavedApi, is_insecure
+from prodata.connectors.api_records import rows_to_frame, sample_document
 from prodata.domain.workflow import ID_PATTERN
 from prodata.engine.profiling import schema_of
 from prodata.engine.serialize import json_rows

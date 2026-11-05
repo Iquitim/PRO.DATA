@@ -16,14 +16,17 @@ from prodata.dashboard.filters import (
     apply_filters,
     column_type,
     filter_options,
+    filters_for,
     used_columns,
 )
 from prodata.dashboard.formats import describe_formats
 from prodata.dashboard.layouts import Arrangement, LayoutItem, Rect, Template, arrange_all, place
 from prodata.dashboard.viewer import build_viewer
 from prodata.domain.dashboard import DashFilter, DashPage
+from prodata.domain.labels import LABEL_NAMES, Confidentiality
 from prodata.domain.workflow import Node, Workflow
 from prodata.nodes import REGISTRY, NodeContext
+from prodata.services.audit import log_export
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -86,6 +89,14 @@ def _filters(workflow: Workflow) -> list[DashFilter]:
     return workflow.dashboard.filters if workflow.dashboard else []
 
 
+def _config_of(node: Node) -> Any:
+    # Se a configuração estiver inválida, quem avisa é o próprio visual, em ``_widget``.
+    try:
+        return REGISTRY[node.type].config.model_validate(node.config)
+    except ValidationError:
+        return None
+
+
 def _widget(services: Services, node: Node, table: pl.DataFrame) -> dict[str, Any]:
     spec = REGISTRY[node.type]
     label = node.label or spec.name
@@ -111,7 +122,7 @@ def dashboard_filtered(req: WorkflowRequest, services: ServicesDep) -> dict[str,
     widgets: dict[str, Any] = {}
     no_column: dict[str, list[str]] = {}
     for node, table in _visual_nodes(services, req.workflow):
-        current, missing = apply_filters(table, filters)
+        current, missing = apply_filters(table, filters_for(_config_of(node), filters))
         if missing:
             no_column[node.id] = missing
         if current.height != table.height:
@@ -160,3 +171,21 @@ def dashboard_export_data(req: WorkflowRequest, services: ServicesDep) -> dict[s
 @router.get("/viewer.js")
 def dashboard_viewer() -> Response:
     return Response(build_viewer(WEB_JS), media_type="text/javascript; charset=utf-8")
+
+
+class ExportLog(BaseModel):
+    kind: str = Field(pattern=r"^(PNG|HTML)$")
+    file: str = Field(max_length=300)
+    label: Confidentiality
+    rows: int | None = None
+    columns: int | None = None
+    password: bool = False
+
+
+@router.post("/export-log", status_code=204)
+def dashboard_export_log(req: ExportLog) -> Response:
+    """Registra a exportação feita na tela (a imagem e o HTML são montados no navegador). Nunca os dados."""
+    log_export(
+        f"Dashboard ({req.kind})", req.file, LABEL_NAMES[req.label], req.rows, req.columns, senha=req.password
+    )
+    return Response(status_code=204)

@@ -21,6 +21,8 @@ from typing import Any
 import duckdb
 import polars as pl
 
+from prodata.engine.sandbox import BLOCKED_MESSAGE, is_blocked, lock, sandboxed_connection
+
 # Unidade de data em inglês ou português ('dia', 'mês', 'ano'...), normalizada para o DuckDB.
 _UNIT = (
     "CASE WHEN lower(u) IN ('day', 'days', 'dia', 'dias', 'd') THEN 'day' "
@@ -423,10 +425,10 @@ def connect() -> duckdb.DuckDBPyConnection:
     global _base
     with _base_lock:
         if _base is None:
-            base = duckdb.connect(":memory:")
+            base = sandboxed_connection()
             for _, definition in ALTERYX_FUNCTIONS.values():
                 base.execute(f"CREATE MACRO {definition}")
-            _base = base
+            _base = lock(base)
         return _base.cursor()
 
 
@@ -510,6 +512,8 @@ def validate(expression: str, columns: list[dict[str, str]]) -> dict[str, Any]:
 
 def _clean(exc: Exception) -> str:
     """Remove o ruído de contexto do DuckDB e traduz erros de sintaxe para algo acionável."""
+    if is_blocked(exc):
+        return BLOCKED_MESSAGE
     message = str(exc).split("\n\nLINE")[0].split("\n\tCandidate functions")[0].strip()
     message = re.sub(r"\s*You might need to add explicit type casts\.?", "", message)
     if "No function matches" in message:

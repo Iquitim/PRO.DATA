@@ -79,6 +79,7 @@ export const api = {
 
   dashboardFiltered: (workflow) => request('POST', '/api/dashboard/filtered', { workflow }),
   dashboardFilterOptions: (workflow) => request('POST', '/api/dashboard/filter-options', { workflow }),
+  dashboardExportLog: (entry) => request('POST', '/api/dashboard/export-log', entry),
   dashboardExportData: (workflow) => request('POST', '/api/dashboard/export-data', { workflow }),
   apis: () => request('GET', '/api/apis'),
   apiExamples: () => request('GET', '/api/apis/examples'),

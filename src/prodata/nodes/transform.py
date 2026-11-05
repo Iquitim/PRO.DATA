@@ -8,6 +8,8 @@ import duckdb
 import polars as pl
 from pydantic import BaseModel, Field
 
+from prodata.engine import sandbox
+from prodata.engine.profiling import simple_type
 from prodata.engine.sql.fragment import (
     ROW_POSITION,
     Fragment,
@@ -21,7 +23,8 @@ from prodata.engine.sql.fragment import (
 )
 from prodata.forms import ui
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
-from prodata.nodes.prep import ORDER_NOTE, SelectField, apply_select, select_items
+from prodata.nodes.prep import SelectField, apply_select
+from prodata.nodes.prep_sql import ORDER_NOTE, select_items
 
 # ------------------------------------------------------------------ Join
 
@@ -153,9 +156,22 @@ _AGG_LABELS = {
 }
 
 
+_ANY_TYPE = ["count", "count_all", "n_unique", "first", "last", "mode"]
+# O que faz sentido para cada tipo de coluna (spec 026). Número aceita tudo.
+AGG_BY_TYPE: dict[str, list[str]] = {
+    "String": [*_ANY_TYPE, "concat", "min", "max"],
+    "Date": [*_ANY_TYPE, "min", "max"],
+    "Boolean": [*_ANY_TYPE, "sum", "mean"],
+}
+
+
 class Aggregation(BaseModel):
     column: str = Field("", title="Coluna", json_schema_extra=ui(widget="column"))
-    agg: AggOp = Field("sum", title="Operação", json_schema_extra=ui(labels=_AGG_LABELS))
+    agg: AggOp = Field(
+        "sum",
+        title="Operação",
+        json_schema_extra=ui(labels=_AGG_LABELS, options_by_type=AGG_BY_TYPE, source="column"),
+    )
     alias: str = Field("", title="Nome da saída", json_schema_extra=ui(placeholder="automático"))
 
 
@@ -167,6 +183,20 @@ class SummarizeConfig(ToolConfig):
         json_schema_extra=ui(widget="columns"),
     )
     aggregations: list[Aggregation] = Field(default_factory=lambda: [Aggregation()], title="Agregações")
+
+
+def _check_operation(item: Aggregation, df: pl.DataFrame) -> None:
+    """Só recusa o que o motor não calcula, com uma mensagem clara no lugar do erro técnico."""
+    if item.agg == "count_all":
+        return
+    kind = simple_type(df.schema[item.column])
+    impossible = {"String": ("sum", "mean", "median", "std"), "Date": ("sum", "std")}.get(kind, ())
+    if item.agg in impossible:
+        name = {"String": "texto", "Date": "data"}[kind]
+        raise ValueError(
+            f'"{_AGG_LABELS[item.agg]}" não se aplica à coluna [{item.column}], que é de {name}. '
+            f"Escolha outra operação, como Contagem ou Valores distintos, ou converta a coluna com um Select."
+        )
 
 
 def _agg_expr(item: Aggregation) -> pl.Expr:
@@ -220,6 +250,8 @@ def summarize(ctx: NodeContext, cfg: SummarizeConfig) -> NodeOutput:
     items = [a for a in cfg.aggregations if a.column or a.agg == "count_all"]
     if missing := [a.column for a in items if a.agg != "count_all" and a.column not in df.columns]:
         raise ValueError(f"Coluna(s) de agregação inexistente(s): {', '.join(missing)}")
+    for a in items:
+        _check_operation(a, df)
     exprs = [_agg_expr(a) for a in items] or [pl.len().alias("linhas")]
     out = df.group_by(cfg.group_by, maintain_order=True).agg(exprs) if cfg.group_by else df.select(exprs)
     return NodeOutput(tables={"out": out})
@@ -290,7 +322,7 @@ class SqlConfig(ToolConfig):
     annotate=lambda c: " ".join(c.sql.split())[:40],
 )
 def sql_query(ctx: NodeContext, cfg: SqlConfig) -> NodeOutput:
-    with duckdb.connect(":memory:") as con:
+    with sandbox.sandboxed_connection() as con:
         # Um fluxo recebido de outra pessoa executa ao abrir: esta caixa consulta, nunca grava.
         if not single_select(con, cfg.sql.strip().rstrip(";")):
             raise ValueError(
@@ -299,9 +331,12 @@ def sql_query(ctx: NodeContext, cfg: SqlConfig) -> NodeOutput:
         con.register("input_1", ctx.input("in"))
         if "in2" in ctx.inputs:
             con.register("input_2", ctx.inputs["in2"])
+        sandbox.lock(con)
         try:
             return NodeOutput(tables={"out": con.sql(cfg.sql).pl()})
         except duckdb.Error as exc:
+            if sandbox.is_blocked(exc):
+                raise ValueError(sandbox.BLOCKED_MESSAGE) from exc
             raise ValueError(str(exc).split("\n\nLINE")[0]) from exc
 
 

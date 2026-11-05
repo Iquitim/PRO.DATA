@@ -4,24 +4,25 @@
 
 import { api } from './api.js';
 import { chartChrome, freeEl, placeItem, setCardEnv, visualCard } from './dash_cards.js';
-import { activeFiltersText, filterBar, isFilterActive, noFilterBadge } from './dash_filters.js';
+import { clickedValues, filterBar, isFilterActive, noFilterBadge, selectedIn } from './dash_filters.js';
 import { exportHtml } from './dash_html.js';
-import {
-  biNodes, ensureLayout, GRID, growToFit, hintFor, PAGE_SIZES, PAGE_W, pageHeight, rectOf, restoreVisual, widgetsByNode,
-} from './dash_model.js';
-import { renderPng, savePng, stamp } from './dash_export.js';
+import { guardBadge, hideLabelTip, labelPicker, withLabelTip } from './label_picker.js';
+import { biNodes, ensureLayout, GRID, PAGE_SIZES, PAGE_W, pageHeight, rectOf, restoreVisual, widgetsByNode } from './dash_model.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { renderFields } from './fields.js';
 import { icon } from './icons.js';
 import { inspect, mutate, on, select, store } from './store.js';
-import { confirmDialog, openDialog, showMenu, toast, toastError } from './ui.js';
+import { showMenu, toast, toastError } from './ui.js';
+import { commitLayout, dash, els, itemById, newId, nodeLabel, nodeOf, page as dashPage, ui } from './dash_state.js';
+import { bbox, drawGuides, overlaps, resizeRect, snapBox } from './dash_snap.js';
+import { insertItems, logoImage, pickImage } from './dash_insert.js';
+import { openOrganize } from './dash_organize.js';
+import { exportPage, exportVisual } from './dash_png.js';
 
 export { AGG_LABELS, chartCard, kpiTile, tableCard, visualCard } from './dash_cards.js';
 
 let root;
 let handlers = {};
-const ui = { mode: 'view', zoom: null, selected: new Set(), scale: 1 };
-let els = {};
 let gesture = null;
 let syncing = null;
 let formats = null; // campos do painel Formato por tipo (GET /api/dashboard/formats)
@@ -32,7 +33,15 @@ const PANEL_W = 312;
 export function initDashboard(el, opts) {
   root = el;
   handlers = opts;
-  setCardEnv({ open: goToNode, clickable: () => ui.mode === 'view' });
+  Object.assign(dashPage, { root: el, render, pageEl, itemEl, shownWidgets });
+  setCardEnv({
+    open: goToNode,
+    clickable: () => ui.mode === 'view',
+    canFilter: (w) => ui.mode === 'view' && ((dash()?.filters || []).some((f) => f.kind === 'list' && f.column === w.x_column)
+      || options.list.some((o) => o.kind === 'list' && o.column === w.x_column)),
+    selectedFor: (w) => selectedIn(dash()?.filters, w.x_column),
+    onCategory: filterByCategory,
+  });
   const refresh = () => store.view === 'dashboard' && render();
   on('execution', refresh);
   on('workflow:loaded', () => { ui.selected.clear(); ui.mode = 'view'; refresh(); });
@@ -48,15 +57,6 @@ export function goToNode(id) {
 
 // ------------------------------------------------------------------ página
 
-const dash = () => store.workflow?.dashboard;
-const itemById = (id) => dash()?.items.find((i) => i.id === id);
-const nodeOf = (nodeId) => store.workflow.nodes.find((k) => k.id === nodeId);
-const nodeLabel = (nodeId) => {
-  const n = nodeOf(nodeId);
-  return n?.label || store.tools[n?.type]?.name || nodeId;
-};
-const newId = () => `d_${Math.random().toString(36).slice(2, 8)}`;
-
 function visualEl(item, w, { editing, exporting }) {
   const node = nodeOf(item.node_id);
   const f = item.format || {};
@@ -67,7 +67,7 @@ function visualEl(item, w, { editing, exporting }) {
       h('span', {}, node?.disabled ? 'Caixa desativada no fluxo' : 'Execute o fluxo para ver este visual'));
   }
   const actions = exporting || editing || w.widget_type === 'kpi' ? [] : [button({ icon: 'download', title: 'Baixar imagem deste visual (PNG)', size: 'sm', variant: 'ghost', onClick: () => exportVisual(item) })];
-  return visualCard(w, { width: item.w, height: Math.max(80, item.h - chartChrome(f)), className: 'fill', actions, fmt: f });
+  return visualCard(w, { width: item.w, height: Math.max(80, item.h - chartChrome(f)), className: 'fill', actions, fmt: f, cross: true });
 }
 
 const HANDLES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -106,6 +106,7 @@ const requestFiltered = debounce(async () => {
   } finally {
     if (token === filtered.token) {
       filtered.busy = false;
+      filtered.pulse = true;
       if (store.view === 'dashboard') render();
     }
   }
@@ -132,6 +133,15 @@ function syncFilters() {
       .catch((err) => { options.execution = running; toastError(err, 'Não foi possível listar os valores dos filtros'); })
       .finally(() => { options.loading = false; drawFilterBar(); });
   }
+}
+
+/** Clique numa barra ou fatia: usa o filtro daquela coluna ou cria um. */
+function filterByCategory(w, value, adding) {
+  changeFilters((list) => {
+    const found = list.find((f) => f.kind === 'list' && f.column === w.x_column);
+    if (found) return list.map((f) => (f === found ? { ...f, selected: clickedValues(f.selected, value, adding) } : f));
+    return [...list, { id: newId(), column: w.x_column, kind: 'list', label: '', selected: [value], min: null, max: null }];
+  });
 }
 
 const changeFilters = (fn, key) => commitLayout((d) => { d.filters = fn(structuredClone(d.filters || [])); }, key ? { key } : {});
@@ -171,10 +181,22 @@ function drawFilterBar() {
 function pageEl({ editing = false, exporting = false } = {}) {
   const d = dash();
   const widgets = shownWidgets();
+  const pulse = filtered.pulse && !exporting && !editing;
+  if (!exporting) filtered.pulse = false;
   return h('div', {
-    class: ['dash-page', editing && 'editing', exporting && 'dash-export'],
+    class: ['dash-page', editing && 'editing', exporting && 'dash-export', pulse && 'dash-refresh'],
     style: { width: `${PAGE_W}px`, height: `${pageHeight(d.page)}px`, backgroundColor: d.page.background || null },
   }, d.items.map((item) => itemEl(item, widgets, { editing, exporting })));
+}
+
+/** Botão de exportar com selo e dica do que o rótulo faz naquela saída. */
+function exportButton({ icon: name, label, kind, onClick }) {
+  const level = () => dash().confidentiality || 'interno';
+  const el = button({ icon: name, label, onClick: (e) => { hideLabelTip(); onClick(e); } });
+  el.removeAttribute('title'); // a dica já explica; o título nativo apareceria por cima dela
+  const badge = guardBadge(level(), kind);
+  if (badge) el.append(badge);
+  return withLabelTip(el, level, 'dash');
 }
 
 const menuAt = (items) => (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, items()); };
@@ -205,8 +227,10 @@ function headEl() {
     button({ icon: 'check', label: 'Concluir', variant: 'primary', onClick: () => setMode('view') }),
   ] : [
     button({ icon: 'edit', label: 'Editar layout', title: 'Mover, redimensionar, formatar e organizar os visuais', onClick: () => setMode('edit') }),
-    button({ icon: 'download', label: 'Baixar imagem', title: 'Baixar o dashboard em PNG', onClick: () => exportPage().catch((err) => toastError(err, 'Não foi possível gerar a imagem')) }),
-    button({ icon: 'globe', label: 'Baixar HTML', title: 'Página que abre em qualquer navegador, com os filtros funcionando', onClick: () => exportHtml(shownWidgets()) }),
+    h('div', { class: 'dash-label-pick' }, h('span', { class: 'dash-label-title' }, 'Rótulo'),
+      labelPicker({ value: d.confidentiality || 'interno', place: 'dash', onChange: (level) => commitLayout((dd) => { dd.confidentiality = level; }) })),
+    exportButton({ icon: 'download', label: 'Baixar imagem', kind: 'image', onClick: () => exportPage().catch((err) => toastError(err, 'Não foi possível gerar a imagem')) }),
+    exportButton({ icon: 'globe', label: 'Baixar HTML', kind: 'html', onClick: () => exportHtml(shownWidgets()) }),
     button({ icon: 'refresh', label: 'Atualizar dados', variant: 'primary', onClick: () => handlers.run() }),
   ];
   return h('header', { class: 'dash-head' }, brand, h('div', { class: 'dash-actions' }, actions));
@@ -257,7 +281,7 @@ export function render() {
   page.style.setProperty('--inv', String(1 / ui.scale)); // alças e guias com o mesmo tamanho em qualquer zoom
   const sheet = h('div', { class: 'dash-sheet', style: { width: `${PAGE_W * ui.scale}px`, height: `${pageHeight(d.page) * ui.scale}px` } }, page);
   const previous = els;
-  els = { page, sheet, guides: [], marquee: null };
+  Object.assign(els, { page, sheet, guides: [], marquee: null });
   if (editing) {
     page.addEventListener('pointerdown', onDown);
     page.addEventListener('pointermove', onMove);
@@ -423,98 +447,6 @@ function pagePanel(d) {
 
 // ------------------------------------------------------------------ inserir (RF-1440..RF-1442)
 
-function insertItems() {
-  return [
-    { label: 'Título', icon: 'edit', onSelect: () => insert({ kind: 'text', w: 800, h: 64, content: store.workflow.name || 'Título', format: { size: 30, bold: true } }, { header: true }) },
-    { label: 'Texto', icon: 'list', onSelect: () => insert({ kind: 'text', w: 480, h: 120, content: 'Escreva aqui', format: {} }) },
-    'separator',
-    { label: 'Imagem…', icon: 'upload', onSelect: () => pickImage().then((img) => img && insert({ kind: 'image', ...fitBox(img, 360), content: img.data, format: {} })) },
-    { label: 'Logo do Grupo Protege', icon: 'image', onSelect: () => logoImage().then((img) => insert({ kind: 'image', ...fitBox(img, 120), content: img.data, format: {} })) },
-    'separator',
-    { label: 'Retângulo (fundo de seção)', icon: 'group', onSelect: () => insert({ kind: 'shape', w: 760, h: 400, format: { shape: 'rect' } }, { back: true }) },
-    { label: 'Linha divisória', icon: 'columns', onSelect: () => insert({ kind: 'shape', w: 1520, h: 16, format: { shape: 'line' } }) },
-  ];
-}
-
-const fitBox = (img, max) => {
-  const k = Math.min(1, max / Math.max(img.width, img.height));
-  return { w: Math.max(48, Math.round((img.width * k) / GRID) * GRID), h: Math.max(48, Math.round((img.height * k) / GRID) * GRID) };
-};
-
-/** Primeiro espaço livre a partir de `top` (de cima para baixo, da esquerda para a direita). */
-function freeSpot(w, h, top) {
-  const taken = dash().items;
-  const fits = (x, y) => !taken.some((o) => overlaps({ x: x - 16, y: y - 16, w: w + 32, h: h + 32 }, o));
-  for (let y = top; y < top + 4000; y += GRID) {
-    for (let x = 40; x + w <= PAGE_W - 40; x += GRID) if (fits(x, y)) return { x, y };
-  }
-  return { x: Math.round((PAGE_W - w) / 2 / GRID) * GRID, y: top };
-}
-
-/**
- * Novo item no primeiro espaço livre perto do topo visível, selecionado. Formas de fundo vão para trás,
- * no topo visível, porque costumam ficar atrás de outros itens. Um título (`header`) entra no topo
- * visível e empurra para baixo o que estiver dali em diante, abrindo espaço.
- */
-function insert(item, { back = false, header = false } = {}) {
-  const top = els.sheet ? Math.max(0, (root.getBoundingClientRect().top - els.sheet.getBoundingClientRect().top) / ui.scale) : 0;
-  const start = Math.round((top + 40) / GRID) * GRID;
-  const spot = back || header ? { x: 40, y: start } : freeSpot(item.w, item.h, start);
-  const placed = { id: newId(), node_id: null, ...item, ...spot };
-  commitLayout((d) => {
-    if (header) for (const i of d.items) if (i.y + i.h > start) i.y += item.h + 16;
-    if (back) d.items.unshift(placed); else d.items.push(placed);
-  });
-  ui.selected = new Set([placed.id]);
-  render();
-}
-
-const SVG_FORBIDDEN = /<\s*script|<\s*foreignObject|<\s*iframe|<\s*object|<\s*embed|\son\w+\s*=|javascript:|(?:xlink:)?href\s*=\s*["']\s*(?!#|data:image\/)/i;
-
-const readAsDataUrl = (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result);
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(blob);
-});
-
-const naturalSize = (src) => new Promise((resolve) => {
-  const img = new Image();
-  img.onload = () => resolve({ width: img.naturalWidth || 320, height: img.naturalHeight || 240 });
-  img.onerror = () => resolve({ width: 320, height: 240 });
-  img.src = src;
-});
-
-/** Escolhe uma imagem do computador. Mesmas regras do servidor: PNG/JPG/SVG sem código, até 1 MB. */
-function pickImage() {
-  return new Promise((resolve) => {
-    const input = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/svg+xml', hidden: true });
-    input.addEventListener('change', async () => {
-      const file = input.files[0];
-      input.remove();
-      if (!file) { resolve(null); return; }
-      try {
-        if (!['image/png', 'image/jpeg', 'image/svg+xml'].includes(file.type)) throw new Error('Use uma imagem PNG, JPG ou SVG.');
-        if (file.size > 1024 * 1024) throw new Error('A imagem passa de 1 MB. Reduza o tamanho antes de inserir.');
-        if (file.type === 'image/svg+xml' && SVG_FORBIDDEN.test(await file.text())) throw new Error('O SVG contém scripts ou links externos e não pode ser usado.');
-        const data = await readAsDataUrl(file);
-        resolve({ data, ...(await naturalSize(data)) });
-      } catch (err) {
-        toastError(err, 'Imagem não aceita');
-        resolve(null);
-      }
-    });
-    document.body.append(input);
-    input.click();
-  });
-}
-
-async function logoImage() {
-  const blob = await (await fetch('/static/brand/protege-escudo.svg')).blob();
-  const data = await readAsDataUrl(new Blob([blob], { type: 'image/svg+xml' }));
-  return { data, width: 191, height: 241 };
-}
-
 // ------------------------------------------------------------------ copiar, colar, duplicar (RF-1404)
 
 function copySelection() {
@@ -654,96 +586,8 @@ function onDoubleClick(e) {
 }
 
 /** Uma alteração de layout = um passo de desfazer; a página cresce se algo passou do fim (RF-1463). */
-function commitLayout(fn, opts = {}) {
-  let grew = false;
-  mutate((wf) => { fn(wf.dashboard); grew = growToFit(wf.dashboard); }, opts);
-  if (grew) toast('Os itens passaram do fim da página: a altura passou a ser livre.');
-}
 
 // ------------------------------------------------------------------ encaixe e guias
-
-const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-
-function bbox(rects) {
-  const x = Math.min(...rects.map((r) => r.x));
-  const y = Math.min(...rects.map((r) => r.y));
-  return { x, y, w: Math.max(...rects.map((r) => r.x + r.w)) - x, h: Math.max(...rects.map((r) => r.y + r.h)) - y };
-}
-
-/** Linhas de referência: bordas e centro da página, margens e bordas/centros dos outros itens. */
-function targets(others) {
-  const ph = pageHeight(dash().page);
-  const xs = [0, 40, PAGE_W / 2, PAGE_W - 40, PAGE_W];
-  const ys = [0, 40, ph / 2, ph - 40, ph];
-  for (const o of others) {
-    xs.push(o.x, o.x + o.w / 2, o.x + o.w);
-    ys.push(o.y, o.y + o.h / 2, o.y + o.h);
-  }
-  return { xs, ys };
-}
-
-/** Melhor encaixe de um conjunto de arestas numa lista de alvos: { offset, at } ou null. */
-function nearest(edges, values, threshold) {
-  let best = null;
-  for (const edge of edges) {
-    for (const v of values) {
-      const d = v - edge;
-      if (Math.abs(d) <= threshold && (!best || Math.abs(d) < Math.abs(best.offset))) best = { offset: d, at: v };
-    }
-  }
-  return best;
-}
-
-const toGrid = (v) => Math.round(v / GRID) * GRID;
-
-function snapBox(box, others, free) {
-  if (free) return { dx: 0, dy: 0, guides: [] };
-  const t = targets(others);
-  const threshold = 6 / ui.scale;
-  const sx = nearest([box.x, box.x + box.w / 2, box.x + box.w], t.xs, threshold);
-  const sy = nearest([box.y, box.y + box.h / 2, box.y + box.h], t.ys, threshold);
-  const guides = [];
-  if (sx) guides.push({ axis: 'x', at: sx.at });
-  if (sy) guides.push({ axis: 'y', at: sy.at });
-  return {
-    dx: sx ? sx.offset : toGrid(box.x) - box.x,
-    dy: sy ? sy.offset : toGrid(box.y) - box.y,
-    guides,
-  };
-}
-
-const MIN_W = 48;
-const MIN_H = 16;
-
-function resizeRect(r, dir, dx, dy, others, free) {
-  const t = targets(others);
-  const threshold = 6 / ui.scale;
-  const guides = [];
-  const snap = (v, list, axis) => {
-    if (free) return v;
-    const s = nearest([v], list, threshold);
-    if (s) { guides.push({ axis, at: s.at }); return s.at; }
-    return toGrid(v);
-  };
-  let { x, y } = r;
-  let right = r.x + r.w;
-  let bottom = r.y + r.h;
-  if (dir.includes('e')) right = Math.max(x + MIN_W, snap(right + dx, t.xs, 'x'));
-  if (dir.includes('w')) x = Math.min(right - MIN_W, Math.max(0, snap(r.x + dx, t.xs, 'x')));
-  if (dir.includes('s')) bottom = Math.max(y + MIN_H, snap(bottom + dy, t.ys, 'y'));
-  if (dir.includes('n')) y = Math.min(bottom - MIN_H, Math.max(0, snap(r.y + dy, t.ys, 'y')));
-  right = Math.min(right, PAGE_W);
-  return { rect: { x: Math.round(x), y: Math.round(y), w: Math.round(right - x), h: Math.round(bottom - y) }, guides };
-}
-
-function drawGuides(guides) {
-  for (const g of els.guides || []) g.remove();
-  els.guides = guides.map((g) => h('div', {
-    class: ['dash-guide', g.axis === 'x' ? 'v' : 'h'],
-    style: g.axis === 'x' ? { left: `${g.at}px` } : { top: `${g.at}px` },
-  }));
-  els.page?.append(...els.guides);
-}
 
 // ------------------------------------------------------------------ menus e ações
 
@@ -878,109 +722,5 @@ export function handleDashboardKey(e) {
 
 // ------------------------------------------------------------------ Organizar (RF-1460..RF-1463)
 
-const TEMPLATE_INFO = {
-  auto: ['Automático', 'Tamanho pelo tipo de visual, na ordem atual, sem buracos'],
-  'kpis-top-2': ['KPIs no topo + 2 colunas', 'Indicadores em faixa, gráficos lado a lado'],
-  'kpis-top-3': ['KPIs no topo + 3 colunas', 'Mais visuais por linha, para telas largas'],
-  highlight: ['Destaque', 'Um gráfico grande e os demais ao lado'],
-  'kpis-side': ['KPIs na lateral', 'Indicadores em coluna à esquerda'],
-  report: ['Relatório', 'Um visual por linha, em largura total'],
-};
-
-async function openOrganize() {
-  const d = dash();
-  const visuals = d.items.filter((i) => i.kind === 'visual');
-  const picked = visuals.filter((i) => ui.selected.has(i.id));
-  const chosen = picked.length ? picked : visuals;
-  if (!chosen.length) { toast('Selecione visuais ou adicione caixas de BI ao fluxo.'); return; }
-  const obstacles = d.items.filter((i) => !chosen.includes(i)).map(rectOf);
-  let result;
-  try {
-    result = await api.arrangeDashboard({
-      page: d.page,
-      items: chosen.map((i) => ({ id: i.id, hint: hintFor(i.node_id), rect: rectOf(i) })),
-      obstacles,
-    });
-  } catch (err) {
-    toastError(err, 'Não foi possível organizar');
-    return;
-  }
-  const kinds = Object.fromEntries(chosen.map((i) => [i.id, hintFor(i.node_id).kind]));
-  const { close } = openDialog({
-    title: picked.length ? `Organizar ${chosen.length} visual(is) selecionado(s)` : 'Organizar o dashboard',
-    size: 'lg',
-    body: h('div', {},
-      h('p', { class: 'muted organize-help' }, 'Escolha um layout. Textos, imagens, formas e visuais não selecionados ficam onde estão. Ctrl+Z desfaz.'),
-      h('div', { class: 'organize-grid' }, Object.entries(TEMPLATE_INFO).map(([key, [label, desc]]) => h('button', {
-        type: 'button', class: 'organize-option',
-        onclick: () => { close(); applyArrangement(result[key]); },
-      }, thumbnail(result[key], obstacles, kinds), h('strong', {}, label), h('span', { class: 'muted' }, desc),
-      result[key].grew ? h('span', { class: 'organize-warn' }, 'Não cabe: a página vira altura livre') : null)))),
-  });
-}
-
-function thumbnail(arr, obstacles, kinds) {
-  const H = pageHeight(arr.page);
-  const ns = 'http://www.w3.org/2000/svg';
-  const el = (tag, attrs) => {
-    const n = document.createElementNS(ns, tag);
-    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
-    return n;
-  };
-  const svgEl = el('svg', { viewBox: `0 0 ${PAGE_W} ${H}`, class: 'organize-thumb', 'aria-hidden': 'true' });
-  svgEl.append(el('rect', { class: 'thumb-page', x: 0, y: 0, width: PAGE_W, height: H }));
-  for (const o of obstacles) svgEl.append(el('rect', { class: 'thumb-fixed', x: o.x, y: o.y, width: o.w, height: o.h, rx: 12 }));
-  for (const [id, r] of Object.entries(arr.positions)) {
-    svgEl.append(el('rect', { class: `thumb-${kinds[id]}`, x: r.x, y: r.y, width: r.w, height: r.h, rx: 12 }));
-  }
-  return svgEl;
-}
-
-function applyArrangement(arr) {
-  commitLayout((d) => {
-    for (const i of d.items) if (arr.positions[i.id]) Object.assign(i, arr.positions[i.id]);
-    d.page = { ...arr.page };
-  });
-  if (arr.grew) toast('Os visuais não couberam na página: a altura passou a ser livre.');
-}
-
 // ------------------------------------------------------------------ imagem PNG (RF-1450..RF-1453)
 
-async function exportPage() {
-  const d = dash();
-  if (!d) return;
-  const widgets = shownWidgets();
-  const missing = d.items.filter((i) => i.kind === 'visual' && !widgets[i.node_id]).length;
-  if (!store.execution || missing) {
-    const ok = await confirmDialog({
-      title: 'Baixar imagem',
-      message: store.execution
-        ? `${missing} visual(is) sem dados (com erro, desativados ou não executados) vão ficar de fora da imagem.`
-        : 'O fluxo ainda não foi executado: a imagem vai sair sem os visuais. Execute antes com "Atualizar dados".',
-      confirm: 'Baixar assim mesmo',
-    });
-    if (!ok) return;
-  }
-  const recorte = activeFiltersText(d.filters);
-  const strip = recorte ? 40 : 0;
-  const content = recorte
-    ? h('div', { style: { width: `${PAGE_W}px` } }, h('p', { class: 'dash-export-filters' }, `Filtros: ${recorte}`), pageEl({ exporting: true }))
-    : pageEl({ exporting: true });
-  const data = await renderPng(content, PAGE_W, pageHeight(d.page) + strip, { background: d.page.background || 'var(--bg)' });
-  const saved = await savePng(`${store.workflow.name || 'Dashboard'} - ${stamp()}`, data);
-  if (saved) toast(`Imagem salva: ${saved}`, { kind: 'success' });
-}
-
-async function exportVisual(item) {
-  const w = shownWidgets()[item.node_id];
-  if (!w) { toast('Execute o fluxo antes de baixar este visual.'); return; }
-  try {
-    const wrap = h('div', { class: 'dash-page dash-export', style: { width: `${item.w}px`, height: `${item.h}px`, backgroundColor: 'transparent' } },
-      itemEl({ ...item, x: 0, y: 0 }, { [item.node_id]: w }, { exporting: true }));
-    const data = await renderPng(wrap, item.w, item.h, { background: 'transparent' });
-    const saved = await savePng(`${w.title || nodeLabel(item.node_id)} - ${stamp()}`, data);
-    if (saved) toast(`Imagem salva: ${saved}`, { kind: 'success' });
-  } catch (err) {
-    toastError(err, 'Não foi possível gerar a imagem');
-  }
-}

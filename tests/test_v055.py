@@ -313,6 +313,51 @@ SQL_CASES: list[dict[str, Any]] = [
     {"column": "p", "expression": "[Row-2:v]", "group_by": ["g"]},
     {"target": "existing", "existing": "v", "type": "Int64", "expression": "[v] + COALESCE([Row-1:v], 0)"},
 ]
+SQL_ORDERED: list[dict[str, Any]] = [
+    # Receitas da Multi-Row (spec 026): as mesmas fórmulas que os cartões escrevem.
+    {"column": "r", "expression": "[v] - [Row-1:v]", "order_by": [{"column": "v"}]},
+    {
+        "column": "r",
+        "expression": "IF IsNull([Row-1:v]) OR [Row-1:v] = 0 THEN Null ELSE ([v] - [Row-1:v]) / [Row-1:v] * 100 ENDIF",
+        "order_by": [{"column": "v"}],
+    },
+    {"column": "r", "expression": "[Row+2:v]", "order_by": [{"column": "v"}]},
+    {
+        "column": "r",
+        "expression": "IF IsNull([Row-1:v]) THEN 'Início' ELSEIF [v] == [Row-1:v] THEN 'Igual' ELSE 'Mudou' ENDIF",
+        "order_by": [{"column": "v"}],
+    },
+    {
+        "column": "r",
+        "expression": "IF IsNull([v]) THEN [Row-1:r] ELSE [v] ENDIF",
+        "order_by": [{"column": "d"}],
+    },
+    {"column": "p", "expression": "[Row-1:v]", "order_by": [{"column": "v"}]},
+    {
+        "column": "p",
+        "expression": "[Row+1:v]",
+        "order_by": [{"column": "d", "descending": True}, {"column": "v"}],
+    },
+    {
+        "column": "p",
+        "expression": "[Row-1:v]",
+        "group_by": ["g"],
+        "order_by": [{"column": "v", "descending": True}],
+    },
+    {
+        "target": "existing",
+        "existing": "s",
+        "expression": "IF IsNull([s]) THEN [Row-1:s] ELSE [s] ENDIF",
+        "order_by": [{"column": "v"}],
+    },
+    {
+        "column": "ac",
+        "type": "Int64",
+        "expression": "COALESCE([Row-1:ac], 0) + COALESCE([v], 0)",
+        "group_by": ["g"],
+        "order_by": [{"column": "v", "descending": True}],
+    },
+]
 SQL_CHAINS: list[dict[str, Any]] = [
     {"target": "existing", "existing": "s", "expression": "IF IsNull([s]) THEN [Row-1:s] ELSE [s] ENDIF"},
     {
@@ -332,7 +377,7 @@ SQL_CHAINS: list[dict[str, Any]] = [
 ]
 
 
-@pytest.mark.parametrize("config", SQL_CASES + SQL_CHAINS, ids=str)
+@pytest.mark.parametrize("config", SQL_CASES + SQL_CHAINS + SQL_ORDERED, ids=str)
 def test_sql_matches_engine(config: dict[str, Any], store: DatasetStore, tmp_path: Path) -> None:
     spec = REGISTRY["prep.multirow"]
     cfg = spec.config.model_validate(config)

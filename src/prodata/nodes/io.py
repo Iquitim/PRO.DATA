@@ -2,39 +2,37 @@
 
 from __future__ import annotations
 
-import os
 import time
 from datetime import UTC, datetime
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
-import duckdb
 import polars as pl
-import xlsxwriter
 from pydantic import BaseModel, Field
 
 from prodata.connectors import sql
-from prodata.connectors.api import read_api, run_loop, source_api_id
+from prodata.connectors.api import read_api
+from prodata.connectors.api_loop import run_loop
+from prodata.connectors.api_model import source_api_id
 from prodata.connectors.queries import read_definition, source_query_id
-from prodata.engine.sql.fragment import (
-    OWN_RESULT,
-    Fragment,
-    SourceInfo,
-    SqlContext,
-    join_list,
-    kind_of,
-    lit,
-    q,
-    slug,
-    sql_for,
+from prodata.domain.labels import (
+    DEFAULT_LABEL,
+    LABEL_NAMES,
+    Confidentiality,
+    needs_protection,
 )
 from prodata.errors import InvalidInputError
 from prodata.forms import ui
 from prodata.ingestion.datasets import resolve_inside, sanitize_filename
 from prodata.ingestion.options import ReadOptions
-from prodata.ingestion.readers import read_table, resolve_options
+from prodata.ingestion.readers import read_table
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
+from prodata.nodes.excel_output import (
+    MAX_SHEETS,
+    _sheet_list,
+    write_excel_book,
+)
+from prodata.services.audit import log_export
 
 # ------------------------------------------------------------------ Input Data
 
@@ -173,8 +171,15 @@ class ApiLoopConfig(ToolConfig):
         1000,
         ge=1,
         le=1_000_000,
-        title="Limite de chamadas",
-        description="Acima disso, nada é chamado: protege a cota da API de uma tabela maior do que o esperado.",
+        title="Limite de pedidos à API",
+        description="Conta todos os pedidos, com páginas e novas tentativas. Ao chegar aqui, a caixa para, e o que faltou sai em E.",
+    )
+    stop_after_failures: int = Field(
+        10,
+        ge=0,
+        le=100_000,
+        title="Parar depois de quantas falhas seguidas",
+        description="Evita insistir numa API fora do ar ou com credencial errada. 0 = não para.",
     )
     on_error: Literal["continue", "stop"] = Field(
         "continue",
@@ -228,6 +233,7 @@ def api_loop(ctx: NodeContext, cfg: ApiLoopConfig) -> NodeOutput:
         stop_on_error=cfg.on_error == "stop",
         keep_columns=cfg.keep_columns,
         columns=cfg.columns,
+        stop_after_failures=cfg.stop_after_failures,
         progress=lambda done, total: ctx.report(f"{done}/{total} chamadas"),
     )
     warnings = []
@@ -235,7 +241,13 @@ def api_loop(ctx: NodeContext, cfg: ApiLoopConfig) -> NodeOutput:
         warnings.append(f"{result.failed} de {result.calls} chamadas falharam: veja a saída E.")
     if result.truncated:
         warnings.append(f"{result.truncated} chamadas pararam no limite de páginas da API.")
-    extra: dict[str, Any] = {"api_calls": result.calls, "api_failed": result.failed}
+    if result.stopped:
+        warnings.insert(0, f"Parou antes do fim: {result.stopped}")
+    extra: dict[str, Any] = {
+        "api_calls": result.calls,
+        "api_failed": result.failed,
+        "api_requests": result.requests,
+    }
     if warnings:
         extra["warnings"] = warnings
     return NodeOutput(tables={"out": result.table, "errors": result.errors}, extra=extra)
@@ -346,6 +358,15 @@ class OutputDataConfig(ToolConfig):
             }
         ),
     )
+    confidentiality: Confidentiality = Field(
+        DEFAULT_LABEL,
+        title="Rótulo de confidencialidade",
+        description=(
+            "No Excel, fica nas propriedades do arquivo, na impressão e na cor da aba. "
+            "Nos outros formatos, Confidencial e Restrito entram no nome do arquivo."
+        ),
+        json_schema_extra=ui(widget="confidentiality", labels=LABEL_NAMES),
+    )
     sheet_name: str = Field(
         "Dados",
         title="Nome da planilha",
@@ -373,82 +394,11 @@ class OutputDataConfig(ToolConfig):
     )
 
 
-_BAD_SHEET_CHARS = set("[]:*?/\\")
-MAX_SHEETS = 8
-
-
-def sheet_title(raw: str) -> str:
-    """Nome de planilha aceito pelo Excel: 1 a 31 caracteres, sem colchetes, : * ? / ou barra invertida."""
-    name = raw.strip() or "Dados"
-    bad = sorted(set(name) & _BAD_SHEET_CHARS)
-    if bad:
-        raise InvalidInputError(f"O nome da planilha não pode ter {' '.join(bad)}.")
-    if len(name) > 31:
-        raise InvalidInputError("O nome da planilha tem no máximo 31 caracteres.")
-    return name
-
-
-def write_excel_sheet(df: pl.DataFrame, path: Path, sheet: str, add: bool) -> None:
-    """Grava a planilha. Com ``add`` e arquivo existente, mantém as outras planilhas (e a posição desta)."""
-    if not (add and path.exists()):
-        df.write_excel(path, worksheet=sheet, autofit=True)
-        return
-    from openpyxl import load_workbook
-
-    try:
-        book = load_workbook(path)
-    except Exception as exc:  # arquivo corrompido ou que não é xlsx: mensagem acionável
-        raise InvalidInputError(
-            f"Não foi possível abrir {path.name} para adicionar a planilha: {exc}"
-        ) from exc
-    position = len(book.sheetnames)
-    if sheet in book.sheetnames:
-        position = book.sheetnames.index(sheet)
-        del book[sheet]
-    ws = book.create_sheet(sheet, position)
-    ws.append(df.columns)
-    for row in df.iter_rows():
-        ws.append(list(row))
-    for i, col in enumerate(df.columns, start=1):  # largura aproximada, como o autofit do write_excel
-        sample = [len(str(v)) for v in df[col].head(200).to_list() if v is not None]
-        ws.column_dimensions[ws.cell(1, i).column_letter].width = min(60, max([len(col), *sample]) + 2)
-    tmp = path.with_name(path.name + ".tmp")
-    book.save(tmp)
-    os.replace(tmp, path)
-
-
-def _sheet_list(
-    df: pl.DataFrame, extras: dict[str, pl.DataFrame], cfg: OutputDataConfig
-) -> list[tuple[str, pl.DataFrame]]:
-    """Planilhas do arquivo, na ordem das entradas. Nomes são conferidos antes de gravar qualquer coisa."""
-    ordered = sorted(extras, key=lambda p: int(p[2:]))
-    sheets = [(sheet_title(cfg.sheet_name), df)]
-    sheets += [(sheet_title(cfg.sheet_names.get(p) or f"Planilha {p[2:]}"), extras[p]) for p in ordered]
-    seen: set[str] = set()
-    for name, _ in sheets:
-        if name.casefold() in seen:  # o Excel não diferencia maiúsculas
-            raise InvalidInputError(
-                f'Duas planilhas com o nome "{name}": cada entrada precisa de um nome próprio.'
-            )
-        seen.add(name.casefold())
-    return sheets
-
-
-def write_excel_book(sheets: list[tuple[str, pl.DataFrame]], path: Path, add: bool) -> None:
-    """Grava as planilhas. Sem ``add``, a pasta de trabalho é criada de uma vez, num arquivo temporário."""
-    if add or len(sheets) == 1:
-        for i, (name, table) in enumerate(sheets):
-            write_excel_sheet(table, path, name, add or i > 0)
-        return
-    tmp = path.with_name(path.name + ".tmp.xlsx")
-    with xlsxwriter.Workbook(tmp) as book:
-        for name, table in sheets:
-            table.write_excel(book, worksheet=name, autofit=True)
-    os.replace(tmp, path)
-
-
 def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
     stem = Path(sanitize_filename(cfg.filename or "resultado")).stem
+    # Fora do Excel, o arquivo não tem onde guardar o rótulo: ele vai no nome.
+    if cfg.format != "excel" and needs_protection(cfg.confidentiality):
+        stem += f"_{cfg.confidentiality.upper()}"
     name = stem + _EXTENSIONS[cfg.format]
     if not cfg.folder.strip():
         return resolve_inside(exports_dir, name)
@@ -487,7 +437,9 @@ def new_file_path(path: Path) -> Path:
         ],
     ],
     annotate=lambda c: (
-        f"{c.filename}{_EXTENSIONS[c.format]}" + (f" · {c.sheet_name}" if c.format == "excel" else "")
+        f"{c.filename}{_EXTENSIONS[c.format]}"
+        + (f" · {c.sheet_name}" if c.format == "excel" else "")
+        + (f" · {LABEL_NAMES[c.confidentiality]}" if needs_protection(c.confidentiality) else "")
     ),
     side_effect=True,
 )
@@ -515,14 +467,26 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
         case "csv":
             df.write_csv(path, separator=";")
         case "excel":
-            write_excel_book(sheets, path, cfg.if_exists == "add_sheet")
+            write_excel_book(sheets, path, cfg.if_exists == "add_sheet", cfg.confidentiality)
         case "json":
             df.write_json(path)
         case "arrow":
             df.write_ipc(path, compression="zstd")
         case _:
             df.write_parquet(path)
-    extra: dict[str, Any] = {"exported_file": path.name, "export_action": action}
+    extra: dict[str, Any] = {
+        "exported_file": path.name,
+        "export_action": action,
+        "confidentiality": cfg.confidentiality,
+    }
+    tables = [t for _, t in sheets] or [df]
+    log_export(
+        f"Output Data ({cfg.format})",
+        path.name,
+        LABEL_NAMES[cfg.confidentiality],
+        sum(t.height for t in tables),
+        max(t.width for t in tables),
+    )
     if len(sheets) > 1:
         extra["exported_sheets"] = [name for name, _ in sheets]
     if cfg.folder.strip():
@@ -600,204 +564,3 @@ def database_input(ctx: NodeContext, cfg: DatabaseInputConfig) -> NodeOutput:
 
 
 # ------------------------------------------------------------------ tradução para SQL (spec 020)
-
-_READ_FUNCTIONS = {"parquet": "read_parquet", "json": "read_json", "ndjson": "read_ndjson", "arrow": "read_arrow", "excel": "read_xlsx"}  # fmt: skip
-_SCHEMA_ROWS = 50
-_CHUNK = 1024 * 1024
-# Bytes em que CP1252 e Latin-1 diferem (€, aspas curvas, travessão...).
-_CP1252_ONLY = bytes(range(0x80, 0xA0))
-
-
-@lru_cache(maxsize=32)
-def _latin1_is_exact(path: Path, _modified: float, _size: int) -> bool:
-    """O DuckDB lê Latin-1 sem extensão. Sem os bytes em que diferem, o resultado é idêntico ao de CP1252."""
-    with path.open("rb") as stream:
-        while chunk := stream.read(_CHUNK):
-            if len(chunk.translate(None, _CP1252_ONLY)) != len(chunk):
-                return False
-    return True
-
-
-def _encoding(path: Path, encoding: str) -> str:
-    if encoding == "cp1252":
-        info = path.stat()
-        return "latin-1" if _latin1_is_exact(path, info.st_mtime, info.st_size) else "cp1252"
-    return encoding
-
-
-_DUCK_TYPES: dict[pl.DataType | type[pl.DataType], str] = {
-    pl.Int64: "BIGINT",
-    pl.Float64: "DOUBLE",
-    pl.String: "VARCHAR",
-    pl.Boolean: "BOOLEAN",
-    pl.Date: "DATE",
-}
-
-
-def _read_call(name: str, path: Path, opts: ReadOptions, extra: tuple[str, ...] = ()) -> str:
-    """Leitura sem o caminho real do arquivo: só o nome do dataset entra no código (RF-2030)."""
-    args = [lit(name)]
-    if opts.format == "csv":
-        args += [f"delim = {lit(opts.delimiter)}", f"header = {lit(opts.has_header)}"]
-        if opts.decimal == ",":
-            args.append("decimal_separator = ','")
-        if opts.encoding not in ("utf-8", "utf-8-sig"):
-            args.append(f"encoding = {lit(_encoding(path, opts.encoding))}")
-        if opts.skip_rows:
-            args.append(f"skip = {opts.skip_rows}")
-        if tokens := opts.null_tokens():
-            args.append("nullstr = [" + ", ".join(lit(t) for t in tokens) + "]")
-        args += extra
-        return f"read_csv({', '.join(args)})"
-    if opts.format == "excel":
-        if opts.sheet:
-            args.append(f"sheet = {lit(opts.sheet)}")
-        args.append(f"header = {lit(opts.has_header)}")
-    return f"{_READ_FUNCTIONS[opts.format]}({', '.join(args)})"
-
-
-@lru_cache(maxsize=64)
-def _sniffed_types(sql: str, _modified: float, _size: int) -> tuple[tuple[str, str], ...]:
-    """Tipos que o DuckDB deduz para o arquivo. Lê só o começo dele, e nada mais roda nesta conexão."""
-    with duckdb.connect(":memory:") as con:
-        try:
-            return tuple(
-                (str(r[0]), str(r[1])) for r in con.execute(f"DESCRIBE SELECT * FROM {sql}").fetchall()
-            )
-        except duckdb.Error:
-            return ()
-
-
-def _csv_extras(name: str, path: Path, opts: ReadOptions, schema: pl.Schema) -> tuple[str, ...]:
-    """O que precisa ir explícito para o DuckDB ler o CSV como o motor: nomes sem cabeçalho e tipos que divergem.
-
-    "007" é número para o motor e texto para o DuckDB; T/F é texto para o motor e booleano para o DuckDB.
-    """
-    extras: list[str] = []
-    if not opts.has_header:
-        names = [f"_pular_{i}" for i in range(opts.skip_columns)] + list(schema)
-        extras.append("names = [" + ", ".join(lit(c) for c in names) + "]")
-    call = _read_call(name, path, opts, tuple(extras)).replace(lit(name), lit(path.as_posix()), 1)
-    info = path.stat()
-    sniffed = dict(_sniffed_types(call, info.st_mtime, info.st_size))
-    fixes = {
-        c: _DUCK_TYPES[t]
-        for c, t in schema.items()
-        if c in sniffed and t in _DUCK_TYPES and kind_of(sniffed[c]) != kind_of(_DUCK_TYPES[t])
-    }
-    if fixes:
-        extras.append("types = {" + ", ".join(f"{lit(c)}: {lit(t)}" for c, t in fixes.items()) + "}")
-    return tuple(extras)
-
-
-@sql_for("io.input_data")
-def input_data_sql(ctx: SqlContext, cfg: InputDataConfig) -> dict[str, Fragment]:
-    if not cfg.dataset:
-        raise ValueError("Escolha uma fonte no campo 'Fonte'.")
-    api_id = source_api_id(cfg.dataset)
-    if api_id is not None:
-        assert ctx.apis is not None
-        return {"out": _database_source(ctx, ctx.apis.get(api_id).name, cfg.limit, "da API", "de uma API")}
-    query_id = source_query_id(cfg.dataset)
-    if query_id is not None:
-        assert ctx.queries is not None
-        return {"out": _database_source(ctx, ctx.queries.get(query_id).name, cfg.limit)}
-    assert ctx.datasets is not None
-    path = ctx.datasets.resolve(cfg.dataset)
-    opts = resolve_options(path, cfg)
-    cached = ctx.sample(OWN_RESULT)
-    schema = (cached if cached is not None else read_table(path, cfg, n_rows=_SCHEMA_ROWS)).schema
-    extras = _csv_extras(cfg.dataset, path, opts, schema) if opts.format == "csv" else ()
-    read = _read_call(cfg.dataset, path, opts, extras)
-    sql = f"SELECT * FROM {read}"
-    notes = []
-    if opts.skip_columns:
-        sql = f"SELECT {', '.join(q(c) for c in schema)} FROM {read}"
-    if cfg.limit:
-        sql += f"\nLIMIT {cfg.limit}"
-    if opts.format == "excel":
-        notes.append(
-            "A planilha é lida pela extensão do DuckDB; os tipos podem diferir da leitura do PRO.DATA."
-        )
-    if opts.format == "arrow":
-        notes.append(
-            "O DuckDB não lê Arrow sem uma extensão adicional: prefira converter a fonte para Parquet."
-        )
-    lower = [c.lower() for c in schema]
-    if len(set(lower)) != len(lower):
-        notes.append(
-            "Há colunas que só diferem em maiúsculas: o DuckDB não as distingue, então renomeie uma delas."
-        )
-    return {"out": Fragment(sql, f"Lê {cfg.dataset}", notes, source=SourceInfo(cfg.dataset, path, schema))}
-
-
-def _database_source(
-    ctx: SqlContext, name: str, limit: int, reading: str = "do banco", origin: str = "do banco de origem"
-) -> Fragment:
-    """Fonte de banco: o SQL original é do banco, não do DuckDB, então a etapa aponta para uma tabela."""
-    table = slug(name)
-    cached = ctx.sample(OWN_RESULT)
-    if cached is None:
-        raise ValueError(f"Execute o fluxo para ler as colunas desta fonte {reading}.")
-    sql = f"SELECT * FROM {q(table)}" + (f"\nLIMIT {limit}" if limit else "")
-    note = f'A fonte "{name}" é {origin}: crie a tabela {table} com ela, ou troque pelo nome da tabela no destino.'
-    return Fragment(
-        sql, f"Lê {name}, {reading}", [note], source=SourceInfo(table, None, cached.schema, file_check=False)
-    )
-
-
-@sql_for("io.database_input")
-def database_input_sql(ctx: SqlContext, cfg: DatabaseInputConfig) -> dict[str, Fragment]:
-    return {
-        "out": _database_source(
-            ctx, cfg.table if cfg.mode == "table" and cfg.table else "consulta do banco", cfg.limit
-        )
-    }
-
-
-@sql_for("io.text_input")
-def text_input_sql(ctx: SqlContext, cfg: TextInputConfig) -> dict[str, Fragment]:
-    df = text_input(None, cfg).tables["out"]  # type: ignore[arg-type]  # não usa o contexto
-    types: dict[pl.DataType | type[pl.DataType], str] = {
-        pl.Int64: "BIGINT",
-        pl.Float64: "DOUBLE",
-        pl.Boolean: "BOOLEAN",
-    }
-    casts = [types.get(t, "VARCHAR") for t in df.dtypes]
-    rows = [
-        # A primeira linha fixa os tipos: uma coluna só com vazios não pode virar outra coisa.
-        "("
-        + ", ".join(f"CAST({lit(v)} AS {c})" if i == 0 else lit(v) for v, c in zip(row, casts, strict=True))
-        + ")"
-        for i, row in enumerate(df.rows())
-    ]
-    names = ", ".join(q(c) for c in df.columns)
-    sql = (
-        f"SELECT *\nFROM (VALUES\n  {join_list(rows)}\n) AS t({names})"
-        if rows
-        else f"SELECT {', '.join(f'NULL AS {q(c)}' for c in df.columns)} WHERE FALSE"
-    )
-    warning = "Esta etapa leva para o código os dados digitados na tabela."
-    return {
-        "out": Fragment(sql, f"Tabela digitada com {df.height} linha(s)", [warning], data_warning=warning)
-    }
-
-
-@sql_for("io.browse")
-def browse_sql(ctx: SqlContext, cfg: BrowseConfig) -> dict[str, Fragment]:
-    return {"out": Fragment(f"SELECT * FROM {q(ctx.input().block)}", "Só repassa os dados, para inspeção")}
-
-
-@sql_for("io.output_data")
-def output_data_sql(ctx: SqlContext, cfg: OutputDataConfig) -> dict[str, Fragment]:
-    file = f"{cfg.filename}{_EXTENSIONS[cfg.format]}"
-    extras = sorted((p for p in ctx.inputs if p != "in"), key=lambda p: int(p[2:]))
-    notes = []
-    if extras:
-        names = ", ".join(ctx.inputs[p].block for p in extras)
-        notes.append(
-            f"O arquivo tem {len(extras) + 1} planilhas: este código é o da primeira. As demais vêm de {names}."
-        )
-    sql = f"SELECT * FROM {q(ctx.input().block)}"
-    explain = f"Grava {file}" + (f", com {len(extras) + 1} planilhas" if extras else "")
-    return {"out": Fragment(sql, explain, notes, export_file=file)}

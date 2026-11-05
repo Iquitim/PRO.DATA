@@ -11,6 +11,7 @@ import { connectionTables, openConnectionDialog, openQueryEditor, refreshQueries
 import { chooseFolder, isDesktop, reveal } from './desktop.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { explainerEl } from './explainers.js';
+import { isGuided, recipeOf, recipePatch } from './multirow_recipes.js';
 import { renderFields } from './fields.js';
 import { formatOf, openPreview } from './datasets.js';
 import { icon } from './icons.js';
@@ -236,6 +237,10 @@ function nodeContext(n) {
     values: (column, port, search) => upstreamValues(n.id, column, port || null, search || ''),
     datasets: store.datasets,
     errorField: res?.status === 'error' ? res.error_field?.split('.')[0] : null,
+    selfColumn: () => {
+      const cfg = store.workflow.nodes.find((k) => k.id === n.id)?.config;
+      return cfg?.target === 'new' ? cfg.column : null;
+    },
   };
   if (n.type === 'io.input_data') Object.assign(ctx, sourceContext(n, spec));
   if (n.type === 'io.output_data') ctx.chooseFolder = chooseFolder;
@@ -357,6 +362,7 @@ function controllingFields(spec) {
   const names = new Set(['format', 'dataset', 'connection', 'source']);
   const walk = (fields) => fields.forEach((f) => {
     Object.keys(f.show_if || {}).forEach((k) => names.add(k));
+    if (f.options_by_type) names.add(f.name); // a marca de opção inválida depende do valor escolhido
     // Colunas do J (spec 019): chaves, lado das chaves e prefixo mudam a lista.
     if (f.source === 'join') ['keys', 'left', 'right', 'keys_mode', 'right_prefix'].forEach((k) => names.add(k));
     else if (f.source) names.add(f.source); // ex.: a coluna do grupo do Venn muda a lista de valores
@@ -366,15 +372,39 @@ function controllingFields(spec) {
   return names;
 }
 
+/** Na receita numérica, a lista de colunas só traz número: texto não tem diferença nem variação. */
+function leadContext(n, multirow) {
+  const ctx = nodeContext(n);
+  if (!multirow || !recipeOf(n.config.recipe).numeric) return ctx;
+  return { ...ctx, columns: (port) => (ctx.columns(port) || []).filter((c) => ['Int64', 'Float64'].includes(c.type)) };
+}
+
+/** A fórmula que a receita escreveu, à vista: é ela que roda, e dá para assumir a partir dali. */
+function formulaBox(n, onEdit) {
+  const root = h('div', { class: 'mr-formula' });
+  root.refresh = () => {
+    const cfg = store.workflow.nodes.find((k) => k.id === n.id)?.config || n.config;
+    root.hidden = !isGuided(cfg);
+    root.replaceChildren(...(cfg.expression
+      ? [h('span', { class: 'field-label' }, 'A fórmula que vai rodar'), h('code', {}, cfg.expression),
+        button({ icon: 'edit', label: 'Editar esta fórmula', size: 'sm', variant: 'ghost', onClick: onEdit })]
+      : [h('p', { class: 'field-help' }, 'Escolha a coluna para montar a fórmula.')]));
+  };
+  root.refresh();
+  return root;
+}
+
 function nodePanel(n) {
   const spec = toolOf(n);
   if (!spec) return banner('error', 'alert', `Ferramenta desconhecida: ${n.type}`);
   const controlling = controllingFields(spec);
-  const lead = spec.explainer === 'api_loop' ? spec.config_fields.slice(0, 2) : [];
+  const multirow = spec.explainer === 'multirow';
+  const lead = spec.explainer === 'api_loop' ? spec.config_fields.slice(0, 2) : multirow ? spec.config_fields.slice(0, 3) : [];
   const rest = spec.config_fields.slice(lead.length);
   // Esquema visual (Cross Tab, Transpose, Join): redesenha quando a configuração muda (spec 015).
   const explainer = spec.explainer ? explainerEl(n, spec) : null;
   const refreshExplainer = debounce(() => explainer?.refresh(), 200);
+  const recipeFormula = multirow ? formulaBox(n, () => onChange(['recipe'], 'custom')) : null;
   const onChange = (path, value) => {
     if (n.type === 'io.input_data' && path.length === 1 && path[0] === 'dataset') {
       setSource(n, value);
@@ -382,6 +412,13 @@ function nodePanel(n) {
       return;
     }
     updateConfig(n.id, path, value);
+    if (multirow && path.length === 1) {
+      const now = store.workflow.nodes.find((k) => k.id === n.id).config;
+      for (const [key, next] of Object.entries(recipePatch(now, path[0]))) updateConfig(n.id, [key], next);
+      recipeFormula?.refresh();
+      // A coluna escolhida muda "Coluna a alterar" e o nome sugerido; em texto digitado, redesenhar tiraria o foco.
+      if (path[0] === 'base' && nodeContext(n).columns()?.length) { render(); return; }
+    }
     refreshExplainer();
     const nested = path.length > 1 && path.some((k) => typeof k === 'string' && controlling.has(k) && k !== path[0]);
     const redraw = nested || path.length === 1
@@ -419,7 +456,8 @@ function nodePanel(n) {
     cacheBanner(n),
     statusBanner(n),
     sourceBanner(n),
-    lead.length ? h('div', { class: 'pad' }, renderFields(lead, n.config, onChange, nodeContext(n))) : null,
+    lead.length ? h('div', { class: 'pad' }, renderFields(lead, n.config, onChange, leadContext(n, multirow))) : null,
+    recipeFormula,
     explainer,
     h('div', { class: 'pad' }, rest.length
       ? renderFields(rest, n.config, onChange, nodeContext(n))

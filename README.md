@@ -93,6 +93,15 @@ localmente.
   da rede, OneDrive) sem copiar; mudanças no arquivo são percebidas a cada
   execução e também invalidam o ponto de cache, que pode ainda renovar todo dia
   ou a cada hora (para bancos de dados).
+- **Dashboard que responde ao clique**: faixa de filtros com valores à mostra e controle
+  deslizante; clicar numa barra ou fatia filtra a página, também no HTML.
+- **Multi-Row com receitas**: preencher para baixo, diferença, variação %, valor anterior,
+  próximo valor e "mudou?", com esquema visual do antes e depois.
+- **Fluxos recebidos sob controle**: fórmulas e a caixa SQL não acessam arquivos nem a
+  internet, e a interface e o HTML exportado têm política de conteúdo.
+- **Segurança**: rótulos de confidencialidade na exportação e no dashboard, com dica do que
+  cada um faz, HTML com senha, registro local das exportações e destinos de API controlados: públicas livres,
+  rede interna só com a lista da TI (`%ProgramData%\PRO.DATA\politica.json`).
 - **Conectores e animações**: os fios levam a cor de uma família de ferramentas à
   outra, com seta na chegada. Ao executar, o dado corre pelo fio até a caixa da vez;
   com o programa parado, nada se move, e as animações respeitam a opção do Windows.
@@ -181,8 +190,18 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [018](specs/018-versao-04/spec.md) | Tela de abertura, `.xlsb`, Select que reordena colunas e converte tipos com tolerância e aviso, Formula em coluna existente corrigida, média/soma entre colunas, Join que mantém as duas chaves, aviso de espaços em branco, caixa em execução brilhando |
 | [019](specs/019-join-select-summarize/spec.md) | Join com lado das chaves e Select embutido, esquema visual do Summarize, moda e desvio padrão (Summarize e Formula), compatibilidade com fluxos da 0.3.8 |
 | [020](specs/020-aba-sql/spec.md) | Aba SQL: código por saída e unificado, caminho por porta, trilha do fluxo, conferência com o motor por etapa e de ponta a ponta, entrega em `.sql` e `.zip` |
+| [021](specs/021-versao-055/spec.md) | APIs, filtros e HTML no dashboard, Multi-Row e tema Dracula |
+| [022](specs/022-api-didatica/spec.md) | API didática, com exemplos visuais |
+| [023](specs/023-parametros-api/spec.md) | API com e sem parâmetro; variáveis e parâmetros fixos |
+| [024](specs/024-documentacao-api/spec.md) | Documentação e anotações de cada API |
+| [025](specs/025-conectores-e-guia/spec.md) | Conectores, animações e guia reorganizado |
+| [026](specs/026-seguranca-e-rotulos/spec.md) | Ordenação, Summarize por tipo, rótulos, segurança de API e HTML; Multi-Row com receitas e clique no gráfico |
+| [027](specs/027-qualidade-do-codigo/spec.md) | Código dividido, limites verificados por teste e fórmulas sem acesso externo |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
+
+Para pedir ajuda a um assistente de IA sobre um fluxo, envie junto o [docs/contexto-ia.md](docs/contexto-ia.md): ele
+explica o formato do arquivo e todas as ferramentas. É gerado do código por `docs/gerar_contexto_ia.py`.
 
 ## Arquitetura
 
@@ -248,6 +267,7 @@ Documentação interativa em http://127.0.0.1:8765/docs.
 | GET | `/api/apis/examples` | APIs públicas de exemplo para começar um cadastro (nada é chamado) |
 | POST | `/api/dashboard/filter-options` · `/filtered` | Valores dos filtros · visuais recalculados, sem executar o fluxo |
 | POST · GET | `/api/dashboard/export-data` · `/viewer.js` | Dados e script do dashboard em HTML |
+| POST | `/api/dashboard/export-log` | Registra uma exportação feita na tela (sem os dados) |
 | POST | `/api/files/workflow/save` · `/open` | Salvar / abrir fluxo num caminho escolhido (`.prodata.json`) |
 
 Fluxos são salvos na biblioteca `storage/workflows/<id>.prodata.json` ou, com

@@ -19,7 +19,7 @@ import polars as pl
 from pydantic import BaseModel, ConfigDict
 from pydantic.fields import FieldInfo
 
-from prodata.connectors.api import ApiStore
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.connectors.store import ConnectionStore
 from prodata.errors import InvalidInputError

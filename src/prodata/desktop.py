@@ -81,7 +81,7 @@ def _wait_until_ready(url: str, server_thread: threading.Thread, timeout: float 
         if not server_thread.is_alive():
             raise RuntimeError("O servidor interno parou durante a inicialização. Veja o log.")
         try:
-            with urllib.request.urlopen(f"{url}/api/health", timeout=1) as res:
+            with urllib.request.urlopen(f"{url}/api/health", timeout=1) as res:  # noqa: S310  (servidor do próprio programa)
                 if res.status == 200:
                     return
         except OSError:
@@ -210,7 +210,7 @@ class DesktopApi:
             return False
         if sys.platform == "win32":
             args = ["explorer", str(target)] if target.is_dir() else ["explorer", f"/select,{target}"]
-            subprocess.Popen(args)  # caminho existente, sem shell
+            subprocess.Popen(args)  # noqa: S603  (caminho existente, sem shell)
         return True
 
 

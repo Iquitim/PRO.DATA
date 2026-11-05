@@ -18,6 +18,7 @@ from prodata.nodes.bi import ChartConfig, KpiConfig, TableConfig, VennConfig, as
 
 EMPTY_LABEL = "(vazio)"
 MAX_OPTIONS = 500
+CROSS_FILTER_CHARTS = {"bar", "hbar", "donut", "pareto"}
 # Acima disso, o HTML ficaria pesado demais para abrir: o usuário pode gerar sem filtros.
 MAX_EXPORT_BYTES = 40 * 1024 * 1024
 
@@ -65,6 +66,13 @@ def apply_filters(df: pl.DataFrame, filters: list[DashFilter]) -> tuple[pl.DataF
             continue
         df = df.filter(_condition(df, f))
     return df, missing
+
+
+def filters_for(config: Any, filters: list[DashFilter]) -> list[DashFilter]:
+    """Coluna, barra e rosca não se filtram pela própria categoria: mostram todas e apagam as de fora, para dar para trocar."""
+    if isinstance(config, ChartConfig) and config.chart_type in CROSS_FILTER_CHARTS:
+        return [f for f in filters if not (f.kind == "list" and f.column == config.x_column)]
+    return filters
 
 
 def filter_options(tables: list[pl.DataFrame]) -> list[dict[str, Any]]:

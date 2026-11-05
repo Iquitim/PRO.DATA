@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from prodata.connectors.api import ApiPagination, ApiParam, ApiStore, SavedApi
+from prodata.connectors.api_model import ApiPagination, ApiParam, SavedApi
+from prodata.connectors.api_store import ApiStore
 
 IBGE = "https://servicodados.ibge.gov.br/api"
 IBGE_LOCALIDADES_DOCS = f"{IBGE}/docs/localidades"

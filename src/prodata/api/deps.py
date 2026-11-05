@@ -9,7 +9,7 @@ from fastapi import Depends, Request
 
 from prodata.config import Settings
 from prodata.connectors import ConnectionStore
-from prodata.connectors.api import ApiStore
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner

@@ -1,117 +1,64 @@
 // Canvas do workflow: render incremental de nós e fios + interações por pointer events.
 
 import {
-  addNode, connect, connectionError, duplicateNode, firstInput, removeEdge, removeNodes, spliceIntoEdge,
+  addNode,
+  connect,
+  connectionError,
+  duplicateNode,
+  removeEdge,
+  removeNodes,
+  spliceIntoEdge,
   toggleDisabled,
-  addContainer, CONTAINER_COLORS, disabledContainerAt, fitContainer, nodesInside, removeContainer,
-  removeContainerWithNodes, setContainerEnabled, updateContainer,
-  alignNodes, distributeNodes, moveOutOfContainer, setCachePoint, setDisabled, wrapInContainer,
+  addContainer,
+  disabledContainerAt,
+  nodesInside,
+  setDisabled,
 } from './actions.js';
 import { copySelection, cutSelection, hasClipboard, paste } from './clipboard.js';
-import { $, clear, debounce, fmt, h, persist, storage } from './dom.js';
+import { $, debounce, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import {
-  checkpoint, commit, emit, inspect, isSelected, node, nodeResult, on, select, selectedIds, selectMany, sourceLabel,
-  store, toggleSelected, toolOf, visibleInputs,
+  checkpoint,
+  commit,
+  emit,
+  inspect,
+  isSelected,
+  node,
+  nodeResult,
+  on,
+  select,
+  selectedIds,
+  selectMany,
+  sourceLabel,
+  store,
+  toggleSelected,
+  toolOf,
+  visibleInputs,
 } from './store.js';
 import { closeMenu, showMenu, toast } from './ui.js';
+import { els, nodeEls, state, toWorld, view } from './canvas_state.js';
+import { NODE_MIN_H, NODE_W, nodeHeight, portPoint } from './canvas_geometry.js';
+import { canSplice, edgeNear, edgeThroughRect, highlightEdge } from './canvas_hit.js';
+import { openQuickAdd } from './canvas_quickadd.js';
+import { MAX_ANIMATED_NEW, renderEdges, setFlowTarget } from './canvas_edges.js';
+import { containerMenu, dropContainer, placeContainerEl, renameContainer, renderContainers } from './canvas_containers.js';
+import { cacheActions, selectionActions } from './canvas_actions.js';
+export { cacheActions, selectionActions } from './canvas_actions.js';
+export { addContainerAtCenter } from './canvas_containers.js';
+export { isAreaFree } from './canvas_hit.js';
+export { NODE_W, nodeHeight } from './canvas_geometry.js';
+export { toWorld, viewportCenter } from './canvas_state.js';
 
-export const NODE_W = 188;
-const NODE_MIN_H = 56;
-const PORT_GAP = 18;
 const MIN_ZOOM = 0.25;
 const FIT_MIN_ZOOM = 1; // ao abrir, legibilidade vale mais que ver tudo (RF-407)
 const MAX_ZOOM = 2;
 const DRAG_THRESHOLD = 4;
 
-const view = { x: 40, y: 30, zoom: 1 };
-const els = {};
-const nodeEls = new Map(); // id -> { el, key }
 let gesture = null;
 let lastTitleClick = { id: null, at: 0 };
 let lastPointer = null; // posição do cursor sobre o canvas (para colar no lugar certo)
-let handlers = {};
 
 // ------------------------------------------------------------------ geometria
-
-/** Altura do cartão: cresce com o número de portas para que nenhuma se sobreponha. */
-export function nodeHeight(n) {
-  const spec = toolOf(n);
-  const ports = Math.max(n ? visibleInputs(n).length : 0, spec?.outputs.length || 0);
-  return Math.max(NODE_MIN_H, (ports + 1) * PORT_GAP);
-}
-
-function portPoint(n, portId, output) {
-  const ports = (output ? toolOf(n)?.outputs : visibleInputs(n)) || [];
-  const idx = Math.max(0, ports.findIndex((p) => p.id === portId));
-  return { x: n.x + (output ? NODE_W : 0), y: n.y + (nodeHeight(n) * (idx + 1)) / (ports.length + 1) };
-}
-
-/** Quanto o fio sai reto das portas. Fios muito verticais ganham mais, para chegarem de frente na porta. */
-const ARROW_GAP = 9; // distância até o centro da porta, para a ponta não entrar nela
-const ARROW_LENGTH = 5;
-const ARROW_WIDTH = 4;
-const edgeBend = (a, b) => Math.max(40, Math.abs(b.x - a.x) * 0.5, Math.min(Math.abs(b.y - a.y) * 0.35, 110));
-
-function curve(a, b) {
-  const dx = edgeBend(a, b);
-  return `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
-}
-
-/** Seta na chegada: fica sobre o próprio fio e aponta para onde ele está indo, de qualquer ângulo. */
-function edgeArrow(a, b) {
-  const dx = edgeBend(a, b);
-  const at = (u) => {
-    const v = 1 - u;
-    const k1 = 3 * v * v * u; const k2 = 3 * v * u * u; const k3 = u * u * u; const k0 = v * v * v;
-    return {
-      x: k0 * a.x + k1 * (a.x + dx) + k2 * (b.x - dx) + k3 * b.x,
-      y: k0 * a.y + k1 * a.y + k2 * b.y + k3 * b.y,
-    };
-  };
-  const gap = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
-  const walk = (from, distance, start) => {
-    const STEP = 0.002;
-    for (let u = start - STEP; u > 0; u -= STEP) {
-      if (gap(at(u), from) < distance) continue;
-      // Em fios longos, um passo anda vários pixels: refina até a distância certa.
-      let far = u;
-      let near = Math.min(start, u + STEP);
-      for (let i = 0; i < 8; i += 1) {
-        const mid = (far + near) / 2;
-        if (gap(at(mid), from) >= distance) far = mid; else near = mid;
-      }
-      return { p: at(far), u: far };
-    }
-    return { p: at(0), u: 0 };
-  };
-  const tip = walk(b, ARROW_GAP, 1);
-  const back = walk(tip.p, ARROW_LENGTH, tip.u).p;
-  const size = gap(tip.p, back) || 1;
-  const ux = (tip.p.x - back.x) / size;
-  const uy = (tip.p.y - back.y) / size;
-  const wing = (side) => `${(back.x - uy * side * ARROW_WIDTH).toFixed(1)} ${(back.y + ux * side * ARROW_WIDTH).toFixed(1)}`;
-  return `M ${wing(1)} L ${tip.p.x.toFixed(1)} ${tip.p.y.toFixed(1)} L ${wing(-1)}`;
-}
-
-function curveMid(a, b) {
-  const dx = edgeBend(a, b);
-  // Ponto t=0.5 da Bézier cúbica: (P0 + 3P1 + 3P2 + P3) / 8
-  return {
-    x: (a.x + 3 * (a.x + dx) + 3 * (b.x - dx) + b.x) / 8,
-    y: (a.y + 3 * a.y + 3 * b.y + b.y) / 8,
-  };
-}
-
-export function toWorld(clientX, clientY) {
-  const r = els.viewport.getBoundingClientRect();
-  return { x: (clientX - r.left - view.x) / view.zoom, y: (clientY - r.top - view.y) / view.zoom };
-}
-
-export function viewportCenter() {
-  const r = els.viewport.getBoundingClientRect();
-  return toWorld(r.left + r.width / 2, r.top + r.height / 2);
-}
 
 // ------------------------------------------------------------------ view
 
@@ -193,7 +140,6 @@ export function heldBy() {
   }
   return out;
 }
-let held = new Map(); // recalculado a cada desenho
 
 const STATUS_TITLES = {
   executed: 'Executado', cached: 'Executado (cache)', error: 'Erro', skipped: 'Não executado',
@@ -221,7 +167,7 @@ function buildNode(n) {
   const status = statusOf(n);
   const inputs = visibleInputs(n).map((p, index) => ({ ...p, index }));
   const outputs = (spec?.outputs || []).map((p, index) => ({ ...p, index }));
-  const cp = held.get(n.id);
+  const cp = state.held.get(n.id);
   const annotation = status === 'error' ? 'Erro — veja a configuração'
     : cp && status === 'held' ? 'Pulada pelo cache'
       : res?.annotation || spec?.name || '';
@@ -261,7 +207,7 @@ function nodeKey(n) {
   const res = nodeResult(n.id);
   return JSON.stringify([n.type, n.label, n.disabled, n.cache_point, statusOf(n), res?.annotation, res?.error, visibleInputs(n).map((p) => p.id),
     res?.extra?.frozen_at, isSelected(n.id), !store.inspect.via && store.inspect.nodeId === n.id && store.inspect.anchor,
-    held.get(n.id)?.id, held.get(n.id) && store.selection.nodeId === held.get(n.id).id,
+    state.held.get(n.id)?.id, state.held.get(n.id) && store.selection.nodeId === state.held.get(n.id).id,
     store.inspect.via?.nodeId === n.id && store.inspect.via.port]);
 }
 
@@ -279,15 +225,12 @@ export function showProgress(progress) {
   }
   els.viewport.classList.toggle('is-running', !!progress);
   const running = progress?.running || null;
-  if (running !== flowTarget) {
-    flowTarget = running;
-    applyFlow();
-  }
+  setFlowTarget(running);
 }
 
 function renderNodes() {
   const wf = store.workflow;
-  held = heldBy();
+  state.held = heldBy();
   const alive = new Set();
   // Caixa recém-criada surge com um leve crescimento; abrir um fluxo não anima nada.
   const unseen = nodesWorkflow === wf.id ? wf.nodes.filter((n) => !nodeEls.has(n.id)) : [];
@@ -317,197 +260,9 @@ function renderNodes() {
   }
 }
 
-// Cor do fio: a família da caixa, um pouco suavizada para não competir com as caixas (spec 025).
-const edgeColor = (n) => `color-mix(in srgb, var(--cat-${toolOf(n)?.category || 'prep'}) 72%, var(--border-strong))`;
-const MAX_FLOW_EDGES = 300;
-const MAX_ANIMATED_NEW = 3;
-let flowTarget = null;
-let knownEdges = { workflow: null, ids: new Set() };
 let nodesWorkflow = null;
 const ENTER_MS = 200;
 const enteringUntil = new Map();
-
-/** O dado correndo pelos fios que chegam à caixa em execução. Fora da execução, nada se move. */
-function applyFlow() {
-  for (const old of els.svg.querySelectorAll('.edge-flow')) old.remove();
-  const wf = store.workflow;
-  if (!flowTarget || !wf || wf.edges.length > MAX_FLOW_EDGES) return;
-  for (const e of wf.edges) {
-    if (e.target !== flowTarget) continue;
-    const group = els.svg.querySelector(`g[data-edge="${CSS.escape(e.id)}"]`);
-    const line = group?.querySelector('.edge-line');
-    if (!line) continue;
-    const flow = line.cloneNode();
-    flow.setAttribute('class', 'edge-flow');
-    flow.removeAttribute('stroke');
-    flow.removeAttribute('pathLength');
-    group.append(flow);
-  }
-}
-
-/** Passar o mouse num fio acende as portas das duas pontas. */
-function litPorts(edgeId, on) {
-  const e = store.workflow?.edges.find((x) => x.id === edgeId);
-  if (!e) return;
-  for (const [node_, port, side] of [[e.source, e.sourceHandle, 'out'], [e.target, e.targetHandle, 'in']]) {
-    els.nodes.querySelector(`.port.${side}[data-node="${CSS.escape(node_)}"][data-port="${CSS.escape(port)}"]`)?.classList.toggle('port-lit', on);
-  }
-}
-
-function watchEdgeHover() {
-  if (els.svg.dataset.watching) return;
-  els.svg.dataset.watching = '1';
-  const handler = (on) => (ev) => {
-    const id = ev.target.closest?.('g.edge')?.dataset.edge;
-    if (id) litPorts(id, on);
-  };
-  els.svg.addEventListener('mouseover', handler(true));
-  els.svg.addEventListener('mouseout', handler(false));
-}
-
-function renderEdges() {
-  const wf = store.workflow;
-  const byId = new Map(wf.nodes.map((n) => [n.id, n]));
-  const paths = [];
-  const defs = [];
-  const pills = [];
-  watchEdgeHover();
-  // Um fio acabou de ser criado: ele se desenha. Abrir um fluxo não anima nada.
-  const unseen = knownEdges.workflow === wf.id ? wf.edges.filter((e) => !knownEdges.ids.has(e.id)) : [];
-  const drawIn = new Set(unseen.length <= MAX_ANIMATED_NEW ? unseen.map((e) => e.id) : []);
-  knownEdges = { workflow: wf.id, ids: new Set(wf.edges.map((e) => e.id)) };
-  let index = -1;
-  for (const e of wf.edges) {
-    index += 1;
-    const s = byId.get(e.source);
-    const t = byId.get(e.target);
-    if (!s || !t) continue;
-    const a = portPoint(s, e.sourceHandle, true);
-    const b = portPoint(t, e.targetHandle, false);
-    const d = curve(a, b);
-    const tele = store.execution?.edge_telemetry?.[e.id];
-    const fresh = tele && !store.pending.has(e.source);
-    const model = toolOf(s)?.outputs.find((p) => p.id === e.sourceHandle)?.kind === 'model';
-    // Ligação entre caixas puladas pelo cache (ou chegando no ponto de cache): tracejada em dourado.
-    const skipped = held.has(e.source) && (held.has(e.target) || held.get(e.source).id === e.target);
-    const fromColor = edgeColor(s);
-    const toColor = edgeColor(t);
-    defs.push(`<linearGradient id="edge-grad-${index}" gradientUnits="userSpaceOnUse" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"><stop offset="0" style="stop-color:${fromColor}"/><stop offset="1" style="stop-color:${toColor}"/></linearGradient>`);
-    const isNew = drawIn.has(e.id) && !model;
-    paths.push(`<g class="edge${store.selection.edgeId === e.id ? ' selected' : ''}${model ? ' model' : ''}${fresh ? ' live' : ''}${skipped ? ' held' : ''}${isNew ? ' edge-new' : ''}" data-edge="${e.id}">
-      <path class="edge-hit" d="${d}"/><path class="edge-line" d="${d}" stroke="url(#edge-grad-${index})"${isNew ? ' pathLength="1"' : ''}/><path class="edge-arrow" style="stroke:${toColor}" d="${edgeArrow(a, b)}"/></g>`);
-    const touchesSelection = [e.source, e.target].includes(store.selection.nodeId);
-    if (fresh && tele.kind === 'data' && touchesSelection) {
-      const m = curveMid(a, b);
-      pills.push(h('button', {
-        type: 'button',
-        class: 'edge-pill',
-        style: { left: `${m.x}px`, top: `${m.y}px` },
-        dataset: { edge: e.id },
-        title: `${fmt.int(tele.row_count)} linha(s) · clique para ver os dados`,
-      }, fmt.compact(tele.row_count)));
-    }
-  }
-  if (gesture?.type === 'connect' && gesture.moved) {
-    paths.push(`<path class="edge-draft" d="${curve(gesture.from, gesture.to)}"/>`);
-  }
-  els.svg.innerHTML = `<defs>${defs.join('')}</defs>${paths.join('')}`;
-  els.pills.replaceChildren(...pills);
-  applyFlow();
-}
-
-function renderContainers() {
-  clear(els.containers);
-  for (const c of store.workflow.containers || []) {
-    els.containers.append(h('div', {
-      class: ['container-box', store.selection.containerId === c.id && 'selected', c.disabled && 'off'],
-      dataset: { container: c.id },
-      style: {
-        left: `${c.x}px`, top: `${c.y}px`, width: `${c.width}px`, height: `${c.height}px`,
-        '--container-color': c.color,
-        '--container-fill': `${Math.round((c.opacity ?? 0.05) * 100)}%`,
-      },
-    },
-    h('div', { class: 'container-title', title: 'Arraste para mover a etapa e seus nós · duplo clique para renomear' },
-      h('span', { class: 'container-dot' }), h('span', { class: 'container-name' }, c.title),
-      c.disabled ? h('span', { class: 'container-state' }, 'desligada') : null,
-      h('button', {
-        type: 'button', class: ['container-toggle', !c.disabled && 'on'], role: 'switch', 'aria-checked': String(!c.disabled),
-        title: c.disabled ? 'Ligar caixa (reativa os nós de dentro)' : 'Desligar caixa (desativa os nós de dentro)',
-        onclick: (ev) => { ev.stopPropagation(); setContainerEnabled(c.id, Boolean(c.disabled), NODE_W); },
-      })),
-    c.description ? h('div', { class: 'container-desc' }, c.description) : null,
-    h('div', { class: 'container-resize', title: 'Arraste para redimensionar' })));
-  }
-}
-
-function placeContainerEl(c) {
-  const el = els.containers.querySelector(`[data-container="${c.id}"]`);
-  if (el) Object.assign(el.style, { left: `${c.x}px`, top: `${c.y}px`, width: `${c.width}px`, height: `${c.height}px` });
-}
-
-/** Troca o título por um campo de texto; Enter/sair confirma, Esc cancela. */
-function renameContainer(id) {
-  const c = store.workflow.containers.find((x) => x.id === id);
-  const label = els.containers.querySelector(`[data-container="${id}"] .container-name`);
-  if (!c || !label) return;
-  const input = h('input', { class: 'container-rename', value: c.title, 'aria-label': 'Nome da etapa' });
-  let done = false;
-  const finish = (save) => {
-    if (done) return;
-    done = true;
-    const title = input.value.trim();
-    if (save && title && title !== c.title) updateContainer(id, { title });
-    else render({ containers: true });
-  };
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') finish(true);
-    if (e.key === 'Escape') finish(false);
-    e.stopPropagation();
-  });
-  input.addEventListener('blur', () => finish(true));
-  input.addEventListener('pointerdown', (e) => e.stopPropagation());
-  label.replaceWith(input);
-  input.focus();
-  input.select();
-}
-
-/** Caixa solta da paleta: se cair sobre nós, envolve esses nós; senão nasce com tamanho padrão. */
-function dropContainer(world) {
-  // Só os nós bem perto do ponto de soltura (sob o cursor ou vizinhos imediatos na mesma linha).
-  const probe = { x: world.x - NODE_W, y: world.y - 40, width: NODE_W * 2, height: 80 };
-  const hits = nodesInside(probe, NODE_W);
-  const created = addContainer(world.x - 220, world.y - 120);
-  if (hits.length) fitContainer(created.id, NODE_W, nodeHeight, hits);
-  requestAnimationFrame(() => renameContainer(created.id));
-}
-
-export function addContainerAtCenter() {
-  const c = viewportCenter();
-  const created = addContainer(c.x - 220, c.y - 120);
-  requestAnimationFrame(() => renameContainer(created.id));
-}
-
-function containerMenu(id, x, y, pasteItem) {
-  const c = store.workflow.containers.find((k) => k.id === id);
-  select(null, null, id);
-  showMenu(x, y, [
-    { label: 'Renomear', icon: 'edit', onSelect: () => renameContainer(id) },
-    { label: 'Ajustar aos nós de dentro', icon: 'fit', onSelect: () => fitContainer(id, NODE_W, nodeHeight) },
-    { label: c.disabled ? 'Ligar etapa' : 'Desligar etapa', icon: 'power', onSelect: () => setContainerEnabled(id, Boolean(c.disabled), NODE_W) },
-    'separator',
-    { label: 'Copiar etapa', icon: 'copy', shortcut: 'Ctrl+C', onSelect: () => copySelection({ nodeWidth: NODE_W }) },
-    { label: 'Recortar etapa', icon: 'scissors', shortcut: 'Ctrl+X', onSelect: () => cutSelection({ nodeWidth: NODE_W }) },
-    pasteItem,
-    'separator',
-    ...CONTAINER_COLORS.map(([color, name]) => ({
-      label: `Cor: ${name}`, icon: c.color === color ? 'check' : 'palette', onSelect: () => updateContainer(id, { color }),
-    })),
-    'separator',
-    { label: 'Excluir etapa (mantém as caixas)', icon: 'trash', danger: true, shortcut: 'Del', onSelect: () => removeContainer(id) },
-    { label: 'Excluir etapa e caixas de dentro', icon: 'trash', danger: true, onSelect: () => removeContainerWithNodes(id, NODE_W) },
-  ]);
-}
 
 export function render({ containers = false } = {}) {
   if (!store.workflow) return;
@@ -523,82 +278,6 @@ function moveNodeEl(n) {
 }
 
 // ------------------------------------------------------------------ hit testing
-
-/**
- * Pontos de cada fio calculados pela fórmula da curva (mesma de `curve`), sem consultar o SVG.
- * getTotalLength/getPointAtLength forçavam layout a cada evento: arrastar uma caixa solta custava
- * ~6 ms por movimento (38 ms numa CPU 4x mais lenta) e a caixa ficava para trás do cursor.
- */
-function edgeSamples(steps) {
-  const byId = new Map(store.workflow.nodes.map((n) => [n.id, n]));
-  const out = [];
-  for (const e of store.workflow.edges) {
-    const s = byId.get(e.source);
-    const t = byId.get(e.target);
-    if (!s || !t) continue;
-    const a = portPoint(s, e.sourceHandle, true);
-    const b = portPoint(t, e.targetHandle, false);
-    const dx = edgeBend(a, b);
-    const c1 = { x: a.x + dx, y: a.y };
-    const c2 = { x: b.x - dx, y: b.y };
-    const points = [];
-    for (let i = 1; i < steps; i += 1) {
-      const u = i / steps;
-      const v = 1 - u;
-      const k0 = v * v * v; const k1 = 3 * v * v * u; const k2 = 3 * v * u * u; const k3 = u * u * u;
-      points.push({ x: k0 * a.x + k1 * c1.x + k2 * c2.x + k3 * b.x, y: k0 * a.y + k1 * c1.y + k2 * c2.y + k3 * b.y });
-    }
-    out.push({ edge: e, points });
-  }
-  return out;
-}
-
-function edgeNear(world, tolerance = 16) {
-  let best = null;
-  for (const { edge, points } of edgeSamples(24)) {
-    for (const p of points) {
-      const d = Math.hypot(p.x - world.x, p.y - world.y);
-      if (d < tolerance / view.zoom && (!best || d < best.d)) best = { id: edge.id, d };
-    }
-  }
-  return best?.id || null;
-}
-
-/**
- * Fio que atravessa o retângulo de um nó (inserção entre duas caixas).
- * Ignora fios ligados ao próprio nó; vence o fio com mais pontos dentro do retângulo.
- */
-function edgeThroughRect(rect, ignoreNodeId = null, pad = 12) {
-  let best = null;
-  for (const { edge, points } of edgeSamples(40)) {
-    if (edge.source === ignoreNodeId || edge.target === ignoreNodeId) continue;
-    let hits = 0;
-    for (const p of points) {
-      if (p.x >= rect.x - pad && p.x <= rect.x + rect.w + pad && p.y >= rect.y - pad && p.y <= rect.y + rect.h + pad) hits += 1;
-    }
-    if (hits && (!best || hits > best.hits)) best = { id: edge.id, hits };
-  }
-  return best?.id || null;
-}
-
-/** Área sem nós nem fios por baixo (para posicionar nós criados automaticamente). */
-export function isAreaFree(x, y, w = NODE_W, hgt = NODE_MIN_H) {
-  const pad = 20;
-  const overlapsNode = store.workflow.nodes.some((n) => n.x < x + w + pad && n.x + NODE_W + pad > x
-    && n.y < y + hgt + pad && n.y + nodeHeight(n) + pad > y);
-  return !overlapsNode && !edgeThroughRect({ x, y, w, h: hgt });
-}
-
-/** Só nós soltos (sem conexões) e com entrada e saída de dados podem ser inseridos num fio. */
-function canSplice(n) {
-  const spec = toolOf(n);
-  return Boolean(spec?.inputs.some((p) => p.kind !== 'model') && spec?.outputs.some((p) => p.kind !== 'model'))
-    && !store.workflow.edges.some((e) => e.source === n.id || e.target === n.id);
-}
-
-function highlightEdge(id) {
-  for (const g of els.svg.querySelectorAll('g.edge')) g.classList.toggle('drop-target', g.dataset.edge === id);
-}
 
 // ------------------------------------------------------------------ seleção múltipla, cache e entradas (spec 012)
 
@@ -620,41 +299,6 @@ export function inspectInput(nodeId, port) {
     return;
   }
   inspect(edge.source, edge.sourceHandle, { nodeId, port });
-}
-
-const geometry = () => ({ nodeWidth: NODE_W, heightOf: nodeHeight });
-
-/** Ações para várias caixas (menu do botão direito e painel do Inspector). */
-export function selectionActions(ids) {
-  const nodes = ids.map(node).filter(Boolean);
-  const inAnyContainer = (store.workflow.containers || []).some((c) => nodesInside(c, NODE_W).some((n) => ids.includes(n.id)));
-  const allDisabled = nodes.every((n) => n.disabled);
-  return [
-    { label: 'Alinhar em linha', icon: 'columns', onSelect: () => alignNodes(ids, 'row') },
-    { label: 'Alinhar em coluna', icon: 'list', onSelect: () => alignNodes(ids, 'column') },
-    { label: 'Distribuir na horizontal', icon: 'split', onSelect: () => distributeNodes(ids, 'row', geometry()) },
-    { label: 'Distribuir na vertical', icon: 'stack', onSelect: () => distributeNodes(ids, 'column', geometry()) },
-    'separator',
-    {
-      label: 'Agrupar em caixa de organização', icon: 'group',
-      onSelect: () => { const c = wrapInContainer(ids, geometry()); if (c) requestAnimationFrame(() => renameContainer(c.id)); },
-    },
-    { label: 'Tirar da caixa de organização', icon: 'arrow-down', disabled: !inAnyContainer, onSelect: () => moveOutOfContainer(ids, geometry()) },
-    'separator',
-    { label: allDisabled ? 'Habilitar todas' : 'Desabilitar todas', icon: 'power', onSelect: () => setDisabled(ids, !allDisabled) },
-    { label: `Excluir ${ids.length} caixas`, icon: 'trash', danger: true, shortcut: 'Del', onSelect: () => removeNodes(ids) },
-  ];
-}
-
-/** Ponto de cache: cachear e executar, atualizar ou remover (spec 012). */
-export function cacheActions(n) {
-  if (!n.cache_point) {
-    return [{ label: 'Cachear até aqui e executar', icon: 'database', onSelect: () => { setCachePoint(n.id, true); handlers.run?.(); } }];
-  }
-  return [
-    { label: 'Atualizar cache (reler tudo antes)', icon: 'refresh', onSelect: () => handlers.refreshCache?.(n.id) },
-    { label: 'Remover ponto de cache', icon: 'x', onSelect: () => setCachePoint(n.id, false) },
-  ];
 }
 
 // ------------------------------------------------------------------ gestos
@@ -735,9 +379,56 @@ function flushMove() {
   if (e && gesture) handleMove(e);
 }
 
+// ------------------------------------------------------------------ andar a tela ao arrastar até a borda
+
+const AUTO_PAN_GESTURES = new Set(['connect', 'drag', 'group-drag', 'container-move']);
+const AUTO_PAN_EDGE = 56; // faixa da borda, em px, onde a tela começa a andar
+const AUTO_PAN_SPEED = 16; // px por quadro, com o cursor na borda ou fora dela
+const AUTO_PAN_ROOM = 200; // ao puxar uma ligação, espaço livre depois da última caixa
+let autoPanFrame = 0;
+let autoPanEvent = null;
+
+const edgeSpeed = (pos, low, high) => {
+  if (pos < low + AUTO_PAN_EDGE) return AUTO_PAN_SPEED * Math.min(1, (low + AUTO_PAN_EDGE - pos) / AUTO_PAN_EDGE);
+  if (pos > high - AUTO_PAN_EDGE) return -AUTO_PAN_SPEED * Math.min(1, (pos - high + AUTO_PAN_EDGE) / AUTO_PAN_EDGE);
+  return 0;
+};
+
+/** Quem puxa uma ligação procura uma caixa: a tela não anda além do fim delas. Quem arrasta uma caixa leva ela junto. */
+function limitToContent(vx, vy, r) {
+  if (gesture.type !== 'connect' || !store.workflow.nodes.length) return [vx, vy];
+  const xs = store.workflow.nodes.map((n) => n.x);
+  const ys = store.workflow.nodes.map((n) => n.y);
+  const left = Math.min(...xs) * view.zoom + view.x + r.left;
+  const top = Math.min(...ys) * view.zoom + view.y + r.top;
+  const right = (Math.max(...xs) + NODE_W) * view.zoom + view.x + r.left;
+  const bottom = (Math.max(...ys) + NODE_MIN_H) * view.zoom + view.y + r.top;
+  return [
+    (vx > 0 && left > r.left + AUTO_PAN_ROOM) || (vx < 0 && right < r.right - AUTO_PAN_ROOM) ? 0 : vx,
+    (vy > 0 && top > r.top + AUTO_PAN_ROOM) || (vy < 0 && bottom < r.bottom - AUTO_PAN_ROOM) ? 0 : vy,
+  ];
+}
+
+function autoPanTick() {
+  autoPanFrame = 0;
+  if (!gesture?.moved || !AUTO_PAN_GESTURES.has(gesture.type) || !autoPanEvent) return;
+  const r = els.viewport.getBoundingClientRect();
+  const [vx, vy] = limitToContent(
+    edgeSpeed(autoPanEvent.clientX, r.left, r.right), edgeSpeed(autoPanEvent.clientY, r.top, r.bottom), r);
+  if (vx || vy) {
+    view.x += vx;
+    view.y += vy;
+    applyView();
+    handleMove(autoPanEvent); // o cursor ficou parado, mas o mundo andou embaixo dele
+  }
+  autoPanFrame = requestAnimationFrame(autoPanTick);
+}
+
 function handleMove(e) {
   const far = Math.hypot(e.clientX - gesture.startX, e.clientY - gesture.startY) > DRAG_THRESHOLD;
   if (!gesture.moved && !far) return;
+  autoPanEvent = e;
+  if (!autoPanFrame && AUTO_PAN_GESTURES.has(gesture.type)) autoPanFrame = requestAnimationFrame(autoPanTick);
   const world = toWorld(e.clientX, e.clientY);
 
   if (gesture.type === 'pan') {
@@ -874,7 +565,9 @@ function onPointerUp(e) {
     } else {
       const hover = document.elementFromPoint(e.clientX, e.clientY)?.closest('.port.in');
       if (hover) connect(g.nodeId, g.port, hover.dataset.node, hover.dataset.port);
-      else if (!document.elementFromPoint(e.clientX, e.clientY)?.closest('.node')) {
+      else if (els.viewport.contains(document.elementFromPoint(e.clientX, e.clientY))
+        && !document.elementFromPoint(e.clientX, e.clientY)?.closest('.node')) {
+        // Soltar fora do canvas (a tela anda quando o cursor passa da borda) só cancela.
         openQuickAdd(e.clientX, e.clientY, g);
       }
       renderEdges();
@@ -937,9 +630,9 @@ function onContextMenu(e) {
     select(id);
     showMenu(e.clientX, e.clientY, [
       { label: 'Configurar', icon: 'settings', onSelect: () => select(id) },
-      { label: 'Executar até aqui', icon: 'target', shortcut: 'Ctrl+Shift+Enter', onSelect: () => handlers.runTo?.(id) },
+      { label: 'Executar até aqui', icon: 'target', shortcut: 'Ctrl+Shift+Enter', onSelect: () => state.handlers.runTo?.(id) },
       { label: 'Ver resultados', icon: 'table', onSelect: () => inspect(id) },
-      { label: 'Ver SQL', icon: 'terminal', onSelect: () => handlers.viewSql?.(id) },
+      { label: 'Ver SQL', icon: 'terminal', onSelect: () => state.handlers.viewSql?.(id) },
       ...cacheActions(n),
       'separator',
       { label: 'Copiar', icon: 'copy', shortcut: 'Ctrl+C', onSelect: () => copySelection({ nodeWidth: NODE_W }) },
@@ -1021,62 +714,12 @@ function onDrop(e) {
 
 // ------------------------------------------------------------------ adicionar rápido (puxar fio para o vazio)
 
-function openQuickAdd(clientX, clientY, source) {
-  const fromPort = source.nodeId
-    ? toolOf(node(source.nodeId)).outputs.find((p) => p.id === source.port)
-    : null;
-  const kind = fromPort?.kind || 'data';
-  const tools = Object.values(store.tools).filter((t) => !t.hidden && (!fromPort || firstInput(t.type, kind))
-    && (!source.splice || (firstInput(t.type) && t.outputs.some((p) => p.kind !== 'model'))));
-
-  const list = h('div', { class: 'quick-list', role: 'listbox' });
-  const input = h('input', { class: 'input', placeholder: fromPort ? 'Conectar a…' : 'Adicionar ferramenta…', 'aria-label': 'Buscar ferramenta' });
-  const panel = h('div', { class: 'quick-add', style: { left: `${clientX}px`, top: `${clientY}px` } }, input, list);
-  let active = 0;
-  let shown = [];
-
-  const choose = (t) => {
-    panel.remove();
-    const at = source.to;
-    const created = addNode(t.type, at.x, at.y - NODE_MIN_H / 2);
-    if (created && source.nodeId) connect(source.nodeId, source.port, created.id, firstInput(t.type, kind).id);
-    if (created && source.splice) spliceIntoEdge(source.splice, created.id, { nodeWidth: NODE_W });
-  };
-  const draw = () => {
-    const q = input.value.trim().toLowerCase();
-    shown = tools.filter((t) => !q || `${t.name} ${t.description}`.toLowerCase().includes(q)).slice(0, 8);
-    active = Math.min(active, Math.max(0, shown.length - 1));
-    list.replaceChildren(...shown.map((t, i) => h('button', {
-      type: 'button', role: 'option', class: ['quick-item', i === active && 'active'], dataset: { category: t.category },
-      onclick: () => choose(t),
-    }, h('span', { class: 'tool-icon' }, icon(t.icon, 15)), h('span', {}, t.name))));
-  };
-  input.addEventListener('input', () => { active = 0; draw(); });
-  input.addEventListener('keydown', (ev) => {
-    if (ev.key === 'ArrowDown') { active = Math.min(active + 1, shown.length - 1); draw(); ev.preventDefault(); }
-    if (ev.key === 'ArrowUp') { active = Math.max(active - 1, 0); draw(); ev.preventDefault(); }
-    if (ev.key === 'Enter' && shown[active]) choose(shown[active]);
-    if (ev.key === 'Escape') panel.remove();
-  });
-  const outside = (ev) => {
-    if (!panel.contains(ev.target)) {
-      panel.remove();
-      document.removeEventListener('pointerdown', outside, true);
-    }
-  };
-  document.addEventListener('pointerdown', outside, true);
-  document.body.append(panel);
-  const r = panel.getBoundingClientRect();
-  panel.style.left = `${Math.min(clientX, innerWidth - r.width - 8)}px`;
-  panel.style.top = `${Math.min(clientY, innerHeight - 320)}px`;
-  draw();
-  input.focus();
-}
-
 // ------------------------------------------------------------------ init
 
 export function initCanvas(root, opts = {}) {
-  handlers = opts;
+  state.render = render;
+  state.connecting = () => (gesture?.type === 'connect' && gesture.moved ? gesture : null);
+  state.handlers = opts;
   els.viewport = root;
   els.world = $('.canvas-world', root);
   els.containers = $('.canvas-containers', root);
@@ -1091,6 +734,10 @@ export function initCanvas(root, opts = {}) {
   root.addEventListener('pointermove', onPointerMove);
   root.addEventListener('pointerup', onPointerUp);
   root.addEventListener('pointercancel', () => { gesture = null; pendingMove = null; els.marquee.hidden = true; });
+  // Arrastar a partir do canvas, mesmo saindo dele, não pode selecionar o texto da tela.
+  root.addEventListener('selectstart', (e) => {
+    if (!e.target.closest?.('input, textarea, [contenteditable]')) e.preventDefault();
+  });
   root.addEventListener('pointerleave', () => { lastPointer = null; });
   root.addEventListener('wheel', onWheel, { passive: false });
   root.addEventListener('contextmenu', onContextMenu);

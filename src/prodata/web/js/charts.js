@@ -52,7 +52,7 @@ function axisLabels(labels, band) {
 }
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-const tipHtml = (label, value, o) => `<span>${esc(label)}</span><b>${esc(o.full(value))}</b>`;
+const tipHtml = (label, value, o) => `<span>${esc(label)}</span><b>${esc(o.full(value))}</b>${o.filterable && label !== 'Outros' ? '<em>Clique para filtrar</em>' : ''}`;
 
 /** Opções completas a partir do formato salvo no item (ou dos padrões de antes). */
 function options(opts = {}) {
@@ -68,6 +68,8 @@ function options(opts = {}) {
     legendPos: opts.legend_position || 'top',
     // Nome original de uma categoria renomeada no painel Formato: as cores seguem o dado, não o texto.
     keyOf: opts._keyOf || ((name) => name),
+    filterable: Boolean(opts._filterable),
+    selected: opts._selected || null,
     xTitle: opts.x_title || '',
     yTitle: opts.y_title || '',
     yMin: opts.y_min ?? null,
@@ -89,6 +91,11 @@ function paint(o, i, label, multi) {
   if (o.palette === 'alt') return multi ? { class: `a${slot}` } : { style: 'fill:var(--alt-1)' };
   return multi ? { class: `s${slot}` } : {};
 }
+
+/** Categoria que dá para clicar (filtra a página); "Outros" junta várias e não é um valor. */
+const catAttr = (o, label) => (o.filterable && label !== 'Outros' ? { 'data-cat': o.keyOf(label) } : {});
+/** Com um filtro nesta coluna, o que ficou de fora aparece apagado. */
+const isDim = (o, label) => Boolean(o.selected && !o.selected.has(o.keyOf(label)));
 
 /** Quais índices recebem número em destaque (nunca todos: o resto fica no tooltip). */
 function labelled(series, mode, fallback) {
@@ -177,8 +184,8 @@ export function columnChart(series, width, height = 260, opts) {
     const x = m.left + band * i + (band - barW) / 2;
     const top0 = y(Math.max(lo, s.value));
     return [
-      svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ht, 'data-tip': tipHtml(s.label, s.value, o) }),
-      svg('path', { class: 'bar', d: roundedBar(x, top0, barW, base - top0, true), ...paint(o, i, s.label, false) }),
+      svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ht, 'data-tip': tipHtml(s.label, s.value, o), ...catAttr(o, s.label) }),
+      svg('path', { class: isDim(o, s.label) ? 'bar dim' : 'bar', d: roundedBar(x, top0, barW, base - top0, true), ...paint(o, i, s.label, false) }),
       axis.show(i) ? svg('text', { class: 'tick x-tick', y: height - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(x + barW / 2, s.label, width) }, axis.text(s.label)) : null,
       shown.has(i) ? svg('text', { class: 'value', x: x + barW / 2, y: top0 - 6, 'text-anchor': 'middle' }, o.short(s.value)) : null,
     ];
@@ -201,9 +208,9 @@ export function barChart(series, width, _height, opts) {
     const y = 4 + i * row;
     const bw = (Math.min(max, Math.max(0, s.value)) / max) * w;
     return [
-      svg('rect', { class: 'hit', x: 0, y, width, height: row, 'data-tip': tipHtml(s.label, s.value, o) }),
+      svg('rect', { class: 'hit', x: 0, y, width, height: row, 'data-tip': tipHtml(s.label, s.value, o), ...catAttr(o, s.label) }),
       svg('text', { class: 'tick', x: labelW, y: y + row / 2 + 4, 'text-anchor': 'end' }, truncate(s.label, Math.floor(labelW / 6.6))),
-      svg('path', { class: 'bar', d: roundedBar(labelW + 8, y + (row - 16) / 2, bw, 16, false), ...paint(o, i, s.label, false) }),
+      svg('path', { class: isDim(o, s.label) ? 'bar dim' : 'bar', d: roundedBar(labelW + 8, y + (row - 16) / 2, bw, 16, false), ...paint(o, i, s.label, false) }),
       shown.has(i) ? svg('text', { class: 'value', x: labelW + 14 + bw, y: y + row / 2 + 4 }, o.short(s.value)) : null,
     ];
   });
@@ -272,16 +279,17 @@ export function donutChart(series, width, height = 200, opts) {
       ? `M${p(r, 0)} A${r},${r} 0 1 1 ${p(r, Math.PI)} A${r},${r} 0 1 1 ${p(r, 0)} M${p(inner, 0)} A${inner},${inner} 0 1 0 ${p(inner, Math.PI)} A${inner},${inner} 0 1 0 ${p(inner, 0)}`
       : `M${p(r, a0)} A${r},${r} 0 ${large} 1 ${p(r, a1)} L${p(inner, a1)} A${inner},${inner} 0 ${large} 0 ${p(inner, a0)} Z`;
     return svg('path', {
-      class: ['slice', tones[i].class].filter(Boolean).join(' '), style: tones[i].style, d, 'fill-rule': 'evenodd',
+      class: ['slice', tones[i].class, isDim(o, s.label) && 'dim'].filter(Boolean).join(' '), style: tones[i].style, d, 'fill-rule': 'evenodd',
       'data-tip': `${tipHtml(s.label, s.value, o)}<span>${fmt.number((s.value / total) * 100, 1)}%</span>`,
+      ...catAttr(o, s.label),
     });
   });
   const chart = svg('svg', { class: 'chart donut', width: size, height: size, viewBox: `0 0 ${size} ${size}` }, arcs,
-    svg('text', { class: 'donut-total', x: cx, y: cx + 2, 'text-anchor': 'middle' }, o.short(total)),
-    svg('text', { class: 'tick', x: cx, y: cx + 18, 'text-anchor': 'middle' }, 'total'));
+    svg('text', { class: 'donut-total', x: cx, y: cx + 2, 'text-anchor': 'middle' }, o.short(o.selected ? slices.filter((s) => !isDim(o, s.label)).reduce((acc, s) => acc + s.value, 0) : total)),
+    svg('text', { class: 'tick', x: cx, y: cx + 18, 'text-anchor': 'middle' }, o.selected ? 'selecionado' : 'total'));
   // A amostra da legenda usa a mesma cor da fatia (classe da paleta ou cor escolhida).
   const swatch = (t) => h('i', { class: ['swatch', t.class], style: t.style ? { background: t.style.split(';')[0].replace('fill:', ''), opacity: (t.style.match(/fill-opacity:([\d.]+)/) || [])[1] || null } : null });
-  const legend = o.legend ? h('ul', { class: 'legend' }, slices.map((s, i) => h('li', {},
+  const legend = o.legend ? h('ul', { class: 'legend' }, slices.map((s, i) => h('li', { class: isDim(o, s.label) ? 'dim' : null, dataset: catAttr(o, s.label)['data-cat'] ? { cat: o.keyOf(s.label) } : undefined },
     swatch(tones[i]), h('span', { class: 'ellipsis' }, s.label),
     h('b', {}, o.short(s.value)), h('span', { class: 'muted' }, `${fmt.number((s.value / total) * 100, 1)}%`)))) : null;
   return h('div', { class: ['donut-wrap', below && 'below'], style: { maxWidth: `${width}px` } }, chart, legend);
@@ -390,7 +398,7 @@ function multiChart(w, width, height, opts, mode) {
           base += v;
         }
       });
-      marks.push(svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ph, 'data-tip': tip(c) }));
+      marks.push(svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ph, 'data-tip': tip(c), ...catAttr(o, c.label) }));
     });
     if (!pct) {
       const shown = labelled(cats, o.labels, 'max');
@@ -458,8 +466,8 @@ function paretoChart(series, width, height, opts, w) {
     const top0 = y(share);
     return [
       svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ph,
-        'data-tip': `<span>${esc(s.label)}</span><b>${esc(o.full(s.value))}</b><span>${fmt.number(share, 1)}% do total · acumulado ${fmt.number(s.cum_pct, 1)}%</span>` }),
-      svg('path', { class: 'bar', d: roundedBar(cx(i) - barW / 2, top0, barW, y(0) - top0, true), style: `fill:${color};fill-opacity:${s.highlight ? 1 : 0.35}` }),
+        'data-tip': `<span>${esc(s.label)}</span><b>${esc(o.full(s.value))}</b><span>${fmt.number(share, 1)}% do total · acumulado ${fmt.number(s.cum_pct, 1)}%</span>` , ...catAttr(o, s.label) }),
+      svg('path', { class: isDim(o, s.label) ? 'bar dim' : 'bar', d: roundedBar(cx(i) - barW / 2, top0, barW, y(0) - top0, true), style: `fill:${color};fill-opacity:${s.highlight ? 1 : 0.35}` }),
       axis.show(i) ? svg('text', { class: 'tick x-tick', y: svgH - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(cx(i), s.label, width) }, axis.text(s.label)) : null,
     ];
   });

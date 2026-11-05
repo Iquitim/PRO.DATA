@@ -21,7 +21,7 @@ from prodata.api.errors import install_error_handlers
 from prodata.api.routes import routers
 from prodata.config import Settings
 from prodata.connectors import ConnectionStore, KeyringSecretStore, MemorySecretStore, SecretStore
-from prodata.connectors.api import ApiStore
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
@@ -31,6 +31,7 @@ from prodata.nodes import REGISTRY
 from prodata.samples.apis import refresh_example_docs, seed_example_apis
 from prodata.samples.datasets import ensure_sample_datasets
 from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, add_api_section, demo_workflow
+from prodata.services.audit import setup_audit
 from prodata.services.workflows import WorkflowRepository
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -39,6 +40,7 @@ log = logging.getLogger("prodata")
 
 def build_services(settings: Settings) -> Services:
     settings.ensure_dirs()
+    setup_audit(settings.storage_dir)
     datasets = DatasetStore(settings.datasets_dir, settings.max_upload_mb * 1024 * 1024)
     cache = ResultCache(settings.cache_dir)
     workflows = WorkflowRepository(settings.workflows_dir)
@@ -115,6 +117,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return await call_next(request)
 
     @app.middleware("http")
+    async def security_headers(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
+
+    @app.middleware("http")
     async def revalidate_static(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
@@ -126,7 +137,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/", include_in_schema=False)
     def index() -> HTMLResponse:
-        return HTMLResponse(index_html(), headers={"Cache-Control": "no-cache"})
+        return HTMLResponse(
+            index_html(), headers={"Cache-Control": "no-cache", "Content-Security-Policy": APP_CSP}
+        )
 
     log.info("PRO.DATA %s pronto (storage: %s)", __version__, settings.storage_dir)
     threading.Thread(target=_warm_up, name="prodata-warmup", daemon=True).start()
@@ -135,7 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 def _accepted_hosts(settings: Settings) -> list[str]:
     """Só o próprio computador: com outro nome de host, uma página externa leria a API (DNS rebinding)."""
-    if settings.host in ("0.0.0.0", "::"):
+    if settings.host in ("0.0.0.0", "::"):  # noqa: S104  (só compara o que foi configurado)
         return ["*"]
     return sorted({"127.0.0.1", "localhost", settings.host, *settings.allowed_hosts})
 
@@ -163,6 +176,23 @@ def _warm_up() -> None:
     except Exception:  # aquecimento é otimização: falhar aqui não pode derrubar o servidor
         log.debug("Aquecimento em segundo plano falhou", exc_info=True)
 
+
+# Só roda script do próprio programa e nada sai para outro endereço, mesmo que algo consiga entrar na página.
+# Estilo em linha é usado nos desenhos; imagens em data:/blob: são as do dashboard e as geradas para exportar.
+APP_CSP = "; ".join(
+    (
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self'",
+        "object-src 'none'",
+        "base-uri 'none'",
+        "form-action 'none'",
+        "frame-ancestors 'none'",
+    )
+)
 
 PRELOAD_MARKER = "<!-- modulepreload: o servidor insere aqui a pré-carga de todos os módulos JS -->"
 

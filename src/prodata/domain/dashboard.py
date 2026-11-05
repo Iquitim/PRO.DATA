@@ -12,6 +12,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from prodata.domain.labels import DEFAULT_LABEL, Confidentiality
+
 PAGE_WIDTH = 1600
 PAGE_HEIGHTS = {"16:9": 900, "a4-landscape": 1131, "a4-portrait": 2263}
 MAX_IMAGE_BYTES = 1024 * 1024
@@ -80,6 +82,7 @@ class DashFilter(BaseModel):
 class Dashboard(BaseModel):
     page: DashPage = Field(default_factory=DashPage)
     filters: list[DashFilter] = Field(default_factory=list, max_length=30)
+    confidentiality: Confidentiality = DEFAULT_LABEL
     items: list[DashItem] = Field(default_factory=list)  # ordem = camada (o último fica por cima)
     hidden: list[str] = Field(default_factory=list)  # caixas de BI fora da página (RF-1407)
 

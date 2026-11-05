@@ -5,6 +5,7 @@
 import { api } from './api.js';
 import { fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
+import { distanceOf, recipeOf, targetOf } from './multirow_recipes.js';
 import { inspect, nodeResult, on, placeholdersOf, store } from './store.js';
 
 const SAMPLE_ROWS = 200;
@@ -30,7 +31,8 @@ const distinct = (rows, col, n) => [...new Set(rows.map((r) => show(r[col])))].s
 /** Tabela pequena; cada célula pode ter `link` (destaque compartilhado) e `kind` (cor). */
 export function mini(title, head, rows) {
   const cell = (tag, c) => h(tag, {
-    class: [c.kind && `x-${c.kind}`], dataset: c.link ? { link: c.link } : undefined, title: c.title || null,
+    class: [c.kind && `x-${c.kind}`], title: c.title || null,
+    dataset: c.link || c.litBy ? { ...(c.link ? { link: c.link } : {}), ...(c.litBy ? { litBy: c.litBy } : {}) } : undefined,
   }, c.text);
   return h('div', { class: 'x-table' }, h('div', { class: 'x-title' }, title),
     h('table', {}, h('thead', {}, h('tr', {}, head.map((c) => cell('th', c)))),
@@ -41,7 +43,8 @@ export const arrow = (label) => h('div', { class: 'x-arrow' }, icon('chevron-rig
 
 /** Destaque ao passar o mouse: todas as células com o mesmo data-link acendem juntas. */
 export function linkHover(root) {
-  const lit = (link, on_) => root.querySelectorAll(`[data-link="${CSS.escape(link)}"]`).forEach((el) => el.classList.toggle('x-lit', on_));
+  // data-lit-by: células que acendem junto com outra, sem ser ponto de partida (o que um resultado usou).
+  const lit = (link, on_) => root.querySelectorAll(`[data-link="${CSS.escape(link)}"], [data-lit-by~="${CSS.escape(link)}"]`).forEach((el) => el.classList.toggle('x-lit', on_));
   root.addEventListener('mouseover', (e) => { const el = e.target.closest('[data-link]'); if (el) lit(el.dataset.link, true); });
   root.addEventListener('mouseout', (e) => { const el = e.target.closest('[data-link]'); if (el) lit(el.dataset.link, false); });
   return root;
@@ -336,7 +339,11 @@ function apiLoop(n, cfg, rows, answers) {
   if (missing.length) notes.push(`Escolha acima a coluna de ${missing.map((p) => `{${p}}`).join(', ')}.`);
   if (source && wants.length && !missing.length) notes.push(`${wants.map((p) => `{${p}}`).join(' e ')} recebe${wants.length > 1 ? 'm' : ''} o valor de ${wants.map((p) => `[${colOf(p)}]`).join(' e ')}: cada valor vira uma chamada, e as respostas se juntam numa tabela só.`);
   if (repeated) notes.push(`Valores iguais são chamados uma vez: nesta amostra, ${fmt.int(data.length)} linhas pedem ${fmt.int(seen.length)} chamadas.`);
-  notes.push('O que falhar sai em E, com o motivo, sem parar as outras chamadas.');
+  notes.push(`O que falhar sai em E, com o motivo. A caixa para depois de ${cfg.stop_after_failures ?? 10} falhas seguidas ou ao chegar ao limite de ${fmt.int(cfg.max_calls ?? 1000)} pedidos.`);
+  const edge = store.workflow.edges.find((e) => e.target === n.id && e.targetHandle === 'in');
+  const incoming = edge ? nodeResult(edge.source)?.anchors?.[edge.sourceHandle]?.row_count : undefined;
+  if (incoming !== undefined) notes.push(`A entrada tem ${fmt.int(incoming)} linhas: até ${fmt.int(incoming)} chamadas, menos as de valor repetido, mais as páginas e novas tentativas.`);
+  if (res?.extra?.api_requests !== undefined) notes.push(`Na última execução: ${fmt.int(res.extra.api_requests)} pedidos à API.`);
   return { body: [input, arrow('uma chamada por valor'), callBox, arrow('junta as respostas'), output, bar], caption: notes.join(' '), sample: real };
 }
 
@@ -344,6 +351,128 @@ function apiLoop(n, cfg, rows, answers) {
 function ownAnswers(n) {
   if (!nodeResult(n.id)?.anchors?.out) return Promise.resolve(null);
   return api.results(store.workflow.id, n.id, 'out', { limit: 8 }).then((page) => page.rows).catch(() => null);
+}
+
+// ------------------------------------------------------------------ Multi-Row
+
+const ROW_REF = /\[Row([+-])(\d+):([^\]]+)\]/i;
+
+/** Exemplo fixo, com os nomes já configurados, enquanto falta configuração ou execução. */
+function multirowExample(cfg, base, group, order) {
+  const blanks = recipeOf(cfg.recipe).id === 'fill';
+  const seq = blanks ? [100, null, null, 90, null, 70] : [100, 120, 90, 50, 65, 60];
+  // A ordem de chegada embaralhada mostra por que o "Ordenar por" importa.
+  return [3, 0, 4, 1, 5, 2].map((i) => ({
+    [group || 'uf']: i < 3 ? 'SP' : 'RJ', [order || 'mês']: ['1-jan', '2-fev', '3-mar'][i % 3], [base]: seq[i],
+  }));
+}
+
+function sortRows(rows, order) {
+  const compare = (a, b) => {
+    if (a === b) return 0;
+    if (a === null || a === undefined) return 1; // vazios por último, como no motor
+    if (b === null || b === undefined) return -1;
+    return a < b ? -1 : 1;
+  };
+  return rows.map((row, at) => ({ row, at })).sort((x, y) => {
+    for (const item of order) {
+      const c = compare(x.row[item.column], y.row[item.column]);
+      if (c) {
+        const nullSide = x.row[item.column] === null || x.row[item.column] === undefined || y.row[item.column] === null || y.row[item.column] === undefined;
+        return item.descending && !nullSide ? -c : c;
+      }
+    }
+    return x.at - y.at;
+  }).map(({ row }) => row);
+}
+
+function multirowExplain(cfg, rows, answers) {
+  const recipe = recipeOf(cfg.recipe);
+  const custom = recipe.id === 'custom';
+  const ref = custom ? (cfg.expression || '').match(ROW_REF) : null;
+  const order = (cfg.order_by || []).filter((i) => i.column);
+  const groups = cfg.group_by || [];
+  const live = Boolean(rows?.length);
+  const base = custom ? ref?.[3]?.trim() || 'valor' : cfg.base || 'valor';
+  const target = targetOf(cfg) || `${base}_${recipe.suffix || 'novo'}`;
+  const useAnswers = custom && answers?.length;
+  const groupName = groups[0] || (live || useAnswers ? null : 'uf');
+  const orderName = order[0]?.column || (live || useAnswers ? null : 'mês');
+  const offset = custom
+    ? (ref ? (ref[1] === '-' ? -1 : 1) * Number(ref[2]) : -1)
+    : recipe.offset * (recipe.fixedDistance ? 1 : distanceOf(cfg));
+  const source = useAnswers ? answers : live ? rows : multirowExample(cfg, base, groupName, orderName);
+  const orderBy = order.length ? order : orderName && !live && !useAnswers ? [{ column: orderName }] : [];
+  const sorted = useAnswers ? source : sortRows(source, orderBy);
+
+  // Separa em grupos e calcula linha a linha, como o motor: "a anterior" nunca atravessa um grupo.
+  const byGroup = new Map();
+  for (const row of sorted) {
+    const key = groupName ? groups.concat(groups.length ? [] : [groupName]).map((g) => show(row[g])).join(' | ') : '(tudo)';
+    if (!byGroup.has(key)) byGroup.set(key, []);
+    byGroup.get(key).push(row);
+  }
+  const calc = recipe.calc || recipeOf('fill').calc;
+  const outcome = new Map();
+  for (const seq of byGroup.values()) {
+    seq.forEach((row, i) => {
+      const other = seq[i + offset];
+      outcome.set(row, useAnswers ? row[target] : calc({
+        value: row[base], neighbor: other?.[base], hasNeighbor: Boolean(other), before: i ? outcome.get(seq[i - 1]) ?? null : null,
+      }));
+    });
+  }
+  const keys = [...byGroup.keys()].slice(0, 3);
+  const perGroup = keys.length > 1 ? 3 : 6;
+  const shown = keys.flatMap((key, g) => byGroup.get(key).slice(0, perGroup).map((row, i) => ({ row, g, i, key })));
+  const number = new Map(shown.map((s, i) => [s.row, i]));
+  const usedBy = new Map(shown.map((s) => [s.row, []]));
+  shown.forEach((s, i) => {
+    usedBy.get(s.row).push(`r${i}`);
+    const other = byGroup.get(s.key)[s.i + offset];
+    if (other && usedBy.has(other)) usedBy.get(other).push(`r${i}`);
+  });
+  // Um par fica aceso desde o começo: dá para entender o esquema sem passar o mouse.
+  const sampleAt = shown.findIndex((s) => { const o = byGroup.get(s.key)[s.i + offset]; return o && number.has(o); });
+  const sampleFrom = sampleAt >= 0 ? number.get(byGroup.get(shown[sampleAt].key)[shown[sampleAt].i + offset]) : -1;
+
+  const headCols = [...(groupName ? [{ text: groupName }] : []), ...(orderName ? [{ text: orderName }] : [])];
+  const leading = (s) => [
+    ...(groupName ? [{ text: show(s.row[groupName]), kind: `g${s.g}` }] : []),
+    ...(orderName ? [{ text: show(s.row[orderName]) }] : []),
+  ];
+  const sameColumn = target === base;
+  const after = mini(useAnswers ? 'Depois: o resultado da última execução' : 'Depois: na ordem certa, com o resultado',
+    [...headCols, ...(sameColumn ? [] : [{ text: base }]), { text: target, kind: 'to' }],
+    shown.map((s, i) => [
+      ...leading(s),
+      ...(sameColumn ? [] : [{ text: show(s.row[base]), litBy: usedBy.get(s.row).join(' '), kind: i === sampleFrom ? 'from' : null }]),
+      { text: show(outcome.get(s.row)), link: `r${i}`, litBy: sameColumn ? usedBy.get(s.row).join(' ') : null, kind: i === sampleAt ? 'to' : i === sampleFrom && sameColumn ? 'from' : null },
+    ]));
+  const arrivals = source.filter((row) => number.has(row));
+  const before = useAnswers ? null : mini('Antes: como as linhas chegam',
+    [...headCols, { text: base }],
+    arrivals.map((row) => {
+      const s = shown[number.get(row)];
+      return [...leading(s), { text: show(row[base]) }];
+    }));
+
+  const where = offset < 0 ? 'anterior' : 'seguinte';
+  const inGroup = groups.length ? ` do mesmo [${groups.join('], [')}]` : '';
+  const sentence = custom
+    ? (ref ? `A fórmula olha para a linha ${where}${inGroup}.` : 'Use [Row-1:coluna] para olhar a linha de cima e [Row+1:coluna] para a de baixo. Sem isso, seria uma Formula comum.')
+    : recipe.explain(base, distanceOf(cfg));
+  const ordering = order.length
+    ? ` A ordem vem de [${order.map((i) => i.column).join('], [')}].`
+    : ' Sem "Ordenar por", vale a ordem em que as linhas chegam.';
+  const edges = groups.length || (!live && !useAnswers)
+    ? ` A primeira linha de cada grupo não tem ${where === 'anterior' ? 'anterior' : 'próxima'}, e as contas nunca atravessam um grupo.`
+    : '';
+  return {
+    body: [before, before ? arrow('Multi-Row') : null, after].filter(Boolean),
+    caption: `${sentence}${ordering}${edges} Passe o mouse no resultado para ver as células que ele usou.`,
+    sample: live || Boolean(useAnswers),
+  };
 }
 
 // ------------------------------------------------------------------ montagem
@@ -364,6 +493,9 @@ export function explainerEl(n, spec) {
     if (spec.explainer === 'join') {
       const [l, r] = await Promise.all([sampleOf(n.id, 'L'), sampleOf(n.id, 'R')]);
       out = join(n, cfg, l, r);
+    } else if (spec.explainer === 'multirow') {
+      const [rows, answers] = await Promise.all([sampleOf(n.id), ownAnswers(n)]);
+      out = multirowExplain(cfg, rows, answers);
     } else if (spec.explainer === 'api_loop') {
       const [rows, answers] = await Promise.all([sampleOf(n.id), ownAnswers(n)]);
       out = apiLoop(n, cfg, rows, answers);

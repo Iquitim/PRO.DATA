@@ -337,7 +337,7 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     notices.replaceChildren(...[
       ...looseVariables(url).filter((v) => !notVariables.has(v.text)).map(looseHint),
       url.toLowerCase().startsWith('http://') && !LOCAL.test(url)
-        ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Endereço sem criptografia (http): credenciais e dados viajam abertos na rede.') : null,
+        ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Endereço sem criptografia (http): os dados viajam abertos na rede, e o PRO.DATA não envia credenciais por ele.') : null,
       state.method === 'POST'
         ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Um POST pode gravar dados no servidor. Ele não roda sozinho ao abrir o fluxo.') : null,
       needed.length

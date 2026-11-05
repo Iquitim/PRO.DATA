@@ -15,7 +15,8 @@ from typing import Any
 import polars as pl
 from pydantic import ValidationError
 
-from prodata.connectors.api import ApiStore, source_api_id
+from prodata.connectors.api_model import source_api_id
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.queries import QueryStore, source_query_id
 from prodata.connectors.store import ConnectionStore
 from prodata.domain.execution import (

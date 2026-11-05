@@ -7,6 +7,8 @@
 import { api } from './api.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { icon } from './icons.js';
+import { labelPicker } from './label_picker.js';
+import { RECIPES } from './multirow_recipes.js';
 import { formulaEditor } from './formula_editor.js';
 import { API_PREFIX, QUERY_PREFIX } from './store.js';
 
@@ -22,6 +24,27 @@ function visible(field, values, ctx, fields) {
   });
 }
 
+const TYPE_WORD = { String: 'texto', Date: 'data', Boolean: 'verdadeiro/falso' };
+
+/** Só as opções que valem para o tipo da coluna escolhida (spec 026). Sem saber o tipo, mostra todas. */
+function typedOptions(field, values, ctx) {
+  if (!field.options_by_type) return field;
+  const type = (ctx.columns?.() || []).find((c) => c.name === values?.[field.source])?.type;
+  const allowed = field.options_by_type[type];
+  if (!allowed) return field;
+  const options = field.options.filter((o) => allowed.includes(o.value));
+  const current = values?.[field.name] ?? field.default;
+  if (allowed.includes(current)) return { ...field, options };
+  // Valor de um fluxo antigo, ou a coluna acabou de mudar: não troca sozinho, mostra o que corrigir.
+  const shown = field.options.find((o) => o.value === current);
+  return {
+    ...field,
+    options: [{ value: current, label: `${shown?.label || current} (não serve para ${TYPE_WORD[type]})` }, ...options],
+    invalidChoice: true,
+    help: `A coluna [${values?.[field.source]}] é de ${TYPE_WORD[type]}: escolha outra operação.`,
+  };
+}
+
 export function renderFields(fields, values, onChange, ctx = {}) {
   const root = h('div', { class: 'form' });
   const groups = new Map();
@@ -29,7 +52,7 @@ export function renderFields(fields, values, onChange, ctx = {}) {
     if (field.widget === 'hidden' || !visible(field, values, ctx, fields)) continue;
     const group = field.group || '';
     if (!groups.has(group)) groups.set(group, []);
-    groups.get(group).push(field);
+    groups.get(group).push(typedOptions(field, values, ctx));
   }
   // Campos sem grupo primeiro; "Avançado" sempre por último.
   const rank = (g) => (g === '' ? 0 : g === 'Avançado' ? 2 : 1);
@@ -90,7 +113,7 @@ function toggle(field, value, set, _ctx, id) {
 }
 
 function select(field, value, set, _ctx, id) {
-  return h('select', { id, class: 'input', onchange: (e) => set(coerce(field, e.target.value)) },
+  return h('select', { id, class: ['input', field.invalidChoice && 'invalid'], onchange: (e) => set(coerce(field, e.target.value)) },
     field.options.map((o) => h('option', { value: o.value, selected: o.value === value }, o.label)));
 }
 
@@ -178,7 +201,10 @@ function columnInserter(area, cols, wrap) {
 
 function expression(field, value, set, ctx, id) {
   const status = h('div', { class: 'expr-status muted' }, ' ');
-  const cols = ctx.columns?.(field.port) || [];
+  const inputs = ctx.columns?.(field.port) || [];
+  // A própria coluna nova pode ser citada em [Row-1:...]: para a validação, ela já existe.
+  const self = field.multirow ? ctx.selfColumn?.() : null;
+  const cols = self && !inputs.some((c) => c.name === self) ? [...inputs, { name: self, type: 'String' }] : inputs;
   const validate = debounce(async (expr) => {
     if (!expr.trim()) {
       status.className = 'expr-status muted';
@@ -196,11 +222,25 @@ function expression(field, value, set, ctx, id) {
   // Editor com cores, autocompletar e assistente (spec 010).
   const editor = formulaEditor({
     id, value: value ?? '', rows: 3, placeholder: field.placeholder || '[coluna] * 2  ·  Ctrl+Espaço sugere',
-    columns: () => cols,
+    columns: () => inputs,
+    rowRefs: Boolean(field.multirow),
     onChange: (text) => { set(text); validate(text); },
   });
   if (value) validate(value);
   return h('div', { class: 'stack-xs' }, editor, status);
+}
+
+/** Cartões da Multi-Row: a pergunta vem antes da fórmula. */
+function recipeCards(field, value, set) {
+  return h('div', { class: 'mr-cards', role: 'group', 'aria-label': field.title }, RECIPES.map((r) => h('button', {
+    type: 'button', class: ['mr-card', (value || 'custom') === r.id && 'active'], 'aria-pressed': (value || 'custom') === r.id ? 'true' : 'false',
+    dataset: { recipe: r.id }, onclick: () => set(r.id),
+  }, h('span', { class: 'mr-card-icon' }, icon(r.icon, 16)), h('b', {}, r.name), h('small', {}, r.hint))));
+}
+
+/** Rótulo de confidencialidade do Output Data: a mesma lista do dashboard. */
+function confidentiality(field, value, set) {
+  return labelPicker({ value, onChange: set, place: 'file' });
 }
 
 function sql(field, value, set, ctx, id) {
@@ -718,5 +758,6 @@ const WIDGETS = {
   color, optional_number: optionalNumber, category_colors: categoryColors, column_values: columnValues,
   rename_labels: renameLabels,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
+  recipe_cards: recipeCards, confidentiality,
   list, select_columns: selectColumns, sheet_ports: sheetPorts, api_source: apiSource, api_params: apiParams, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
 };

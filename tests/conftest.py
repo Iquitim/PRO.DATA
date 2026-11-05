@@ -9,7 +9,8 @@ from fastapi.testclient import TestClient
 
 from prodata.config import Settings
 from prodata.connectors import api as api_module
-from prodata.connectors.api import ApiStore
+from prodata.connectors import api_policy
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.secrets import MemorySecretStore
 from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
@@ -48,8 +49,11 @@ def fake_ibge(request: httpx.Request) -> httpx.Response:
 
 
 @pytest.fixture(autouse=True)
-def no_real_network(monkeypatch: pytest.MonkeyPatch) -> None:
+def no_real_network(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(api_module, "_transport", httpx.MockTransport(fake_ibge))
+    # Nem consulta de nome sai da máquina, e a política instalada nesta máquina não interfere.
+    monkeypatch.setattr(api_policy, "resolve", lambda _host: ["93.184.216.34"])
+    monkeypatch.setenv(api_policy.POLICY_ENV, str(tmp_path / "sem-politica.json"))
 
 
 @pytest.fixture

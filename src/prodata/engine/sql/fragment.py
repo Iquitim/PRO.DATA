@@ -16,7 +16,7 @@ from typing import Any
 import duckdb
 import polars as pl
 
-from prodata.connectors.api import ApiStore
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.ingestion.datasets import DatasetStore
 

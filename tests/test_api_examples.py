@@ -8,15 +8,10 @@ import pytest
 
 from prodata.config import Settings
 from prodata.connectors import api as api_module
-from prodata.connectors.api import (
-    ApiDefinition,
-    ApiError,
-    ApiParam,
-    ApiStore,
-    SavedApi,
-    read_api,
-    sample_document,
-)
+from prodata.connectors.api import read_api
+from prodata.connectors.api_model import ApiDefinition, ApiError, ApiParam, SavedApi
+from prodata.connectors.api_records import sample_document
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.secrets import MemorySecretStore
 from prodata.desktop import web_link
 from prodata.domain.workflow import Workflow

@@ -12,19 +12,11 @@ import polars as pl
 import pytest
 
 from prodata.connectors import api as api_module
-from prodata.connectors.api import (
-    ApiAuth,
-    ApiClient,
-    ApiDefinition,
-    ApiError,
-    ApiPagination,
-    ApiParam,
-    ApiStore,
-    SavedApi,
-    read_api,
-    rows_to_frame,
-    run_loop,
-)
+from prodata.connectors.api import ApiClient, read_api
+from prodata.connectors.api_loop import run_loop
+from prodata.connectors.api_model import ApiAuth, ApiDefinition, ApiError, ApiPagination, ApiParam, SavedApi
+from prodata.connectors.api_records import rows_to_frame
+from prodata.connectors.api_store import ApiStore
 from prodata.connectors.secrets import MemorySecretStore
 from prodata.domain.workflow import Workflow
 from prodata.engine.runner import WorkflowRunner
@@ -839,16 +831,17 @@ def test_preview_asks_for_sample_values(client: Any, serve: Any) -> None:
     assert second["rows"] == [{"v": "valor de a"}]
 
 
-def test_preview_warns_about_plain_http(client: Any, serve: Any) -> None:
+def test_preview_warns_about_plain_http(
+    client: Any, serve: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     serve(echo)
+    policy = tmp_path / "politica.json"
+    policy.write_text('{"servidores_internos": ["127.0.0.1"]}', encoding="utf-8")
+    monkeypatch.setenv("PRODATA_POLICY_FILE", str(policy))
     res = client.post("/api/apis/preview", json={"definition": {"url": "http://exemplo.com/x"}}).json()
     assert res["insecure"] is True
-    assert (
-        client.post("/api/apis/preview", json={"definition": {"url": "http://127.0.0.1/x"}}).json()[
-            "insecure"
-        ]
-        is False
-    )
+    local = client.post("/api/apis/preview", json={"definition": {"url": "http://127.0.0.1/x"}}).json()
+    assert local["insecure"] is False
 
 
 def test_bad_definition_is_refused_on_save(client: Any) -> None:

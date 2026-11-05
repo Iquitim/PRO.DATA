@@ -123,6 +123,7 @@
   figure.m50 { max-width: 50%; margin-left: auto; margin-right: auto; }
   .side { display: grid; grid-template-columns: 1fr 66mm; gap: 14pt; align-items: start; margin-bottom: 8pt; }
   .side.wide { grid-template-columns: 1fr 84mm; }
+  .grid-2.tight { max-width: 88%; margin-left: auto; margin-right: auto; }
   .side figure { margin: 0; }
   .side > div > :last-child { margin-bottom: 0; }
 
@@ -163,7 +164,7 @@
     <div class="rule"></div>
     <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.5.8 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.5.9 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -362,7 +363,7 @@
       <ul style="margin-top:8pt">
         <li>A saída <strong>R</strong> traz as respostas ao lado da linha que as pediu; a <strong>E</strong>, o que falhou e o motivo.</li>
         <li>Valores iguais são chamados uma vez só.</li>
-        <li>Chamadas por segundo e um limite total protegem a API e a sua cota.</li>
+        <li>Um limite de pedidos, que conta páginas e novas tentativas, protege a API e a sua cota. A caixa também para depois de várias falhas seguidas.</li>
         <li>O Loop não roda ao abrir um fluxo: espera o clique em <strong>Executar</strong>.</li>
       </ul>
     </div>
@@ -383,20 +384,20 @@
     <tr><td class="tool">API Loop</td><td>Chama uma API para cada linha da tabela e junta as respostas, com as falhas numa saída própria.</td></tr>
     <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
     <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
-    <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher. No Excel, ligue várias tabelas na mesma caixa: cada uma vira uma planilha. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
+    <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher, com um <strong>rótulo de confidencialidade</strong>. No Excel, ligue várias tabelas na mesma caixa: cada uma vira uma planilha. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
     <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
     <tr><td class="tool">Select</td><td>Escolhe, renomeia, reordena (arrastando) e muda o tipo das colunas. Entende números no padrão brasileiro, datas como 29/10/2026 e sim/não, e avisa quantos valores não converteram.</td></tr>
     <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
     <tr><td class="tool">Formula</td><td>Cria colunas calculadas ou altera colunas existentes (SE/ENTÃO, texto, matemática, datas).</td></tr>
-    <tr><td class="tool">Multi-Row Formula</td><td>Fórmula que olha outras linhas: preencher para baixo, diferença para a linha anterior.</td></tr>
+    <tr><td class="tool">Multi-Row Formula</td><td>Olha outras linhas, com receitas prontas: preencher para baixo, diferença, variação %, valor anterior, próximo valor e "mudou?". Tem o próprio <strong>Ordenar por</strong>.</td></tr>
     <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
     <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
-    <tr><td class="tool">Sort · Sample</td><td>Ordena; tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
+    <tr><td class="tool">Sort · Sample</td><td>Ordena por uma ou mais colunas (o <em>order by</em>); tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
     <tr><td class="tool">Text To Columns</td><td>Divide um texto por um separador em novas colunas ou linhas (ex.: "SP - São Paulo").</td></tr>
     <tr><td class="tool">Record ID · Running Total</td><td>Numera as linhas; calcula soma acumulada, recomeçando a cada grupo se quiser.</td></tr>
     <tr><td colspan="2"><span class="tag">Combinar e transformar</span></td></tr>
     <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R. Dá para escolher se o J mantém as chaves dos dois lados, só a da esquerda ou só a da direita, e escolher, renomear, converter e reordenar as colunas do J ali mesmo, como num Select. O Configurar mostra quantas linhas saem em cada uma.</td></tr>
-    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, moda, desvio padrão, contagens, mínimo e máximo. O Configurar mostra um esquema do antes e depois.</td></tr>
+    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, moda, desvio padrão, contagens, mínimo e máximo. Só oferece o que serve para o tipo da coluna: texto não soma. O Configurar mostra um esquema do antes e depois.</td></tr>
     <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
     <tr><td class="tool">Cross Tab · Transpose</td><td>Tabela dinâmica (valores de uma coluna viram colunas) e o inverso (colunas viram linhas). O Configurar desenha o antes e o depois com os seus dados.</td></tr>
     <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
@@ -412,13 +413,13 @@
 
   <h3>Configurando uma caixa</h3>
   <p>Clique na caixa e a aba <strong>Configurar</strong> abre ao lado, com um formulário só dela. Na direita, a tabela já mostra o resultado — no exemplo, as três saídas do Join com a contagem de cada uma.</p>
-  <figure class="m60">
+  <figure class="m50">
     <div class="frame"><img src="img/join.png" alt="Configuração do Join"></div>
     <figcaption>As chaves de junção são escolhidas em listas que já conhecem as colunas de cada lado.</figcaption>
   </figure>
   <h3>Entendendo o que a caixa faz</h3>
   <p>Cross Tab, Transpose, Join e Summarize são conceitos que confundem quem não trabalha com dados todo dia. No Configurar, essas caixas mostram um <strong>esquema</strong> do que acontece com a tabela, montado com as colunas escolhidas e uma amostra dos seus dados. Passar o mouse num valor destaca para onde ele vai; no Join, clicar em L, J ou R abre aquelas linhas.</p>
-  <div class="grid-2">
+  <div class="grid-2 tight">
     <figure>
       <div class="frame"><img src="img/explain-crosstab.png" alt="Esquema do Cross Tab"></div>
       <figcaption>Cross Tab: cada segmento vira uma coluna. O valor destacado mostra onde cai na tabela nova.</figcaption>
@@ -466,17 +467,15 @@
   </div>
 
   <h3>Fórmula que olha outras linhas</h3>
-  <div class="side">
-    <div>
-      <p>A <strong>Multi-Row Formula</strong> usa <code>[Row-1:valor]</code> para a linha anterior e <code>[Row+1:valor]</code> para a seguinte, com as mesmas funções da Formula.</p>
-      <ul>
-        <li><strong>Preencher para baixo</strong>: <code>IF IsNull([uf]) THEN [Row-1:uf] ELSE [uf] ENDIF</code></li>
-        <li><strong>Diferença para a linha anterior</strong>: <code>[valor] - [Row-1:valor]</code></li>
-        <li>Com <strong>Agrupar por</strong>, as referências não atravessam grupos.</li>
-        <li>O cálculo segue a ordem em que as linhas chegam: use um <strong>Sort</strong> antes.</li>
-      </ul>
-    </div>
-    <figure><div class="frame"><img src="img/multirow.png" alt="Configuração da Multi-Row Formula"></div><figcaption>Preenchendo os vazios de uma coluna.</figcaption></figure>
+  <p>A <strong>Multi-Row Formula</strong> compara uma linha com as vizinhas. Você não precisa escrever nada: escolha o que quer fazer, escolha a coluna, e a fórmula sai pronta, à vista.</p>
+  <ul>
+    <li>Em <strong>Ordenar por</strong>, diga a ordem, com uma ou mais colunas: "a linha anterior" depende dela.</li>
+    <li>Com <strong>Agrupar por</strong>, as contas não atravessam grupos.</li>
+    <li><strong>Escrever a minha</strong> abre a fórmula livre, com botões para inserir <code>[Row-1:coluna]</code> e <code>[Row+1:coluna]</code>.</li>
+  </ul>
+  <div class="grid-2 tight" style="max-width:78%">
+    <figure style="margin:0"><div class="frame"><img src="img/multirow.png" alt="Receitas da Multi-Row Formula"></div><figcaption>As receitas: a pergunta vem antes da fórmula.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="img/explain-multirow.png" alt="Esquema da Multi-Row Formula"></div><figcaption>O esquema, como no Join: passe o mouse no resultado para ver as células que ele usou.</figcaption></figure>
   </div>
   <h3>Várias planilhas no mesmo Excel</h3>
   <div class="side">
@@ -590,15 +589,15 @@
   </figure>
 
   <h3>Filtros na página</h3>
-  <p>Em <strong>Adicionar filtro</strong>, escolha uma coluna: a barra no topo oferece seus valores ou, em número e data, um intervalo. O filtro vale para todos os visuais cuja tabela tem aquela coluna, sem executar o fluxo de novo. Quem não tem a coluna não muda e mostra um aviso discreto, <strong>Sem filtro</strong>. A escolha fica salva no fluxo e aparece no alto da imagem PNG.</p>
-  <figure>
+  <p>Em <strong>Adicionar filtro</strong>, escolha uma coluna: a faixa no topo mostra seus valores como botões ou, em número e data, um controle deslizante. Ou clique direto numa <strong>barra ou fatia</strong> de um gráfico: a página filtra por aquele valor, <kbd>Ctrl</kbd>+clique soma outros, e clicar de novo tira. O gráfico clicado mantém as demais categorias apagadas, para dar para trocar. O filtro vale para todos os visuais cuja tabela tem aquela coluna, sem executar o fluxo de novo. Quem não tem a coluna não muda e mostra um aviso discreto, <strong>Sem filtro</strong>. A escolha fica salva no fluxo e aparece no alto da imagem PNG.</p>
+  <figure class="m80">
     <div class="frame"><img src="img/dash-filters.png" alt="Barra de filtros do dashboard"></div>
     <figcaption>Filtro por UF: os visuais com a coluna mudam na hora, e o aviso marca o que ficou de fora.</figcaption>
   </figure>
   <h3>O dashboard em um arquivo HTML</h3>
-  <p><strong>Baixar HTML</strong> gera um arquivo só, que abre em qualquer navegador, sem o PRO.DATA e sem internet, com os detalhes ao passar o mouse e os <strong>filtros funcionando</strong>. Para isso, o arquivo leva as colunas que os visuais e os filtros usam, e nada além delas. Antes de salvar, a tela mostra quanto dado vai dentro.</p>
-  <div class="callout warn"><strong>Cuidado ao compartilhar</strong>Quem recebe o arquivo pode ver todos os dados que ele leva, mesmo o que estiver filtrado fora na hora de abrir.</div>
-  <figure class="m50">
+  <p><strong>Baixar HTML</strong> gera um arquivo só, que abre em qualquer navegador, sem o PRO.DATA e sem internet, com os detalhes ao passar o mouse e os <strong>filtros funcionando</strong>. Para isso, o arquivo leva as colunas que os visuais e os filtros usam, e nada além delas. Antes de salvar, a tela mostra quanto dado vai dentro. Com <strong>senha</strong>, obrigatória nos rótulos Confidencial e Restrito, os dados ficam cifrados até alguém digitá-la.</p>
+  <div class="callout warn"><strong>Cuidado ao compartilhar</strong>Quem abre o arquivo pode ver e copiar todos os dados que ele leva, mesmo o que estiver filtrado fora. Envie a senha por outro canal; quem a perder não recupera o arquivo, mas pode gerar outro no PRO.DATA.</div>
+  <figure class="m50" style="max-width:40%">
     <div class="frame"><img src="img/dash-html.png" alt="Aviso antes de salvar o HTML"></div>
     <figcaption>O aviso lista as colunas e o tamanho antes de gerar o arquivo.</figcaption>
   </figure>
@@ -687,15 +686,21 @@
 <section class="chapter">
   <div class="eyebrow">12 · Confiança</div>
   <h2>Segurança e privacidade</h2>
-  <div class="grid-2">
+  <div class="grid-3">
     <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador e funciona offline. A única saída para a rede é a que você cadastra: bancos e APIs. O programa não envia nada por conta própria.</p></div>
     <div class="card"><h4>Senhas no cofre do Windows</h4><p>Senhas de banco ficam no Gerenciador de Credenciais do Windows, criptografadas pelo sistema. Nunca aparecem em arquivos, fluxos ou mensagens de erro.</p></div>
-    <div class="card"><h4>APIs sob controle</h4><p>Tokens e senhas de API ficam no cofre do Windows, fora do fluxo e dos arquivos. O endereço pertence à API cadastrada neste computador, e as credenciais nunca seguem para outro servidor em redirecionamentos ou paginação. POST e API Loop não rodam sozinhos ao abrir um fluxo.</p></div>
+    <div class="card"><h4>APIs sob controle</h4><p>Tokens e senhas ficam no cofre do Windows e nunca viajam por <code>http</code> para fora, nem seguem para outro servidor. APIs públicas funcionam sem configuração; rede interna, só com a lista da TI. POST e API Loop não rodam sozinhos ao abrir um fluxo.</p></div>
+    <div class="card"><h4>Rótulos</h4><p>Público, Interno, Confidencial ou Restrito, com uma dica do que cada um faz. No HTML, os dois últimos exigem senha. A imagem e o Excel não têm como levar senha: saem marcados, e a dica avisa.</p></div>
+    <div class="card"><h4>Registro das exportações</h4><p><code>logs\exportacoes.log</code> guarda quando, quem, o arquivo, o rótulo, quantas linhas e colunas, e se teve senha. Nunca os dados.</p></div>
     <div class="card"><h4>Bancos somente leitura</h4><p>Comandos que alteram dados (<code>DELETE</code>, <code>UPDATE</code>, <code>DROP</code>…) são recusados antes de chegar ao banco. No PostgreSQL, a sessão é aberta em modo somente leitura.</p></div>
-    <div class="card"><h4>Gravação sob controle</h4><p>Fora da pasta de dados, o programa só grava onde você mandar: na pasta escolhida no Output Data ou no fluxo que você salvar. Nomes de arquivo maliciosos são neutralizados.</p></div>
+    <div class="card"><h4>Fluxos recebidos</h4><p>Fórmulas e a caixa SQL não acessam arquivos nem a internet. Fora da pasta de dados, o programa só grava onde você mandar: no Output Data ou no fluxo que você salvar.</p></div>
     <div class="card"><h4>Dados preservados</h4><p>Fluxos, arquivos e conexões ficam em <code>%LOCALAPPDATA%\PRO.DATA</code> e sobrevivem a atualizações e à desinstalação.</p></div>
     <div class="card"><h4>Rastreabilidade</h4><p>Fluxos são salvos em JSON legível — dá para versionar, revisar e auditar cada regra aplicada aos dados.</p></div>
   </div>
+  <h3>Para a TI: liberar APIs internas</h3>
+  <p>A lista fica em <code>%ProgramData%\PRO.DATA\politica.json</code>, que exige administrador para alterar. Aceita nomes, curingas, endereços e faixas. Sem o arquivo, nenhum destino interno é chamado, e as APIs públicas continuam funcionando.</p>
+  <div class="anatomy">{ "servidores_internos": ["erp.empresa.local", "*.intra.local", "10.1.0.0/16"] }</div>
+  <div class="callout warn"><strong>Até onde vai esta proteção</strong>O PRO.DATA roda no computador de cada pessoa, sem servidor central: estes controles evitam engano e distração, não um usuário decidido a burlar. O rótulo é do PRO.DATA, e não o rótulo de sensibilidade da Microsoft (Purview), que depende de configuração da empresa.</div>
 </section>
 
 <!-- ================================================================ 10. INSTALAÇÃO -->
@@ -704,8 +709,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.8-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.8-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.9-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.9-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -759,7 +764,8 @@
         <li>Versões para macOS e Linux</li>
         <li>Atualização automática do programa</li>
         <li>Publicar dashboards num servidor</li>
-        <li>Dashboard em PDF, com várias páginas ou com filtro ao clicar num gráfico</li>
+        <li>Rótulos de sensibilidade da Microsoft (Purview)</li>
+        <li>Dashboard em PDF ou com várias páginas</li>
       </ul>
     </div>
   </div>
@@ -800,6 +806,8 @@
   <div class="avoid"><h4>A exportação vai apagar o arquivo de ontem?</h4><p>Não sem perguntar. Se o arquivo de saída já existe, ao clicar em Executar o PRO.DATA pergunta: substituir, criar um novo com data e hora no nome, ou (no Excel) adicionar a planilha. Dá para lembrar a escolha na caixa. Ao abrir o programa, essas exportações esperam o seu Executar.</p></div>
   <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
   <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na aba Dados.</p></div>
+  <div class="avoid"><h4>Minha API interna foi recusada. E agora?</h4><p>Peça à TI para incluir o servidor na lista de APIs internas (capítulo 12). APIs públicas não precisam de nada.</p></div>
+  <div class="avoid"><h4>Posso pedir ajuda a uma IA sobre um fluxo?</h4><p>Sim. Envie o arquivo <code>.prodata.json</code> junto com o <code>contexto-ia.md</code>, publicado com cada versão. Ele ensina a IA a mexer no fluxo; depois, é só salvar a resposta e abrir no programa. Confira o resultado, e lembre que o fluxo mostra nomes de colunas e fórmulas, além dos dados digitados em Text Input.</p></div>
   <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, <strong>Baixar imagem</strong> gera um PNG em alta resolução, pronto para o e-mail ou a apresentação. <strong>Baixar HTML</strong> gera um arquivo que abre em qualquer navegador, com os filtros funcionando; a tela avisa quais dados vão dentro dele.</p></div>
   <div class="avoid"><h4>Desinstalar apaga meus fluxos?</h4><p>Não. Fluxos, arquivos e conexões ficam na sua pasta de dados e continuam lá para uma futura reinstalação.</p></div>
 </section>

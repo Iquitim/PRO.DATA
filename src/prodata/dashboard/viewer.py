@@ -10,9 +10,10 @@ MODULES = (
     "icons.js",
     "dom.js",
     "charts.js",
-    "dash_cards.js",
     "dash_filters.js",
+    "dash_cards.js",
     "dash_compute.js",
+    "dash_crypt.js",
     "dash_viewer.js",
 )
 

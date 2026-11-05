@@ -2,6 +2,7 @@
 // Sem dependência do fluxo aberto: os mesmos cartões desenham a página do programa e a do HTML exportado (spec 021).
 
 import { gaugeChart, renderChart, sparkline, withTooltip } from './charts.js';
+import { isClickChart, isCrossChart } from './dash_filters.js';
 import { button, fmt, h } from './dom.js';
 import { icon } from './icons.js';
 
@@ -10,7 +11,8 @@ export const AGG_LABELS = {
 };
 
 // Quem desenha decide o que acontece ao clicar: no HTML exportado não há fluxo para abrir.
-const env = { open: null, clickable: () => true };
+// `cross` no cartão liga o filtro por clique: só na página do dashboard, não no painel de insights.
+const env = { open: null, clickable: () => true, canFilter: () => false, selectedFor: () => null, onCategory: null };
 export function setCardEnv(next) { Object.assign(env, next); }
 
 const tableMode = new Set();
@@ -146,7 +148,7 @@ function relabel(w, labels) {
  * Cartão de gráfico. `w`: widget publicado pela caixa (Chart ou Venn). Clicar no título leva ao nó de
  * origem. `actions`: botões extras no cabeçalho; `fmt`: formato do visual.
  */
-export function chartCard(original, { width, height = 260, className = '', actions = [], fmt: f = {} } = {}) {
+export function chartCard(original, { width, height = 260, className = '', actions = [], fmt: f = {}, cross = false } = {}) {
   const w = relabel(original, f.labels);
   const card = h('article', { class: ['chart-card', className], style: cardStyle(f) });
   const asTable = tableMode.has(w.node_id);
@@ -154,7 +156,7 @@ export function chartCard(original, { width, height = 260, className = '', actio
     : SUBTITLES[w.chart_type]?.(w)
       || (w.agg === 'count' ? `Contagem por ${w.x_column}` : `${AGG_LABELS[w.agg] || w.agg} de ${w.y_column} por ${w.x_column}`)
       + (w.series_column ? ` e ${w.series_column}` : ''));
-  const redraw = () => card.replaceWith(chartCard(original, { width, height, className, actions, fmt: f }));
+  const redraw = () => card.replaceWith(chartCard(original, { width, height, className, actions, fmt: f, cross }));
   const showTitle = f.show_title !== false;
   const showSub = f.show_subtitle !== false;
   card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
@@ -174,7 +176,17 @@ export function chartCard(original, { width, height = 260, className = '', actio
       h('thead', {}, h('tr', {}, t.head.map((c, i) => h('th', { class: i ? 'num' : null }, c)))),
       h('tbody', {}, t.rows.map((r) => h('tr', {}, r.map((v, i) => h('td', { class: i ? 'num' : null }, v))))))));
   } else {
-    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series || [], Math.max(220, width - 34), height, { ...f, _keyOf: w._keyOf }, w));
+    const canCross = cross && isCrossChart(w);
+    const filterable = cross && isClickChart(w) && env.canFilter(original);
+    const body = h('div', { class: 'chart-body' }, renderChart(w.chart_type, w.series || [], Math.max(220, width - 34), height, {
+      ...f, _keyOf: w._keyOf, _filterable: filterable, _selected: canCross ? env.selectedFor(original) : null,
+    }, w));
+    if (filterable) {
+      body.addEventListener('click', (e) => {
+        const mark = e.target.closest('[data-cat]');
+        if (mark) env.onCategory(original, mark.dataset.cat, e.ctrlKey || e.metaKey);
+      });
+    }
     card.append(body);
     withTooltip(card, body);
   }
