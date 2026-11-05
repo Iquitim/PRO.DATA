@@ -43,7 +43,7 @@ class InputDataConfig(ReadOptions, ToolConfig):
     dataset: str = Field(
         "",
         title="Fonte",
-        description="Arquivo, consulta de banco ou API cadastrados na aba Dados.",
+        description="Arquivo, consulta de banco ou API cadastrados na aba Dados. APIs que pedem parâmetro ficam no API Loop.",
         json_schema_extra=ui(widget="dataset"),
     )
     limit: int = Field(0, ge=0, title="Limite de linhas", description="0 = todas as linhas.")
@@ -147,8 +147,14 @@ class ApiLoopConfig(ToolConfig):
     source: str = Field(
         "",
         title="API",
-        description="Cadastrada na aba Dados, com {coluna} no endereço, nos parâmetros ou no corpo.",
+        description="Só aparecem as que pedem parâmetro. As outras são lidas direto no Input Data.",
         json_schema_extra=ui(widget="api_source"),
+    )
+    columns: dict[str, str] = Field(
+        default_factory=dict,
+        title="De onde vem cada parâmetro",
+        description="Cada valor da coluna escolhida gera uma chamada à API.",
+        json_schema_extra=ui(widget="api_params"),
     )
     keep_columns: bool = Field(
         True,
@@ -199,7 +205,7 @@ def _loop_on_request(_ctx: NodeContext, _cfg: ApiLoopConfig) -> str | None:
     name="API Loop",
     category="inout",
     icon="repeat",
-    description="Chama uma API para cada linha da tabela e junta as respostas numa tabela só. A tabela pode vir de outra API.",
+    description="Para APIs que pedem parâmetro: chama uma vez para cada linha da tabela, com o valor da coluna que você escolher, e junta as respostas. A tabela pode vir de outra API.",
     config=ApiLoopConfig,
     outputs=[Port("out", "R", "Respostas"), Port("errors", "E", "Chamadas com erro")],
     fingerprint=_loop_signature,
@@ -221,6 +227,7 @@ def api_loop(ctx: NodeContext, cfg: ApiLoopConfig) -> NodeOutput:
         max_calls=cfg.max_calls,
         stop_on_error=cfg.on_error == "stop",
         keep_columns=cfg.keep_columns,
+        columns=cfg.columns,
         progress=lambda done, total: ctx.report(f"{done}/{total} chamadas"),
     )
     warnings = []

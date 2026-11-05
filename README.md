@@ -19,8 +19,10 @@ localmente.
   arquivos do projeto.
 - **APIs**: cadastre uma API na aba Dados (GET ou POST, JSON, CSV ou XML, com
   paginação e novas tentativas) e leia no Input Data. Token, chave, senha e OAuth 2
-  ficam no cofre do sistema. O **API Loop** chama a API uma vez por linha de uma
-  tabela, que pode ser a saída de outra API, e junta as respostas. O cadastro tem
+  ficam no cofre do sistema. API sem parâmetro vira tabela direto no Input Data; com
+  parâmetro (`{sigla}`), entra como **API Loop**: você escolhe a coluna que preenche
+  cada parâmetro, e ele chama uma vez por valor, juntando as respostas. A tabela pode
+  ser a saída de outra API. O cadastro tem
   exemplos prontos e mostra a resposta ao lado da tabela, e o fluxo de demonstração
   consome a API pública do IBGE, só depois do clique em Executar.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo

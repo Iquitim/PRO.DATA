@@ -284,40 +284,42 @@ function apiLoop(n, cfg, rows, answers) {
   const source = store.apis.find((a) => a.id === cfg.source) || null;
   const shown = source || LOOP_EXAMPLE;
   const wants = placeholdersOf(shown);
-  const missing = rows?.length ? wants.filter((c) => !(c in rows[0])) : [];
+  const colOf = (p) => cfg.columns?.[p] || p;
+  const cols = [...new Set(wants.map(colOf))];
+  const missing = rows?.length ? wants.filter((p) => !(colOf(p) in rows[0])) : [];
   const real = Boolean(source && rows?.length && !missing.length && wants.length);
-  const data = real ? rows : EXAMPLE_VALUES.map((v, i) => Object.fromEntries(wants.map((c) => [c, wants.length === 1 ? v : `${c}${i + 1}`])));
-  const keyOf = (r) => `k:${wants.map((c) => show(r[c])).join('|')}`;
+  const data = real ? rows : EXAMPLE_VALUES.map((v, i) => Object.fromEntries(cols.map((c) => [c, cols.length === 1 ? v : `${c}${i + 1}`])));
+  const keyOf = (r) => `k:${cols.map((c) => show(r[c])).join('|')}`;
   const seen = [...new Map(data.map((r) => [keyOf(r), r])).values()];
   const calls = seen.slice(0, 3);
-  const others = real ? Object.keys(rows[0]).filter((c) => !wants.includes(c)).slice(0, Math.max(0, 3 - wants.length)) : [];
+  const others = real ? Object.keys(rows[0]).filter((c) => !cols.includes(c)).slice(0, Math.max(0, 3 - cols.length)) : [];
   const repeated = data.length - seen.length;
   // Mostra uma linha repetida, se houver: é o que explica por que há menos chamadas do que linhas.
   const twin = repeated ? data.find((r, i) => calls.some((c) => keyOf(c) === keyOf(r)) && data.findIndex((x) => keyOf(x) === keyOf(r)) !== i) : null;
   const input = mini('Entrada: cada linha pede uma chamada',
-    [...wants.map((c) => ({ text: c, kind: 'from' })), ...others.map((c) => ({ text: c }))],
+    [...cols.map((c) => ({ text: c, kind: 'from' })), ...others.map((c) => ({ text: c }))],
     [...calls, ...(twin ? [twin] : [])].map((r) => [
-      ...wants.map((c) => ({ text: show(r[c]), kind: 'from', link: keyOf(r) })),
+      ...cols.map((c) => ({ text: show(r[c]), kind: 'from', link: keyOf(r) })),
       ...others.map((c) => ({ text: show(r[c]) })),
     ]));
   const callBox = h('div', { class: 'x-table' }, h('div', { class: 'x-title' }, 'Chamadas'),
-    h('div', { class: 'x-calls' }, calls.map((r) => callLine(shown, r, keyOf(r))),
+    h('div', { class: 'x-calls' }, calls.map((r) => callLine(shown, Object.fromEntries(wants.map((p) => [p, r[colOf(p)]])), keyOf(r))),
       seen.length > calls.length ? h('div', { class: 'x-more' }, `e mais ${fmt.int(seen.length - calls.length)} nesta amostra`) : null));
   let output;
   if (answers?.length) {
-    const cols = Object.keys(answers[0]);
-    const ordered = [...wants.filter((c) => cols.includes(c)), ...cols.filter((c) => !(rows?.[0] && c in rows[0]))].slice(0, 4);
-    const fromInput = new Set(wants);
+    const names = Object.keys(answers[0]);
+    const ordered = [...cols.filter((c) => names.includes(c)), ...names.filter((c) => !(rows?.[0] && c in rows[0]))].slice(0, 4);
+    const fromInput = new Set(cols);
     output = mini('Saída R: as respostas ao lado da linha que pediu',
       ordered.map((c) => ({ text: c, kind: fromInput.has(c) ? null : 'to' })),
       answers.slice(0, 4).map((r) => ordered.map((c) => ({
-        text: show(r[c]), kind: fromInput.has(c) ? null : 'to', link: wants.every((w) => w in r) ? keyOf(r) : undefined,
+        text: show(r[c]), kind: fromInput.has(c) ? null : 'to', link: cols.every((w) => w in r) ? keyOf(r) : undefined,
       }))));
   } else {
     output = mini('Saída R: as respostas ao lado da linha que pediu',
-      [...wants.map((c) => ({ text: c })), { text: 'campos da resposta', kind: 'to' }],
+      [...cols.map((c) => ({ text: c })), { text: 'campos da resposta', kind: 'to' }],
       calls.slice(0, 2).flatMap((r) => [0, 1].map((i) => [
-        ...wants.map((c) => ({ text: show(r[c]), link: keyOf(r) })),
+        ...cols.map((c) => ({ text: show(r[c]), link: keyOf(r) })),
         { text: `item ${i + 1} da resposta`, kind: 'to', link: keyOf(r) },
       ])));
   }
@@ -329,10 +331,10 @@ function apiLoop(n, cfg, rows, answers) {
     onclick: () => inspect(n.id, port),
   }, h('b', {}, letter), h('span', {}, label), h('strong', {}, counts[port] === undefined ? '—' : fmt.int(counts[port])))));
   const notes = [];
-  if (!source) notes.push('Escolha abaixo uma API que tenha {coluna} no endereço, nos parâmetros ou no corpo.');
-  else if (!wants.length) notes.push('Esta API não pede nenhuma coluna: escreva {coluna} no cadastro dela, na aba Dados.');
-  if (missing.length) notes.push(`A tabela de entrada não tem ${missing.map((c) => `[${c}]`).join(', ')}: renomeie a coluna ou ajuste a API.`);
-  if (source && wants.length) notes.push(`Cada valor de ${wants.map((c) => `[${c}]`).join(' e ')} vira uma chamada, e as respostas se juntam numa tabela só.`);
+  if (!source) notes.push('Escolha acima uma API que peça parâmetro.');
+  else if (!wants.length) notes.push('Esta API não pede parâmetro: leia direto com o Input Data.');
+  if (missing.length) notes.push(`Escolha acima a coluna de ${missing.map((p) => `{${p}}`).join(', ')}.`);
+  if (source && wants.length && !missing.length) notes.push(`${wants.map((p) => `{${p}}`).join(' e ')} recebe${wants.length > 1 ? 'm' : ''} o valor de ${wants.map((p) => `[${colOf(p)}]`).join(' e ')}: cada valor vira uma chamada, e as respostas se juntam numa tabela só.`);
   if (repeated) notes.push(`Valores iguais são chamados uma vez: nesta amostra, ${fmt.int(data.length)} linhas pedem ${fmt.int(seen.length)} chamadas.`);
   notes.push('O que falhar sai em E, com o motivo, sem parar as outras chamadas.');
   return { body: [input, arrow('uma chamada por valor'), callBox, arrow('junta as respostas'), output, bar], caption: notes.join(' '), sample: real };

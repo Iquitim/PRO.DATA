@@ -589,8 +589,80 @@ def test_missing_column_is_explained(serve: Any) -> None:
 
 
 def test_api_without_placeholder_is_refused(serve: Any) -> None:
-    with pytest.raises(ApiError, match="não usa nenhuma coluna"):
+    with pytest.raises(ApiError, match="não pede nenhum parâmetro"):
         loop(pl.DataFrame({"id": [1]}), ApiDefinition(url=URL))
+
+
+def test_parameter_comes_from_the_chosen_column(serve: Any) -> None:
+    calls = serve(echo)
+    df = pl.DataFrame({"uf": ["a", "b", "a"], "x": [1, 2, 3]})
+    out = loop(df, columns={"id": "uf"})
+    assert [c.url.path for c in sorted(calls, key=lambda c: c.url.path)] == ["/c/a", "/c/b"]
+    assert out.table.to_dicts() == [
+        {"uf": "a", "x": 1, "v": "valor de a"},
+        {"uf": "b", "x": 2, "v": "valor de b"},
+        {"uf": "a", "x": 3, "v": "valor de a"},
+    ]
+
+
+def test_chosen_column_wins_over_the_same_name(serve: Any) -> None:
+    calls = serve(echo)
+    loop(pl.DataFrame({"id": ["nao"], "uf": ["sim"]}), columns={"id": "uf"})
+    assert calls[0].url.path == "/c/sim"
+
+
+def test_without_a_choice_the_same_name_is_used(serve: Any) -> None:
+    calls = serve(echo)
+    loop(pl.DataFrame({"id": ["a"]}), columns={})
+    assert calls[0].url.path == "/c/a"
+
+
+def test_two_parameters_can_read_the_same_column(serve: Any) -> None:
+    calls = serve(lambda _r: httpx.Response(200, json=[{"ok": 1}]))
+    source = ApiDefinition(url="https://api.exemplo.com/{a}/{b}")
+    out = loop(pl.DataFrame({"c": ["x"]}), source, columns={"a": "c", "b": "c"})
+    assert calls[0].url.path == "/x/x" and out.table.to_dicts() == [{"c": "x", "ok": 1}]
+
+
+def test_chosen_column_that_does_not_exist_calls_nothing(serve: Any) -> None:
+    calls = serve(echo)
+    with pytest.raises(ApiError, match="Escolha a coluna"):
+        loop(pl.DataFrame({"uf": ["a"]}), columns={"id": "sumiu"})
+    assert calls == []
+
+
+def test_empty_value_names_the_chosen_column(serve: Any) -> None:
+    serve(echo)
+    out = loop(pl.DataFrame({"uf": [None, "a"]}), columns={"id": "uf"})
+    assert "[uf]" in out.errors["erro"][0] and out.errors["uf"].to_list() == [None]
+
+
+def test_tool_uses_the_chosen_column(serve: Any, runner: WorkflowRunner, apis: ApiStore) -> None:
+    serve(api_server)
+    flow = Workflow.model_validate(
+        {
+            "id": "wf-map",
+            "name": "x",
+            "nodes": [
+                {
+                    "id": "t",
+                    "type": "io.text_input",
+                    "label": "T",
+                    "config": {"table": {"columns": ["codigo"], "rows": [["7"]]}},
+                },
+                {
+                    "id": "l",
+                    "type": "io.api_loop",
+                    "label": "L",
+                    "config": {"source": "det", "calls_per_second": 0, "columns": {"id": "codigo"}},
+                },
+            ],
+            "edges": [{"id": "e", "source": "t", "sourceHandle": "out", "target": "l", "targetHandle": "in"}],
+        }
+    )
+    report = runner.run(flow)
+    assert report.node_results["l"].status == "executed", report.node_results["l"].error
+    assert runner.cache.get(flow.id, "l").tables["out"].to_dicts() == [{"codigo": 7, "det": "d7"}]
 
 
 def test_name_clash_keeps_both(serve: Any) -> None:

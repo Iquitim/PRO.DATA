@@ -59,6 +59,7 @@ def api_section() -> dict[str, list[dict[str, Any]]]:
                 1,
                 690,
                 source=MUNICIPIOS_ID,
+                columns={"sigla": "sigla"},
                 reuse=True,
             ),
             _node(

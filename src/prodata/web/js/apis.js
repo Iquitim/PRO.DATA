@@ -47,7 +47,7 @@ function marked(text, cls = '') {
   const out = [];
   let last = 0;
   for (const m of (text || '').matchAll(/\{([^{}"':\r\n]+)\}/g)) {
-    out.push(text.slice(last, m.index), h('span', { class: 'req-col', title: `Vem da coluna ${m[1]}, uma chamada por linha` }, m[0]));
+    out.push(text.slice(last, m.index), h('span', { class: 'req-col', title: `Parâmetro: no API Loop, você escolhe a coluna que preenche ${m[1]}` }, m[0]));
     last = m.index + m[0].length;
   }
   out.push((text || '').slice(last));
@@ -90,7 +90,7 @@ function requestPreview(state) {
     state.method === 'POST' && state.body.trim() ? h('div', { class: 'req-headers' }, marked(state.body.length > 160 ? `${state.body.slice(0, 160)}…` : state.body)) : null,
     h('div', { class: 'req-legend' },
       h('span', { class: 'req-host' }, 'servidor'), h('span', { class: 'req-path' }, 'caminho'), h('span', { class: 'req-param' }, 'parâmetros'),
-      h('span', { class: 'req-col' }, '{coluna}')));
+      h('span', { class: 'req-col' }, '{parâmetro}')));
 }
 
 /** Sequência de pedidos da paginação, com os nomes configurados (RF-2223). */
@@ -221,7 +221,7 @@ function pairs(state, list, kind, redraw) {
         placeholder: state.stored.includes(`${kind}:${p.name}`) ? 'Guardado no cofre' : 'Valor sigiloso',
         oninput: (e) => { state.secrets[`${kind}:${p.name}`] = e.target.value; },
       })
-      : text(p, 'value', { placeholder: 'Valor, ou {coluna}', 'aria-label': 'Valor', oninput: () => state.onChange() }),
+      : text(p, 'value', { placeholder: 'Valor, ou {parâmetro}', 'aria-label': 'Valor', oninput: () => state.onChange() }),
     h('label', { class: 'api-secret', title: 'Guarda o valor no cofre do sistema, fora do arquivo' },
       h('input', { type: 'checkbox', checked: p.secret, onchange: (e) => { p.secret = e.target.checked; redraw(); } }), icon('lock', 12)),
     button({ icon: 'trash', size: 'sm', variant: 'ghost', title: 'Remover', onClick: () => { list.splice(i, 1); redraw(); } })));
@@ -305,11 +305,15 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
       state.method === 'POST'
         ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Um POST pode gravar dados no servidor. Ele não roda sozinho ao abrir o fluxo.') : null,
       needed.length
-        ? h('div', { class: 'stack-xs' },
-          h('p', { class: 'field-help' }, icon('repeat', 12), ` Esta API pede ${needed.map((n) => `{${n}}`).join(', ')}: entra no fluxo como API Loop, uma chamada por linha. Valores para o teste:`),
+        ? h('div', { class: 'api-kind is-param' },
+          h('strong', {}, icon('repeat', 14), ` Com parâmetro: pede ${needed.map((n) => `{${n}}`).join(', ')}`),
+          h('p', {}, 'Precisa de um valor para responder. Entra no fluxo como API Loop: lá você escolhe de qual coluna da tabela vem cada valor, e cada um gera uma chamada.'),
+          h('p', {}, 'Valor só para o teste aqui:'),
           ...needed.map((n) => h('label', { class: 'sheet-port' }, h('span', { class: 'ellipsis' }, n),
             h('input', { class: 'input input-sm', value: samples[n] || '', 'aria-label': `Valor de teste para ${n}`, oninput: (e) => { samples[n] = e.target.value; } }))))
-        : null,
+        : url ? h('div', { class: 'api-kind' },
+          h('strong', {}, icon('globe', 14), ' Chamada direta: não pede parâmetro'),
+          h('p', {}, 'A API devolve os dados de uma vez e vira uma tabela no Input Data. Para pedir um valor, escreva {nome} no endereço, como …/estados/{sigla}/municipios.')) : null,
     ].filter(Boolean));
   };
   state.onChange = () => { drawNotices(); drawRequest(); };
@@ -328,7 +332,7 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     const redraw = () => { drawPane(); drawNotices(); drawRequest(); };
     pane.replaceChildren({
       params: () => h('div', { class: 'stack-sm' },
-        how(h('p', {}, 'Cada linha entra no endereço como ', h('code', {}, '?nome=valor'), '. Para filtrar, ordenar ou limitar, veja a documentação da API. Um valor como ', h('code', {}, '{coluna}'), ' vem da tabela, no API Loop.')),
+        how(h('p', {}, 'Cada linha entra no endereço como ', h('code', {}, '?nome=valor'), '. Para filtrar, ordenar ou limitar, veja a documentação da API. Um valor como ', h('code', {}, '{parâmetro}'), ' muda a cada chamada, no API Loop.')),
         pairs(state, state.params, 'param', redraw)),
       headers: () => h('div', { class: 'stack-sm' },
         how('Informações que acompanham o pedido, fora do endereço. A credencial tem aba própria: use o cadeado para qualquer outro valor sigiloso.'),
@@ -336,7 +340,7 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
       body: () => h('div', { class: 'stack-sm' },
         field('Tipo', choice(state, 'body_type', [['json', 'JSON'], ['text', 'Texto']])),
         field('Corpo', h('textarea', { class: 'input mono', rows: 8, spellcheck: false, oninput: (e) => { state.body = e.target.value; state.onChange(); } }, state.body),
-          'Num JSON, escreva a coluna entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
+          'Num JSON, escreva o parâmetro entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
       auth: () => h('div', { class: 'stack-sm' }, authScheme(state), authPane(state, redraw)),
       pages: () => h('div', { class: 'stack-sm' }, pagesScheme(state.pagination), pagesPane(state, redraw)),
       answer: () => h('div', { class: 'stack-sm' },
@@ -425,7 +429,7 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     api.apiExamples().then((list) => examples.append(h('div', { class: 'api-example-list' }, list.map((ex) => h('button', {
       type: 'button', class: 'api-example', title: ex.what,
       onclick: () => { close(); openApiEditor({ preset: ex.source, values: ex.values, onSaved }); },
-    }, h('strong', {}, ex.title), h('span', {}, ex.source.name)))))).catch(() => examples.remove());
+    }, h('strong', {}, ex.title), h('span', {}, ex.source.name), h('em', { class: 'api-example-kind' }, placeholdersOf(ex.source).length ? 'com parâmetro' : 'direta')))))).catch(() => examples.remove());
   }
   const form = h('div', { class: 'api-form stack-sm' },
     examples,
@@ -478,7 +482,8 @@ async function removeApi(item) {
 // ------------------------------------------------------------------ painel
 
 function apiItem(item) {
-  const looped = placeholdersOf(item).length > 0;
+  const wants = placeholdersOf(item);
+  const looped = wants.length > 0;
   let host = item.url;
   try { host = new URL(item.url.replace(/\{[^}]*\}/g, 'x')).hostname; } catch { /* mostra como está */ }
   const missing = item.missing_secrets?.length ? ' · falta segredo' : '';
@@ -493,7 +498,7 @@ function apiItem(item) {
   h('span', { class: 'dataset-icon' }, icon(looped ? 'repeat' : 'globe', 16)),
   h('button', { type: 'button', class: 'dataset-main', onclick: () => openApiEditor({ source: item }), title: 'Editar e testar' },
     h('span', { class: 'dataset-name' }, item.name),
-    h('span', { class: 'dataset-meta' }, `${item.method} · ${host}${missing}`)),
+    h('span', { class: 'dataset-meta' }, `${looped ? `pede ${wants.map((w) => `{${w}}`).join(', ')} · ` : ''}${host}${missing}`)),
   h('div', { class: 'dataset-actions' },
     button({ icon: 'plus', title: looped ? 'Adicionar API Loop ao fluxo' : 'Adicionar ao fluxo', size: 'sm', variant: 'ghost', onClick: () => addApiNode(item) }),
     button({ icon: 'trash', title: 'Excluir API', size: 'sm', variant: 'ghost', onClick: () => removeApi(item) })));
@@ -501,9 +506,15 @@ function apiItem(item) {
 
 export function renderApisSection(root) {
   const list = h('div', { class: 'dataset-list' });
-  const draw = () => list.replaceChildren(...(store.apis.length
-    ? store.apis.map(apiItem)
-    : [h('p', { class: 'muted pad' }, 'Nenhuma API. Cadastre uma para ler dados da web no Input Data.')]));
+  const group = (title, help, items) => (items.length ? [h('div', { class: 'api-group', title: help }, title), ...items.map(apiItem)] : []);
+  const draw = () => {
+    const direct = store.apis.filter((a) => !placeholdersOf(a).length);
+    const param = store.apis.filter((a) => placeholdersOf(a).length);
+    list.replaceChildren(...(store.apis.length
+      ? [...group('Chamada direta', 'Não pedem parâmetro: viram tabela no Input Data', direct),
+        ...group('Com parâmetro', 'Pedem um valor: entram como API Loop, ligadas a uma tabela', param)]
+      : [h('p', { class: 'muted pad' }, 'Nenhuma API. Cadastre uma para ler dados da web.')]));
+  };
   on('apis', draw);
   root.append(
     h('div', { class: 'panel-subtitle row space-between' }, 'APIs',

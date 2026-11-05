@@ -247,18 +247,40 @@ function apiSource(field, value, set, ctx, id) {
   const known = usable.some((a) => a.id === value);
   const current = all.find((a) => a.id === value);
   const wants = current ? ctx.columnsWanted?.(current) || [] : [];
-  const have = new Set((ctx.columns?.() || []).map((c) => c.name));
-  const absent = wants.filter((c) => have.size && !have.has(c));
   return h('div', { class: 'stack-xs' },
     h('div', { class: 'row' },
       h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
-        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com {coluna} na aba Dados'),
+        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com {parâmetro} na aba Dados'),
         usable.map((a) => h('option', { value: a.id, selected: a.id === value }, a.name)),
         value && !known ? h('option', { value, selected: true }, `${value} (não serve aqui ou foi excluída)`) : null),
       button({ icon: 'edit', title: 'Editar a API', disabled: !current, onClick: () => current && ctx.onEditApi?.(current) }),
       button({ icon: 'plus', title: 'Nova API', onClick: () => ctx.onNewApi?.() })),
-    wants.length ? h('p', { class: ['field-help', absent.length && 'text-error'] },
-      absent.length ? `A tabela de entrada não tem: ${absent.join(', ')}.` : `Usa as colunas: ${wants.join(', ')}.`) : null);
+    wants.length ? h('p', { class: 'field-help' }, `Esta API pede ${wants.map((w) => `{${w}}`).join(', ')}.`) : null);
+}
+
+/** Uma linha por parâmetro da API: de qual coluna da tabela vem o valor (spec 023). */
+function apiParams(field, value, set, ctx, id) {
+  const current = ctx.currentApi?.();
+  if (!current) return h('p', { class: 'field-help' }, 'Escolha a API acima para ver os parâmetros que ela pede.');
+  const wants = ctx.columnsWanted?.(current) || [];
+  if (!wants.length) return h('p', { class: 'field-help' }, 'Esta API não pede parâmetro: leia direto com o Input Data.');
+  const cols = (ctx.columns?.() || []).map((c) => c.name);
+  if (!cols.length) return h('p', { class: 'field-help' }, `Ligue uma tabela na entrada da caixa para escolher de onde vem ${wants.map((w) => `{${w}}`).join(', ')}. Se ela vier de outra caixa, execute o fluxo antes.`);
+  const map = { ...(value || {}) };
+  return h('div', { class: 'stack-xs' }, wants.map((w, i) => {
+    const chosen = map[w] || (cols.includes(w) ? w : '');
+    const invalid = !chosen || !cols.includes(chosen);
+    return h('div', { class: 'api-param' },
+      h('code', { class: 'req-col' }, `{${w}}`),
+      h('span', { class: 'api-param-arrow', 'aria-hidden': 'true' }, '←'),
+      h('select', {
+        id: i === 0 ? id : null, class: ['input', 'input-sm', invalid && 'invalid'], 'aria-label': `Coluna que preenche ${w}`,
+        onchange: (e) => { map[w] = e.target.value; if (!map[w]) delete map[w]; set({ ...map }); },
+      },
+      h('option', { value: '' }, 'Escolha a coluna…'),
+      cols.map((c) => h('option', { value: c, selected: c === chosen }, c)),
+      chosen && !cols.includes(chosen) ? h('option', { value: chosen, selected: true }, `${chosen} (não existe)`) : null));
+  }));
 }
 
 function folder(field, value, set, ctx, id) {
@@ -696,5 +718,5 @@ const WIDGETS = {
   color, optional_number: optionalNumber, category_colors: categoryColors, column_values: columnValues,
   rename_labels: renameLabels,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
-  list, select_columns: selectColumns, sheet_ports: sheetPorts, api_source: apiSource, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
+  list, select_columns: selectColumns, sheet_ports: sheetPorts, api_source: apiSource, api_params: apiParams, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
 };

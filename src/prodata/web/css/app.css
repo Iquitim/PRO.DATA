@@ -834,3 +834,14 @@ details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
 .x-value.x-lit { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); }
 .x-more { font-size: 11px; color: var(--text-3); }
 .x-loop-bar { margin-top: 6px; }
+
+/* API com e sem parâmetro (spec 023) */
+.api-kind { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; font-size: 12px; color: var(--text-2); border: 1px solid var(--border-strong); border-left: 4px solid var(--cat-inout); border-radius: 6px; }
+.api-kind.is-param { border-left-color: var(--brand-gold, #b58a2a); }
+.api-kind strong { display: flex; align-items: center; gap: 5px; color: var(--text); }
+.api-kind p { margin: 0; }
+.api-group { padding: 6px 12px 2px; font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .04em; }
+.api-example-kind { font-size: 10.5px; font-style: normal; color: var(--text-2); }
+.api-param { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 6px; }
+.api-param code { font: 12px var(--mono); }
+.api-param-arrow { color: var(--text-3); }

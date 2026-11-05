@@ -873,19 +873,27 @@ def run_loop(
     stop_on_error: bool = False,
     keep_columns: bool = True,
     progress: Callable[[int, int], None] | None = None,
+    columns: dict[str, str] | None = None,
 ) -> LoopResult:
-    """Chama a API uma vez para cada combinação de valores e junta as respostas às linhas de entrada."""
+    """Chama a API uma vez para cada combinação de valores e junta as respostas às linhas de entrada.
+
+    ``columns`` diz de qual coluna vem cada parâmetro; sem escolha, vale a coluna de mesmo nome.
+    """
     source.check()
-    used = source.placeholders()
-    if not used:
+    wanted = source.placeholders()
+    if not wanted:
         raise ApiError(
-            "Esta API não usa nenhuma coluna. Escreva {coluna} no endereço, nos parâmetros ou no corpo."
+            "Esta API não pede nenhum parâmetro: use o Input Data. "
+            "Para pedir um valor, escreva {parâmetro} no endereço, nos parâmetros ou no corpo."
         )
-    if missing := [c for c in used if c not in df.columns]:
-        names = ", ".join(missing)
+    origin = {p: (columns or {}).get(p) or p for p in wanted}
+    if missing := [p for p in wanted if origin[p] not in df.columns]:
+        names = ", ".join("{" + p + "}" for p in missing)
         raise ApiError(
-            f"A API pede {{{names}}}, mas a tabela de entrada não tem essa coluna. Ela traz: {', '.join(df.columns)[:200]}."
+            f"A API pede {names}, mas a tabela de entrada não tem essa coluna. Escolha a coluna no API Loop. "
+            f"A tabela traz: {', '.join(df.columns)[:200]}."
         )
+    used = list(dict.fromkeys(origin.values()))
     calls = df.select(used).unique(maintain_order=True).with_row_index(LOOP_CALL)
     if calls.height > max_calls:
         raise ApiError(
@@ -904,12 +912,12 @@ def run_loop(
         def call(item: dict[str, Any]) -> None:
             nonlocal done, truncated
             index = int(item[LOOP_CALL])
-            values = {c: item[c] for c in used}
+            values = {p: item[origin[p]] for p in wanted}
             try:
                 if stop.is_set():
                     return
-                if empty := [c for c, v in values.items() if v is None]:
-                    raise ApiError(f"Valor vazio em [{empty[0]}]: a chamada não foi feita.")
+                if empty := [p for p, v in values.items() if v is None]:
+                    raise ApiError(f"Valor vazio em [{origin[empty[0]]}]: a chamada não foi feita.")
                 result = client.fetch(values)
                 rows[index] = result.rows
                 if result.truncated:

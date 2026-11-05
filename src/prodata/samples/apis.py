@@ -57,8 +57,8 @@ def editor_examples() -> list[dict[str, Any]]:
     entries: list[tuple[str, str, SavedApi, dict[str, str]]] = [
         ("Lista simples", "A resposta já é uma lista: cada item vira uma linha.", _estados(), {}),
         (
-            "Uma chamada por linha",
-            "{sigla} recebe o valor de uma coluna: é o caso do API Loop.",
+            "Com parâmetro",
+            "Pede {sigla}: entra como API Loop, e a sigla vem de uma coluna da tabela.",
             _municipios(),
             {"sigla": "RR"},
         ),
@@ -69,8 +69,8 @@ def editor_examples() -> list[dict[str, Any]]:
             {},
         ),
         (
-            "Coluna no endereço",
-            "{ano} vem de uma coluna; os feriados de cada ano viram linhas.",
+            "Parâmetro no endereço",
+            "Pede {ano}: uma chamada para cada ano da tabela.",
             feriados,
             {"ano": "2026"},
         ),

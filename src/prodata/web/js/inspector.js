@@ -245,6 +245,7 @@ function nodeContext(n) {
       apis: store.apis,
       needsLoop: (a) => placeholdersOf(a).length > 0,
       columnsWanted: placeholdersOf,
+      currentApi: () => store.apis.find((a) => a.id === node(n.id)?.config.source) || null,
       onEditApi: (a) => openApiEditor({ source: a, onSaved: () => {} }),
       onNewApi: () => openApiEditor({ onSaved: (saved) => updateConfig(n.id, ['source'], saved.id) }),
     });
@@ -353,7 +354,7 @@ function databaseContext(n) {
 
 /** Campos cuja mudança altera a visibilidade de outros (show_if) pedem redesenho. */
 function controllingFields(spec) {
-  const names = new Set(['format', 'dataset', 'connection']);
+  const names = new Set(['format', 'dataset', 'connection', 'source']);
   const walk = (fields) => fields.forEach((f) => {
     Object.keys(f.show_if || {}).forEach((k) => names.add(k));
     // Colunas do J (spec 019): chaves, lado das chaves e prefixo mudam a lista.
@@ -369,6 +370,8 @@ function nodePanel(n) {
   const spec = toolOf(n);
   if (!spec) return banner('error', 'alert', `Ferramenta desconhecida: ${n.type}`);
   const controlling = controllingFields(spec);
+  const lead = spec.explainer === 'api_loop' ? spec.config_fields.slice(0, 2) : [];
+  const rest = spec.config_fields.slice(lead.length);
   // Esquema visual (Cross Tab, Transpose, Join): redesenha quando a configuração muda (spec 015).
   const explainer = spec.explainer ? explainerEl(n, spec) : null;
   const refreshExplainer = debounce(() => explainer?.refresh(), 200);
@@ -416,9 +419,10 @@ function nodePanel(n) {
     cacheBanner(n),
     statusBanner(n),
     sourceBanner(n),
+    lead.length ? h('div', { class: 'pad' }, renderFields(lead, n.config, onChange, nodeContext(n))) : null,
     explainer,
-    h('div', { class: 'pad' }, spec.config_fields.length
-      ? renderFields(spec.config_fields, n.config, onChange, nodeContext(n))
+    h('div', { class: 'pad' }, rest.length
+      ? renderFields(rest, n.config, onChange, nodeContext(n))
       : h('p', { class: 'muted' }, 'Esta ferramenta não tem configurações.')));
 }
 
