@@ -17,10 +17,14 @@ localmente.
   ficam ao lado dos arquivos, e o mesmo **Input Data** lê qualquer uma dessas
   fontes. A senha fica no Gerenciador de Credenciais do Windows, nunca em
   arquivos do projeto.
+- **APIs**: cadastre uma API na aba Dados (GET ou POST, JSON, CSV ou XML, com
+  paginação e novas tentativas) e leia no Input Data. Token, chave, senha e OAuth 2
+  ficam no cofre do sistema. O **API Loop** chama a API uma vez por linha de uma
+  tabela, que pode ser a saída de outra API, e junta as respostas.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo
   pode ser salvo e aberto de qualquer pasta (*Salvar como…* / *Abrir arquivo…*).
-- **28 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
-  Text To Columns, Record ID e Running Total), combinação e transformação (Join
+- **30 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
+  Text To Columns, Record ID, Running Total e Multi-Row Formula), combinação e transformação (Join
   com saídas L/J/R, Cross Tab, Transpose, Append Fields, Summarize, Union, SQL via
   DuckDB), BI (Chart, KPI Card, Venn e Table) e Machine Learning (scikit-learn).
 - **Ponto de cache** (como o "Cache and Run" do Alteryx): congela o resultado de
@@ -38,8 +42,10 @@ localmente.
 - **Dashboard em canvas**: página de tamanho fixo (16:9, A4 ou altura livre) onde
   os visuais se arrastam e redimensionam com encaixe e guias; **Organizar** com
   layout automático e 5 layouts prontos; painel **Formato** (cores, rótulos,
-  eixos, cartão); textos, imagens, logo e formas; **imagem PNG** da página ou de um
-  visual. O layout fica gravado no arquivo do fluxo.
+  eixos, cartão); textos, imagens, logo e formas; **filtros na página**, sem executar
+  o fluxo de novo; **imagem PNG** da página ou de um visual e **HTML** num arquivo só,
+  que abre sem o programa e sem internet, com os filtros funcionando. O layout fica
+  gravado no arquivo do fluxo.
 - **Visuais**: colunas, barras, linhas, rosca, empilhado, agrupado, 100%, área,
   Pareto, funil, dispersão, Venn (2 conjuntos proporcionais ou 3), medidor, tabela
   com cores por faixa e big number com variação contra meta ou período anterior e
@@ -74,8 +80,8 @@ localmente.
   colunas do J sem precisar de um Select depois.
 - **Summarize** com moda e desvio padrão, além de soma, média, mediana,
   contagens, mínimo, máximo e concatenação.
-- **Excel por padrão** no Output Data, com nome da planilha e opção de juntar
-  várias planilhas num mesmo arquivo. Se o arquivo de saída já existe, o
+- **Excel por padrão** no Output Data: ligue várias tabelas na mesma caixa e cada
+  uma vira uma planilha do arquivo, ou junte planilhas de caixas diferentes. Se o arquivo de saída já existe, o
   PRO.DATA pergunta ao executar: substituir, criar um novo (data e hora no nome)
   ou adicionar a planilha.
 - **Fontes que se atualizam**: *Vincular arquivo* lê a planilha original (pasta
@@ -229,12 +235,17 @@ Documentação interativa em http://127.0.0.1:8765/docs.
 | POST · GET · POST | `/api/connections/{id}/test` · `/tables` · `/preview` | Testar, listar tabelas, pré-visualizar |
 | GET · PUT · DELETE | `/api/queries[/{id}]` | Consultas de banco da aba Dados (sem senha) |
 | POST | `/api/queries/preview` | Prévia de uma consulta ainda não salva |
+| GET · PUT · DELETE | `/api/apis[/{id}]` | Fontes de API da aba Dados (segredos entram no PUT, nunca saem) |
+| POST | `/api/apis/preview` | Chamada de teste de uma API, só a primeira página |
+| POST | `/api/dashboard/filter-options` · `/filtered` | Valores dos filtros · visuais recalculados, sem executar o fluxo |
+| POST · GET | `/api/dashboard/export-data` · `/viewer.js` | Dados e script do dashboard em HTML |
 | POST | `/api/files/workflow/save` · `/open` | Salvar / abrir fluxo num caminho escolhido (`.prodata.json`) |
 
 Fluxos são salvos na biblioteca `storage/workflows/<id>.prodata.json` ou, com
 *Salvar como…*, em qualquer pasta (JSON legível, versionável em Git). O Input
-Data aponta para um arquivo da aba Dados pelo nome ou para uma consulta como
-`sql:<id>`; as consultas ficam em `storage/queries.json`.
+Data aponta para um arquivo da aba Dados pelo nome, para uma consulta como
+`sql:<id>` ou para uma API como `api:<id>`; as consultas ficam em
+`storage/queries.json` e as APIs, sem segredos, em `storage/apis.json`.
 
 ## Desempenho
 

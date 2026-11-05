@@ -138,6 +138,7 @@ export function toggleDisabled(id) {
 export function updateConfig(id, path, value) {
   mutate((wf) => {
     const n = wf.nodes.find((x) => x.id === id);
+    if (!n) return; // o campo pode avisar da mudança ao perder o foco, depois que a caixa foi excluída
     setPath(n.config, path, value);
   }, { key: `${id}:${path.join('.')}`, affects: [id] });
 }

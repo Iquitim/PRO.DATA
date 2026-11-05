@@ -48,6 +48,10 @@ class Settings(BaseSettings):
         return self.storage_dir / "queries.json"
 
     @cached_property
+    def apis_file(self) -> Path:
+        return self.storage_dir / "apis.json"
+
+    @cached_property
     def workflows_dir(self) -> Path:
         return self.storage_dir / "workflows"
 

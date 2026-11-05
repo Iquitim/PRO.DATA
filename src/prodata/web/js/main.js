@@ -8,6 +8,7 @@ import {
 import { copySelection, cutSelection, paste } from './clipboard.js';
 import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
 import { askExports } from './exports_ask.js';
+import { refreshApis, renderApisSection } from './apis.js';
 import { refreshConnections, refreshQueries, renderConnectionsSection, renderQueriesSection } from './connections.js';
 import { enableFileDropOnCanvas, refreshDatasets, renderDatasetsPanel } from './datasets.js';
 import { basename, chooseOpenFile, chooseSaveFile, dirname } from './desktop.js';
@@ -469,7 +470,7 @@ function buildStatusbar() {
     left.replaceChildren(...[
       h('span', { class: ['status-dot', store.running ? 'busy' : errors ? 'error' : ex ? 'ok' : ''] }),
       store.running ? (store.progress?.order?.length
-        ? `Executando… ${Object.keys(store.progress.done).length}/${store.progress.order.length}`
+        ? `Executando… ${Object.keys(store.progress.done).length}/${store.progress.order.length}${store.progress.detail ? ` · ${store.progress.detail}` : ''}`
         : 'Executando…')
         : ex ? `${results.length} nós · ${fmt.ms(ex.total_elapsed_ms)}${errors ? ` · ${errors} com erro` : ''}` : 'Pronto',
       stale ? h('span', { class: 'muted' }, `· ${store.pending.size} alterado(s) desde a execução`) : null,
@@ -524,6 +525,7 @@ function buildLeftPanel() {
   renderPalette(panes.tools);
   renderDatasetsPanel(panes.data);
   renderQueriesSection(panes.data);
+  renderApisSection(panes.data);
   renderConnectionsSection(panes.data);
   initInspector(panes.config, { runTo: (id) => run(id), run: () => run(), refreshCache });
   on('selection', () => { if (store.selection.nodeId || store.selection.containerId || selectedIds().length > 1) show('config'); });
@@ -656,6 +658,7 @@ async function boot() {
     refreshDatasets().catch((err) => toastError(err, 'Não foi possível listar os datasets')),
     refreshConnections().catch((err) => toastError(err, 'Não foi possível listar as conexões')),
     refreshQueries().catch((err) => toastError(err, 'Não foi possível listar as consultas')),
+    refreshApis().catch((err) => toastError(err, 'Não foi possível listar as APIs')),
   ]);
 
   await restoreTabs();

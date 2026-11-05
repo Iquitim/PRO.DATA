@@ -19,6 +19,7 @@ import polars as pl
 from pydantic import BaseModel, ConfigDict
 from pydantic.fields import FieldInfo
 
+from prodata.connectors.api import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.connectors.store import ConnectionStore
 from prodata.errors import InvalidInputError
@@ -44,6 +45,8 @@ class Port:
     title: str
     kind: Literal["data", "model"] = "data"
     required: bool = True
+    # Entrada extra (spec 021): só aparece ligada, ou como a próxima livre quando a configuração bate com ``when``.
+    when: dict[str, Any] | None = None
 
 
 @dataclass
@@ -54,6 +57,9 @@ class NodeContext:
     exports_dir: Path
     connections: ConnectionStore | None = None
     queries: QueryStore | None = None
+    apis: ApiStore | None = None
+    # Andamento dentro da caixa, para a barra de status: "37/500 chamadas".
+    report: Callable[[str], None] = lambda _text: None
 
     def input(self, port: str = "in") -> pl.DataFrame:
         if port not in self.inputs:
@@ -96,6 +102,8 @@ class ToolSpec:
     hidden: bool = False
     # Esquema visual mostrado no Configurar (spec 015): "crosstab", "transpose", "join".
     explainer: str | None = None
+    # Devolve um texto se a caixa só deve rodar a pedido (chamada que pode gravar ou gastar cota): não roda ao abrir o fluxo.
+    only_on_request: Callable[[NodeContext, Any], str | None] | None = None
 
     def annotation(self, cfg: Any) -> str:
         if self.annotate is None:
@@ -139,6 +147,7 @@ def tool(
     side_effect: bool = False,
     hidden: bool = False,
     explainer: str | None = None,
+    only_on_request: Callable[[NodeContext, Any], str | None] | None = None,
 ) -> Callable[[RunFn], RunFn]:
     def register(fn: RunFn) -> RunFn:
         if type in REGISTRY:
@@ -158,6 +167,7 @@ def tool(
             side_effect=side_effect,
             hidden=hidden,
             explainer=explainer,
+            only_on_request=only_on_request,
         )
         return fn
 

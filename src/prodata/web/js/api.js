@@ -77,6 +77,13 @@ export const api = {
   connectionTables: (id) => request('GET', `/api/connections/${enc(id)}/tables`),
   previewConnection: (id, body, rows = 100) => request('POST', `/api/connections/${enc(id)}/preview?rows=${rows}`, body),
 
+  dashboardFiltered: (workflow) => request('POST', '/api/dashboard/filtered', { workflow }),
+  dashboardFilterOptions: (workflow) => request('POST', '/api/dashboard/filter-options', { workflow }),
+  dashboardExportData: (workflow) => request('POST', '/api/dashboard/export-data', { workflow }),
+  apis: () => request('GET', '/api/apis'),
+  saveApi: (body) => request('PUT', `/api/apis/${enc(body.source.id)}`, body),
+  deleteApi: (id) => request('DELETE', `/api/apis/${enc(id)}`),
+  previewApi: (body, rows = 100) => request('POST', `/api/apis/preview?rows=${rows}`, body),
   queries: () => request('GET', '/api/queries'),
   saveQuery: (query) => request('PUT', `/api/queries/${enc(query.id)}`, query),
   deleteQuery: (id) => request('DELETE', `/api/queries/${enc(id)}`),
@@ -116,7 +123,7 @@ export const api = {
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}/values?${new URLSearchParams({ column, limit, search })}`),
   results: (wfId, nodeId, anchor, params) =>
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}?${new URLSearchParams(params)}`),
-  validateFormula: (expression, columns) => request('POST', '/api/formula/validate', { expression, columns }),
+  validateFormula: (expression, columns, multirow = false) => request('POST', '/api/formula/validate', { expression, columns, multirow }),
 
   arrangeDashboard: (body) => request('POST', '/api/dashboard/arrange', body),
   placeDashboard: (body) => request('POST', '/api/dashboard/place', body),

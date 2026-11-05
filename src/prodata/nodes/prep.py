@@ -7,12 +7,13 @@ from typing import Literal
 import polars as pl
 from pydantic import BaseModel, Field
 
-from prodata.engine import formula
+from prodata.engine import formula, multirow
 from prodata.engine.convert import convert
 from prodata.engine.sql.fragment import (
     NUMERIC_KINDS,
     ROW_POSITION,
     Fragment,
+    NoTranslationError,
     SqlContext,
     SqlInput,
     join_list,
@@ -277,6 +278,66 @@ class FormulaConfig(ToolConfig):
 def formula_columns(ctx: NodeContext, cfg: FormulaConfig) -> NodeOutput:
     rules = [f.model_dump() for f in cfg.formulas]
     return NodeOutput(tables={"out": formula.evaluate_columns(ctx.input(), rules)})
+
+
+# ------------------------------------------------------------------ Multi-Row Formula
+
+
+class MultiRowConfig(ToolConfig):
+    target: Literal["new", "existing"] = Field(
+        "new",
+        title="Resultado em",
+        json_schema_extra=ui(
+            labels={"new": "Uma coluna nova", "existing": "Uma coluna existente (troca os valores)"}
+        ),
+    )
+    column: str = Field(
+        "nova_coluna", title="Nome da coluna nova", json_schema_extra=ui(show_if={"target": ["new"]})
+    )
+    existing: str = Field(
+        "", title="Coluna a alterar", json_schema_extra=ui(widget="column", show_if={"target": ["existing"]})
+    )
+    type: Literal["Auto", "Float64", "Int64", "String", "Boolean", "Date"] = Field(
+        "Auto",
+        title="Tipo",
+        json_schema_extra=ui(labels={"Auto": "Automático", **{k: v for k, v in _TYPE_LABELS.items() if k}}),
+    )
+    expression: str = Field(
+        "",
+        title="Expressão",
+        description=(
+            "Use [Row-1:coluna] para a linha anterior e [Row+1:coluna] para a seguinte. Na própria coluna, "
+            "[Row-1:…] usa o valor já calculado. Ex.: IF IsNull([uf]) THEN [Row-1:uf] ELSE [uf] ENDIF."
+        ),
+        json_schema_extra=ui(widget="expression", multirow=True),
+    )
+    group_by: list[str] = Field(
+        default_factory=list,
+        title="Agrupar por",
+        description="Opcional: as referências não atravessam grupos. Vazio = a tabela inteira é um grupo só.",
+        json_schema_extra=ui(widget="columns"),
+    )
+    missing: Literal["null", "empty"] = Field(
+        "null",
+        title="Linha que não existe vale",
+        description="Antes da primeira ou depois da última linha. O cálculo segue a ordem que chega: use um Sort antes.",
+        json_schema_extra=ui(labels={"null": "Vazio (nulo)", "empty": "0 ou texto vazio"}),
+    )
+
+
+@tool(
+    type="prep.multirow",
+    name="Multi-Row Formula",
+    category="prep",
+    icon="function",
+    description="Fórmula que olha outras linhas: preencher para baixo, comparar com a linha anterior, diferenças.",
+    config=MultiRowConfig,
+    annotate=lambda c: c.existing if c.target == "existing" else c.column,
+)
+def multirow_formula(ctx: NodeContext, cfg: MultiRowConfig) -> NodeOutput:
+    return NodeOutput(
+        tables={"out": multirow.evaluate(ctx.input(), cfg.model_dump(), cfg.group_by, cfg.missing)}
+    )
 
 
 # ------------------------------------------------------------------ Data Cleansing
@@ -769,3 +830,93 @@ def sample_sql(ctx: SqlContext, cfg: SampleConfig) -> dict[str, Fragment]:
             comparable=False,
         )
     }
+
+
+MAX_RECURSIVE_CHECK = 5000
+
+
+@sql_for("prep.multirow")
+def multirow_sql(ctx: SqlContext, cfg: MultiRowConfig) -> dict[str, Fragment]:
+    """Outras colunas viram janelas; a própria coluna, uma consulta recursiva (RF-2196)."""
+    source = ctx.input()
+    target = (cfg.existing if cfg.target == "existing" else cfg.column).strip()
+    if not target or not cfg.expression.strip():
+        raise ValueError("Preencha a coluna e a expressão.")
+    if cfg.target == "existing" and target not in source.columns:
+        raise ValueError(f"A coluna [{target}] não existe para ser alterada.")
+    if missing := [c for c in cfg.group_by if c not in source.columns]:
+        raise ValueError(f"Coluna(s) de agrupamento inexistente(s): {', '.join(missing)}")
+    expression, refs = multirow.parse(cfg.expression)
+    multirow.check_refs(refs, source.columns, target)
+    fixed = [r for r in refs if r.column != target]
+    chained = [r for r in refs if r.column == target]
+    if len(chained) > 1 or (chained and chained[0].offset != -1):
+        raise NoTranslationError(
+            "Em SQL, a própria coluna só pode olhar para a linha imediatamente anterior ([Row-1:…])."
+        )
+    partition = "PARTITION BY " + ", ".join(q(c) for c in cfg.group_by) + " " if cfg.group_by else ""
+
+    def neighbor(ref: multirow.RowRef) -> str:
+        function = "lag" if ref.offset < 0 else "lead"
+        kind = source.kinds[ref.column]
+        default = ""
+        if cfg.missing == "empty" and kind in (*NUMERIC_KINDS, "String"):
+            default = ", 0" if kind in NUMERIC_KINDS else ", ''"
+        return f"{function}({q(ref.column)}, {abs(ref.offset)}{default}) OVER ({partition}ORDER BY {ROW_POSITION}) AS {ref.name}"
+
+    formula.check_columns(expression, [*source.columns, *[r.name for r in refs]])
+    sql = formula.transpile(expression)
+    cast = formula.CASTS.get(cfg.type)
+    value = cast.format(sql) if cast else sql
+    helpers = [ROW_POSITION, *[r.name for r in refs]]
+    existing = target in source.columns
+    extras = [neighbor(r) for r in fixed]
+    origin = f"SELECT *{''.join(', ' + e for e in extras)} FROM {numbered(source.block)}"
+    notes = [ORDER_NOTE]
+    explain = f"Calcula {target} olhando outras linhas"
+    if not chained:
+        exclude = ", ".join(helpers)
+        if existing:
+            head = f"SELECT * EXCLUDE ({exclude}) REPLACE ({value} AS {q(target)})"
+        else:
+            head = f"SELECT * EXCLUDE ({exclude}), {value} AS {q(target)}"
+        return {"out": Fragment(f"{head}\nFROM (\n{origin}\n)", explain, notes)}
+
+    # Própria coluna: a linha seguinte depende do valor já calculado na anterior.
+    ref = chained[0]
+    position = f"row_number() OVER ({partition}ORDER BY {ROW_POSITION}) AS __pd_pos"
+    same_group = "".join(f" AND b.{q(c)} IS NOT DISTINCT FROM c.{q(c)}" for c in cfg.group_by)
+    kind = source.kinds.get(target)
+    start = "NULL"
+    if cfg.missing == "empty" and cfg.type in ("Float64", "Int64"):
+        start = "0"
+    elif cfg.missing == "empty" and (cfg.type == "String" or kind == "String"):
+        start = "''"
+    elif cfg.missing == "empty" and kind in NUMERIC_KINDS:
+        start = "0"
+    sql_recursive = (
+        "WITH RECURSIVE\n"
+        f"pd_base AS (\nSELECT *, {position} FROM ({origin})\n),\n"
+        "pd_calc AS (\n"
+        f"SELECT *, {value} AS __pd_novo FROM (SELECT b.*, {start} AS {ref.name} FROM pd_base AS b WHERE b.__pd_pos = 1)\n"
+        "UNION ALL\n"
+        f"SELECT *, {value} AS __pd_novo FROM (\n"
+        f"SELECT b.*, c.__pd_novo AS {ref.name} FROM pd_base AS b\n"
+        f"JOIN pd_calc AS c ON b.__pd_pos = c.__pd_pos + 1{same_group}\n)\n"
+        ")\n"
+    )
+    exclude = ", ".join([*helpers, "__pd_pos", "__pd_novo"])
+    if existing:
+        final = f"SELECT * EXCLUDE ({exclude}) REPLACE (__pd_novo AS {q(target)})\nFROM pd_calc\nORDER BY {ROW_POSITION}"
+    else:
+        final = (
+            f"SELECT * EXCLUDE ({exclude}), __pd_novo AS {q(target)}\nFROM pd_calc\nORDER BY {ROW_POSITION}"
+        )
+    sample = ctx.sample("in")
+    comparable = sample is None or sample.height <= MAX_RECURSIVE_CHECK
+    if not comparable:
+        notes = [
+            *notes,
+            f"Consulta recursiva: acima de {MAX_RECURSIVE_CHECK} linhas, esta etapa não é comparada na conferência.",
+        ]
+    return {"out": Fragment(sql_recursive + final, explain, notes, comparable=comparable)}

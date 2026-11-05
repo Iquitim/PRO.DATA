@@ -13,6 +13,7 @@ import duckdb
 import polars as pl
 from pydantic import ValidationError
 
+from prodata.connectors.api import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.domain.workflow import Workflow
 from prodata.engine import graph
@@ -55,6 +56,7 @@ class Env:
     queries: QueryStore | None = None
     # O resultado guardado ainda corresponde à configuração atual da caixa?
     fresh: Callable[[str], bool] = lambda _node: False
+    apis: ApiStore | None = None
 
 
 @dataclass
@@ -159,7 +161,7 @@ def _translate(
         return NO_SQL, f"{spec.name} não tem equivalente em SQL.", {}
     try:
         cfg = spec.config.model_validate(node.config)
-        ctx = SqlContext(inputs, env.datasets, env.queries, _sample(env, workflow, node_id))
+        ctx = SqlContext(inputs, env.datasets, env.queries, _sample(env, workflow, node_id), env.apis)
         return OK, "", translator(ctx, cfg)
     except NoTranslationError as exc:
         return NO_SQL, str(exc), {}

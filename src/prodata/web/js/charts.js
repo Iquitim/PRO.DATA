@@ -26,6 +26,31 @@ function truncate(text, maxChars) {
   return text.length > maxChars ? `${text.slice(0, Math.max(1, maxChars - 1))}…` : text;
 }
 
+const CHAR_W = 6.5;
+const LABEL_GAP = 8;
+
+/**
+ * Rótulos do eixo que cabem sem sobrepor (spec 021): um a cada N, cada um com o espaço de N categorias.
+ * Devolve a função que diz se o índice mostra rótulo e o texto já cortado para esse espaço.
+ */
+function axisLabels(labels, band) {
+  const longest = Math.min(14, Math.max(1, ...labels.map((l) => String(l).length)));
+  const every = Math.max(1, Math.ceil((longest * CHAR_W + LABEL_GAP) / Math.max(1, band)));
+  const chars = Math.max(2, Math.floor((band * every - LABEL_GAP) / CHAR_W));
+  const text = (label) => truncate(String(label), chars);
+  return {
+    show: (i) => i % every === 0,
+    text,
+    // Nas pontas, o rótulo ancora para dentro: centralizado, seria cortado pela borda do gráfico.
+    anchor: (x, label, width) => {
+      const half = (text(label).length * CHAR_W) / 2;
+      if (x - half < 0) return { x: 2, 'text-anchor': 'start' };
+      if (x + half > width) return { x: width - 2, 'text-anchor': 'end' };
+      return { x, 'text-anchor': 'middle' };
+    },
+  };
+}
+
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const tipHtml = (label, value, o) => `<span>${esc(label)}</span><b>${esc(o.full(value))}</b>`;
 
@@ -145,7 +170,7 @@ export function columnChart(series, width, height = 260, opts) {
   const y = (v) => m.top + ht - ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * ht;
   const band = w / series.length;
   const barW = Math.min(24, band * 0.7);
-  const maxChars = Math.max(3, Math.floor(band / 6.5));
+  const axis = axisLabels(series.map((s) => s.label), band);
   const shown = labelled(series, o.labels, 'max');
   const base = y(Math.max(lo, 0));
   const bars = series.map((s, i) => {
@@ -154,7 +179,7 @@ export function columnChart(series, width, height = 260, opts) {
     return [
       svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ht, 'data-tip': tipHtml(s.label, s.value, o) }),
       svg('path', { class: 'bar', d: roundedBar(x, top0, barW, base - top0, true), ...paint(o, i, s.label, false) }),
-      svg('text', { class: 'tick', x: x + barW / 2, y: height - 9 - (o.xTitle ? 18 : 0), 'text-anchor': 'middle' }, truncate(s.label, maxChars)),
+      axis.show(i) ? svg('text', { class: 'tick x-tick', y: height - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(x + barW / 2, s.label, width) }, axis.text(s.label)) : null,
       shown.has(i) ? svg('text', { class: 'value', x: x + barW / 2, y: top0 - 6, 'text-anchor': 'middle' }, o.short(s.value)) : null,
     ];
   });
@@ -195,9 +220,9 @@ export function lineChart(series, width, height = 260, opts) {
   const { lo, hi, step } = yScale(series.map((s) => s.value), o, true);
   const x = (i) => m.left + (series.length === 1 ? w / 2 : (i / (series.length - 1)) * w);
   const y = (v) => m.top + ht - ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * ht;
-  const every = Math.ceil(series.length / Math.max(1, Math.floor(w / 70)));
-  const labels = series.map((s, i) => (i % every === 0
-    ? svg('text', { class: 'tick', x: x(i), y: height - 9 - (o.xTitle ? 18 : 0), 'text-anchor': 'middle' }, truncate(s.label, 10)) : null));
+  const axis = axisLabels(series.map((s) => s.label), w / Math.max(1, series.length - 1));
+  const labels = series.map((s, i) => (axis.show(i)
+    ? svg('text', { class: 'tick x-tick', y: height - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(x(i), s.label, width) }, axis.text(s.label)) : null));
   const d = series.map((s, i) => `${i ? 'L' : 'M'}${x(i)},${y(s.value)}`).join(' ');
   const hits = series.map((s, i) => svg('rect', {
     class: 'hit', x: x(i) - w / series.length / 2, y: m.top, width: w / Math.max(1, series.length), height: ht,
@@ -280,10 +305,39 @@ function framed(o, legend, chart, foot = null) {
 const LEGEND_H = 30;
 
 /** Legenda em linha: com 2 ou mais séries vem ligada por padrão (a cor nunca identifica sozinha). */
-function legendRow(names, colors) {
-  return h('ul', { class: 'legend-row' }, names.map((n, i) => h('li', {},
+const LEGEND_LINE = 22;
+const PARETO_LEGEND_W = 460;
+const LEGEND_MAX_LINES = 3;
+const LEGEND_NAME_CHARS = 26;
+const legendItemWidth = (name) => 24 + Math.min(LEGEND_NAME_CHARS, String(name).length) * CHAR_W;
+
+/**
+ * Quantos nomes da legenda cabem em até 3 linhas, e em quantas linhas ficam (spec 021).
+ * O resto vira "+N", com os nomes no detalhe: a legenda nunca toma o espaço do gráfico.
+ */
+function legendLayout(names, width) {
+  let line = 1;
+  let used = 0;
+  let fits = 0;
+  for (const name of names) {
+    const need = legendItemWidth(name) + 14;
+    if (used + need > width && used) { line += 1; used = 0; }
+    if (line > LEGEND_MAX_LINES) break;
+    used += need;
+    fits += 1;
+  }
+  // O "+N" também precisa caber na última linha.
+  if (fits < names.length && used + 60 > width && fits > 1) fits -= 1;
+  return { fits, height: Math.min(line, LEGEND_MAX_LINES) * LEGEND_LINE };
+}
+
+function legendRow(names, colors, width = Infinity) {
+  const { fits } = legendLayout(names, width);
+  const hidden = names.slice(fits);
+  return h('ul', { class: 'legend-row' }, names.slice(0, fits).map((n, i) => h('li', { title: n },
     h('i', { class: 'swatch', style: { background: colors[i], opacity: colors[i] === colors[0] && i ? Math.max(0.35, 1 - i * 0.12) : null } }),
-    h('span', {}, n))));
+    h('span', { class: 'ellipsis' }, n))),
+  hidden.length ? h('li', { class: 'legend-more', title: hidden.join('\n') }, `+${hidden.length}`) : null);
 }
 
 function multiTip(label, rows, o, total) {
@@ -305,7 +359,7 @@ function multiChart(w, width, height, opts, mode) {
     return pct ? (c.value ? (v / c.value) * 100 : 0) : v;
   };
   const stacked = ['stacked', 'stacked100', 'area_stacked'].includes(mode);
-  const svgH = height - (o.legend ? LEGEND_H : 0);
+  const svgH = height - (o.legend ? legendLayout(names, width).height + 8 : 0);
   const m = margins({ top: 16, right: mode.startsWith('line') || mode.startsWith('area') ? 56 : 12, bottom: 28, left: 48 }, o);
   const pw = width - m.left - m.right;
   const ph = svgH - m.top - m.bottom;
@@ -313,9 +367,9 @@ function multiChart(w, width, height, opts, mode) {
   const { lo, hi, step } = pct ? { lo: 0, hi: 100, step: 25 } : yScale(peaks, o, true);
   const y = (v) => m.top + ph - ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * ph;
   const band = pw / Math.max(1, cats.length);
-  const maxChars = Math.max(3, Math.floor(band / 6.5));
-  const ticks = cats.map((c, i) => svg('text', { class: 'tick', x: m.left + band * i + band / 2, y: svgH - 9 - (o.xTitle ? 18 : 0), 'text-anchor': 'middle' },
-    truncate(c.label, maxChars)));
+  const axis = axisLabels(cats.map((c) => c.label), band);
+  const ticks = cats.map((c, i) => (axis.show(i) ? svg('text', { class: 'tick x-tick', y: svgH - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(m.left + band * i + band / 2, c.label, width) },
+    axis.text(c.label)) : null));
   const tip = (c) => multiTip(c.label, names.map((n) => [n, c.values[n] || 0]), o, c.value);
   const marks = [];
   if (mode === 'stacked' || mode === 'stacked100' || mode === 'grouped') {
@@ -374,7 +428,7 @@ function multiChart(w, width, height, opts, mode) {
     if (o.grid) yTicks.push(svg('line', { class: 'grid', x1: m.left, x2: width - m.right, y1: y(v), y2: y(v) }));
     yTicks.push(svg('text', { class: 'tick', x: m.left - 8, y: y(v) + 4, 'text-anchor': 'end' }, pct ? `${v}%` : fmt.compact(v)));
   }
-  return framed(o, legendRow(names, colors),
+  return framed(o, legendRow(names, colors, width),
     svg('svg', { class: 'chart', width, height: svgH, viewBox: `0 0 ${width} ${svgH}` }, yTicks,
       svg('line', { class: 'axis', x1: m.left, x2: width - m.right, y1: y(lo), y2: y(lo) }), ticks, marks, axisTitles(o, m, width, svgH)));
 }
@@ -386,7 +440,7 @@ function multiChart(w, width, height, opts, mode) {
 function paretoChart(series, width, height, opts, w) {
   const o = options(opts);
   const total = series.reduce((acc, s) => acc + Math.max(0, s.value), 0) || 1;
-  const svgH = height - (o.legend ? LEGEND_H : 0);
+  const svgH = height - (o.legend ? (width < PARETO_LEGEND_W ? 2 * LEGEND_LINE : LEGEND_LINE) + 14 : 0);
   const m = margins({ top: 18, right: 40, bottom: 28, left: 44 }, o);
   const pw = width - m.left - m.right;
   const ph = svgH - m.top - m.bottom;
@@ -398,6 +452,7 @@ function paretoChart(series, width, height, opts, w) {
   const cx = (i) => m.left + band * i + band / 2;
   const cut = series.reduce((last, s, i) => (s.highlight ? i : last), -1);
   const threshold = w.threshold ?? 80;
+  const axis = axisLabels(series.map((s) => s.label), band);
   const marks = series.map((s, i) => {
     const share = (Math.max(0, s.value) / total) * 100;
     const top0 = y(share);
@@ -405,7 +460,7 @@ function paretoChart(series, width, height, opts, w) {
       svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ph,
         'data-tip': `<span>${esc(s.label)}</span><b>${esc(o.full(s.value))}</b><span>${fmt.number(share, 1)}% do total · acumulado ${fmt.number(s.cum_pct, 1)}%</span>` }),
       svg('path', { class: 'bar', d: roundedBar(cx(i) - barW / 2, top0, barW, y(0) - top0, true), style: `fill:${color};fill-opacity:${s.highlight ? 1 : 0.35}` }),
-      svg('text', { class: 'tick', x: cx(i), y: svgH - 9 - (o.xTitle ? 18 : 0), 'text-anchor': 'middle' }, truncate(s.label, Math.max(3, Math.floor(band / 6.5)))),
+      axis.show(i) ? svg('text', { class: 'tick x-tick', y: svgH - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(cx(i), s.label, width) }, axis.text(s.label)) : null,
     ];
   });
   const d = series.map((s, i) => `${i ? 'L' : 'M'}${cx(i)},${y(s.cum_pct)}`).join(' ');
@@ -463,7 +518,7 @@ function scatterChart(w, width, height, opts) {
   const names = ranked.length > MAX_SLICES ? [...ranked.slice(0, MAX_SLICES - 1), 'Outros'] : ranked;
   const colors = names.map((n, i) => tone(o, i, n));
   const idx = (s) => { const k = names.indexOf(s); return k >= 0 ? k : names.length - 1; };
-  const svgH = height - (names.length && o.legend ? LEGEND_H : 0);
+  const svgH = height - (names.length && o.legend ? legendLayout(names, width).height + 8 : 0);
   const m = margins({ top: 14, right: 16, bottom: 28 + (w.sampled ? 14 : 0), left: 52 }, o);
   const pw = width - m.left - m.right;
   const ph = svgH - m.top - m.bottom;
@@ -489,7 +544,7 @@ function scatterChart(w, width, height, opts) {
   const chart = svg('svg', { class: 'chart', width, height: svgH, viewBox: `0 0 ${width} ${svgH}` }, grid,
     svg('line', { class: 'axis', x1: m.left, x2: width - m.right, y1: m.top + ph, y2: m.top + ph }), dots, note,
     axisTitles({ ...o, xTitle: o.xTitle || w.x_column, yTitle: o.yTitle || w.y_column }, m, width, svgH));
-  return names.length ? framed(o, legendRow(names, colors), chart) : chart;
+  return names.length ? framed(o, legendRow(names, colors, width), chart) : chart;
 }
 
 /**

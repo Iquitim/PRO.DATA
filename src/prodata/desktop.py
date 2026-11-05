@@ -46,6 +46,9 @@ def _setup_logging(data_dir: Path) -> Path:
     return log_file
 
 
+SPLASH_MAX_SECONDS = 30
+
+
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
@@ -159,19 +162,19 @@ class DesktopApi:
         return str(path)
 
     def save_generated(self, suggested: str, data: str) -> str | None:
-        """Código da aba SQL (spec 020): "Salvar como" do Windows, só .sql ou .zip."""
+        """Código da aba SQL (spec 020) e dashboard em HTML (spec 021): "Salvar como" do Windows."""
         import webview
 
         name = generated_name(suggested)
         chosen = self._dialog(
             webview.FileDialog.SAVE,
             save_filename=name,
-            file_types=(_ZIP_FILTER if name.endswith(".zip") else _SQL_FILTER,),
+            file_types=(_GENERATED_FILTERS[Path(name).suffix],),
         )
         if not chosen:
             return None
         path = write_generated(chosen, name, data)
-        log.info("Código SQL salvo em %s", path)
+        log.info("Arquivo gerado salvo em %s", path)
         return str(path)
 
     def set_dirty(self, dirty: bool) -> None:
@@ -210,6 +213,7 @@ _PNG_FILTER = "Imagem PNG (*.png)"
 _DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.xlsb;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
 _SQL_FILTER = "Código SQL (*.sql)"
 _ZIP_FILTER = "Arquivo compactado (*.zip)"
+_GENERATED_FILTERS = {".sql": _SQL_FILTER, ".zip": _ZIP_FILTER, ".html": "Página da web (*.html)"}
 _GENERATED_MAX_BYTES = 64 * 1024 * 1024
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_MAX_BYTES = 64 * 1024 * 1024
@@ -252,16 +256,48 @@ def splash_text(message: str) -> None:
 
 
 def close_splash() -> None:
+    """Fecha a caixa de abertura. Pode ser chamada várias vezes: o sinal normal pode se perder (spec 021)."""
     _splash("close")
+    if getattr(sys, "frozen", False):
+        # O fechamento é um pedido assíncrono: confere depois e, se a janela continuar lá, esconde direto.
+        threading.Timer(1.0, _hide_leftover_splash).start()
+
+
+def _hide_leftover_splash() -> None:
+    """Esconde janelas Tk deste processo. O programa só usa Tk na caixa de abertura."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    own = os.getpid()
+    hidden: list[str] = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd: int, _param: int) -> bool:
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        name = ctypes.create_unicode_buffer(64)
+        user32.GetClassNameW(hwnd, name, 64)
+        if pid.value == own and name.value.startswith("Tk") and user32.IsWindowVisible(hwnd):
+            user32.ShowWindow(hwnd, 0)  # SW_HIDE
+            hidden.append(name.value)
+        return True
+
+    user32.EnumWindows(visit, 0)
+    if hidden:
+        log.warning("A caixa de abertura não fechou pelo sinal normal; janela escondida: %s", hidden)
 
 
 def generated_name(name: str) -> str:
-    """Nome saneado, sempre terminando em .sql ou .zip (constituição IV)."""
+    """Nome saneado, sempre terminando em .sql, .zip ou .html (constituição IV)."""
     stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", Path(name.replace("\\", "/")).name)
     stem = re.sub(r"\s+", " ", stem).strip(" .")
-    is_zip = stem.lower().endswith(".zip")
-    stem = re.sub(r"\.(sql|zip)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
-    return f"{stem or 'fluxo'}.{'zip' if is_zip else 'sql'}"
+    found = re.search(r"\.(sql|zip|html)$", stem, flags=re.IGNORECASE)
+    extension = found.group(1).lower() if found else "sql"
+    stem = re.sub(r"\.(sql|zip|html)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
+    return f"{stem or 'fluxo'}.{extension}"
 
 
 def write_generated(raw_path: str, suggested: str, data: str) -> Path:
@@ -278,6 +314,12 @@ def write_generated(raw_path: str, suggested: str, data: str) -> Path:
         raise ValueError("O arquivo gerado é grande demais.")
     path.write_bytes(raw)
     return path
+
+
+def _splash_failsafe() -> None:
+    """Se a janela nunca avisar que apareceu, a caixa de abertura também não pode ficar para sempre."""
+    time.sleep(SPLASH_MAX_SECONDS)
+    close_splash()
 
 
 def main() -> None:
@@ -342,8 +384,9 @@ def run(data_dir: Path) -> None:
     )
     api._window.events.closing += api._on_closing
     api._window.events.shown += close_splash
+    api._window.events.loaded += close_splash
     # private_mode=False: mantém preferências do usuário (tema, painéis) entre sessões.
-    webview.start(private_mode=False, storage_path=str(data_dir / "webview"))
+    webview.start(_splash_failsafe, private_mode=False, storage_path=str(data_dir / "webview"))
 
     log.info("Janela fechada; encerrando servidor")
     server.should_exit = True

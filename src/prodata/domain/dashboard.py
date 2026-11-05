@@ -65,8 +65,21 @@ class DashItem(BaseModel):
         return self
 
 
+class DashFilter(BaseModel):
+    """Filtro da página (spec 021): vale para todo visual cuja tabela tem a coluna."""
+
+    id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    column: str = Field(min_length=1)
+    label: str = ""
+    kind: Literal["list", "number", "date"] = "list"
+    selected: list[str] = Field(default_factory=list, max_length=5000)
+    min: float | str | None = None
+    max: float | str | None = None
+
+
 class Dashboard(BaseModel):
     page: DashPage = Field(default_factory=DashPage)
+    filters: list[DashFilter] = Field(default_factory=list, max_length=30)
     items: list[DashItem] = Field(default_factory=list)  # ordem = camada (o último fica por cima)
     hidden: list[str] = Field(default_factory=list)  # caixas de BI fora da página (RF-1407)
 

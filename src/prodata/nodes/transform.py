@@ -161,7 +161,10 @@ class Aggregation(BaseModel):
 
 class SummarizeConfig(ToolConfig):
     group_by: list[str] = Field(
-        default_factory=list, title="Agrupar por", json_schema_extra=ui(widget="columns")
+        default_factory=list,
+        title="Agrupar por",
+        description="Opcional. Vazio = calcula sobre a tabela inteira (ex.: a soma total de uma coluna).",
+        json_schema_extra=ui(widget="columns"),
     )
     aggregations: list[Aggregation] = Field(default_factory=lambda: [Aggregation()], title="Agregações")
 

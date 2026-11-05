@@ -16,6 +16,7 @@ def ui(
     step: float | None = None,
     source: str | None = None,
     max_items: int | None = None,
+    multirow: bool = False,
 ) -> dict[str, Any]:
     """Metadados de UI de um campo.
 
@@ -26,6 +27,7 @@ def ui(
     - ``labels``: rótulos legíveis para opções de ``Literal``.
     - ``source``: campo com o nome da coluna cujos valores o widget lista (``column_values``).
     - ``max_items``: quantos itens podem ser escolhidos no máximo.
+    - ``multirow``: a expressão aceita ``[Row-1:coluna]``.
     """
     meta = {
         "widget": widget,
@@ -36,6 +38,7 @@ def ui(
         "labels": labels,
         "step": step,
         "source": source,
+        "multirow": multirow or None,
         "max_items": max_items,
     }
     return {k: v for k, v in meta.items() if v is not None}

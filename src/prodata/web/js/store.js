@@ -13,6 +13,7 @@ export const store = {
   datasets: [],
   connections: [],
   queries: [], // consultas de banco da aba Dados (spec 009)
+  apis: [],
   workflow: null,
   filePath: null, // arquivo .prodata.json fora da biblioteca, quando aberto/salvo por "Salvar como"
 
@@ -182,6 +183,21 @@ export const canRedo = () => history.redo.length > 0;
 
 export const node = (id) => store.workflow?.nodes.find((n) => n.id === id) || null;
 export const toolOf = (n) => (n ? store.tools[n.type] : null);
+
+/** Entradas à mostra: as fixas, as extras ligadas e a próxima livre, quando a configuração permite (spec 021). */
+export function visibleInputs(n) {
+  const inputs = toolOf(n)?.inputs || [];
+  const used = new Set(store.workflow.edges.filter((e) => e.target === n.id).map((e) => e.targetHandle));
+  let offered = false;
+  return inputs.filter((p) => {
+    if (!p.when) return true;
+    if (used.has(p.id)) return true;
+    const allowed = Object.entries(p.when).every(([k, values]) => values.includes(n.config?.[k]));
+    if (!allowed || offered) return false;
+    offered = true;
+    return true;
+  });
+}
 export const nodeResult = (id) => store.execution?.node_results?.[id] || null;
 
 export function descendants(id) {
@@ -245,12 +261,16 @@ function mergeExecution(previous, report) {
 
 /** Prefixo das fontes do Input Data que são consultas de banco (spec 009). */
 export const QUERY_PREFIX = 'sql:';
+export const API_PREFIX = 'api:';
+export const apiOf = (source) => (source?.startsWith(API_PREFIX)
+  ? store.apis.find((a) => a.id === source.slice(API_PREFIX.length)) || null : null);
 export const queryOf = (source) => (source?.startsWith(QUERY_PREFIX)
   ? store.queries.find((q) => q.id === source.slice(QUERY_PREFIX.length)) || null : null);
 
 /** Nome amigável de uma fonte: nome da consulta ou arquivo sem extensão. */
 export function sourceLabel(source) {
   if (source?.startsWith(QUERY_PREFIX)) return queryOf(source)?.name || 'Consulta de banco';
+  if (source?.startsWith(API_PREFIX)) return apiOf(source)?.name || 'API';
   return (source || '').replace(/\.[^.]+$/, '');
 }
 

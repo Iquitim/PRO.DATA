@@ -244,7 +244,10 @@
 :root { --status-good: #0ca30c; --status-warning: #fab219; --status-critical: #d03b3b; }
 .multi-chart { display: flex; flex-direction: column; gap: 6px; }
 .legend-row { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; min-height: 22px; font-size: 12px; color: var(--text-2); }
-.legend-row li { display: flex; align-items: center; gap: 6px; }
+.legend-row li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.legend-row li[title] { max-width: 190px; }
+.legend-row .swatch { flex: none; }
+.legend-row .legend-more { color: var(--text-3); font-weight: 600; cursor: help; }
 .line-swatch { height: 3px !important; width: 14px !important; border-radius: 2px; }
 .chart .seg { stroke: var(--surface); stroke-width: 1; }
 .chart .area.strong { opacity: 0.35; }
@@ -280,7 +283,7 @@
 .kpi.rule-warning { box-shadow: inset 4px 0 0 var(--status-warning); }
 .kpi.rule-critical { box-shadow: inset 4px 0 0 var(--status-critical); }
 .kpi.rule-good .kpi-label .icon { color: var(--status-good); }
-.kpi.rule-warning .kpi-label .icon { color: #b8830f; }
+.kpi.rule-warning .kpi-label .icon { color: var(--warn); }
 .kpi.rule-critical .kpi-label .icon { color: var(--status-critical); }
 
 /* tabela do dashboard */
@@ -294,7 +297,7 @@
 .dash-table td.cell-warning { background: color-mix(in srgb, var(--status-warning) 20%, transparent) !important; }
 .dash-table td.cell-critical { background: color-mix(in srgb, var(--status-critical) 14%, transparent) !important; }
 .dash-table td.cell-good .icon { color: var(--status-good); }
-.dash-table td.cell-warning .icon { color: #b8830f; }
+.dash-table td.cell-warning .icon { color: var(--warn); }
 .dash-table td.cell-critical .icon { color: var(--status-critical); }
 .kpi.fill { overflow: hidden; }
 .kpi.fill .kpi-row .kpi-value { margin: 2px 0 4px; }
@@ -304,3 +307,25 @@
 .rename-row { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); align-items: center; gap: 8px; font-size: 12.5px; }
 .donut-wrap.below { flex-direction: column; align-items: stretch; }
 .donut-wrap.below .chart.donut { align-self: center; }
+
+/* Filtros da página (spec 021) */
+.dash-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 auto 14px; color: var(--text-3); }
+.dash-filter { display: inline-flex; align-items: center; gap: 6px; max-width: 320px; padding: 4px 8px; font: inherit; font-size: 12px; color: var(--text-2); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm, 6px); cursor: pointer; }
+.dash-filter:hover { border-color: var(--border-strong); }
+.dash-filter:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.dash-filter.active { border-color: var(--accent); color: var(--text); }
+.dash-filter-name { font-weight: 600; white-space: nowrap; }
+.dash-filter-state { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-filter-busy { font-size: 12px; }
+.dash-filter-pop { position: fixed; z-index: 1000; display: flex; flex-direction: column; gap: 8px; width: 280px; max-height: 420px; padding: 12px; font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; box-shadow: var(--shadow-md); }
+.dash-filter-values { display: flex; flex-direction: column; gap: 2px; max-height: 220px; overflow-y: auto; }
+.dash-filter-value { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 2px; cursor: pointer; }
+.dash-nofilter { position: absolute; top: 6px; right: 40px; z-index: 2; display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; font-size: 11px; color: var(--text-3); background: var(--surface-2); border-radius: 4px; pointer-events: auto; }
+.dash-export-filters { height: 40px; margin: 0; padding: 10px 40px 0; font-size: 14px; color: var(--text-2); }
+.dash-html-warn { padding: 10px 12px; border: 1px solid var(--warn); border-radius: 6px; }
+.dash-html-warn p { margin: 4px 0 0; }
+
+/* HTML exportado (spec 021) */
+body.dash-viewer { height: auto; min-height: 100vh; margin: 0; padding: 16px; overflow: auto; background: var(--bg); }
+.dash-viewer-fixed { margin: 0 0 10px; font-size: 13px; color: var(--text-2); }
+.dash-viewer .chart-title { cursor: default; }

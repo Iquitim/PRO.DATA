@@ -271,7 +271,7 @@ function dataView() {
       onclick: (e) => { e.stopPropagation(); filterAt(e.currentTarget, null, { column: c.name }); },
     }, icon('filter', 12)),
     h('span', { class: 'th-type' }, c.type)),
-  qualityBar(c), sparkline(c))));
+  columnTotal(c), qualityBar(c), sparkline(c))));
   const body = rows.length
     ? rows.map((r, i) => h('tr', {}, h('td', { class: 'rownum' }, state.data.offset + i + 1), cols.map((c, ci) => {
       const td = cell(r[c.name], c.type);
@@ -300,6 +300,16 @@ function dataView() {
     ]);
   });
   return h('div', { class: 'table-wrap' }, h('table', { class: 'data-table' }, h('thead', {}, head), tbody));
+}
+
+/** Soma das colunas numéricas e contagem de não nulos nas demais, da tabela inteira ou dos filtros ativos (spec 021). */
+function columnTotal(c) {
+  const sum = c.stats?.sum;
+  if (typeof sum === 'number') {
+    return h('div', { class: 'th-total', title: `Soma: ${fmt.number(sum)}` }, `Σ ${fmt.compact(sum)}`);
+  }
+  const filled = Math.max(0, (c.total ?? 0) - (c.null_count ?? 0));
+  return h('div', { class: 'th-total', title: `${fmt.int(filled)} linhas não nulas` }, `n ${fmt.int(filled)}`);
 }
 
 function profileView() {

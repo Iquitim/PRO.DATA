@@ -1,4 +1,5 @@
 from prodata.api.routes import (
+    apis,
     catalog,
     connections,
     dashboard,
@@ -15,6 +16,7 @@ routers = [
     datasets.router,
     connections.router,
     queries.router,
+    apis.router,
     workflows.router,
     files.router,
     execution.router,

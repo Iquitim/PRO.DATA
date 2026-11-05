@@ -8,7 +8,7 @@ import { api } from './api.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { icon } from './icons.js';
 import { formulaEditor } from './formula_editor.js';
-import { QUERY_PREFIX } from './store.js';
+import { API_PREFIX, QUERY_PREFIX } from './store.js';
 
 const TYPE_LABEL = { Int64: '123', Float64: '1.2', String: 'abc', Boolean: 'v/f', Date: 'data' };
 
@@ -186,7 +186,7 @@ function expression(field, value, set, ctx, id) {
       return;
     }
     try {
-      const res = await api.validateFormula(expr, cols.map(({ name, type }) => ({ name, type })));
+      const res = await api.validateFormula(expr, cols.map(({ name, type }) => ({ name, type })), Boolean(field.multirow));
       status.className = `expr-status ${res.valid ? 'ok' : 'err'}`;
       status.replaceChildren(icon(res.valid ? 'check' : 'alert', 13), res.valid ? 'Expressão válida' : res.error);
     } catch {
@@ -223,17 +223,42 @@ function template(field, value, set, ctx, id) {
 function dataset(field, value, set, ctx, id) {
   const files = ctx.datasets || [];
   const queries = ctx.queries || [];
-  const known = files.some((d) => d.name === value) || queries.some((q) => `${QUERY_PREFIX}${q.id}` === value);
+  const apis = (ctx.apis || []).filter((a) => !ctx.needsLoop?.(a));
+  const known = files.some((d) => d.name === value) || queries.some((q) => `${QUERY_PREFIX}${q.id}` === value)
+    || apis.some((a) => `${API_PREFIX}${a.id}` === value);
   return h('div', { class: 'row' },
     h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
-      h('option', { value: '' }, files.length || queries.length ? 'Escolha uma fonte…' : 'Nenhuma fonte na aba Dados'),
+      h('option', { value: '' }, files.length || queries.length || apis.length ? 'Escolha uma fonte…' : 'Nenhuma fonte na aba Dados'),
       files.length ? h('optgroup', { label: 'Arquivos' },
         files.map((d) => h('option', { value: d.name, selected: d.name === value }, d.name))) : null,
       queries.length ? h('optgroup', { label: 'Consultas de banco' },
         queries.map((q) => h('option', { value: `${QUERY_PREFIX}${q.id}`, selected: `${QUERY_PREFIX}${q.id}` === value }, q.name))) : null,
+      apis.length ? h('optgroup', { label: 'APIs' },
+        apis.map((a) => h('option', { value: `${API_PREFIX}${a.id}`, selected: `${API_PREFIX}${a.id}` === value }, a.name))) : null,
       value && !known ? h('option', { value, selected: true }, `${value} (não encontrado)`) : null),
-    ctx.onPreview ? button({ icon: ctx.isQuery ? 'edit' : 'eye', title: ctx.isQuery ? 'Editar consulta e ver prévia' : 'Pré-visualizar e ajustar leitura', disabled: !known, onClick: ctx.onPreview }) : null,
+    ctx.onPreview ? button({ icon: ctx.isQuery ? 'edit' : 'eye', title: ctx.isQuery ? 'Editar a fonte e ver prévia' : 'Pré-visualizar e ajustar leitura', disabled: !known, onClick: ctx.onPreview }) : null,
     ctx.onNewQuery ? button({ icon: 'plus', title: 'Nova consulta de banco', onClick: ctx.onNewQuery }) : null);
+}
+
+/** API usada pelo API Loop: só as que pedem {coluna} fazem sentido aqui. */
+function apiSource(field, value, set, ctx, id) {
+  const all = ctx.apis || [];
+  const usable = all.filter((a) => ctx.needsLoop?.(a));
+  const known = usable.some((a) => a.id === value);
+  const current = all.find((a) => a.id === value);
+  const wants = current ? ctx.columnsWanted?.(current) || [] : [];
+  const have = new Set((ctx.columns?.() || []).map((c) => c.name));
+  const absent = wants.filter((c) => have.size && !have.has(c));
+  return h('div', { class: 'stack-xs' },
+    h('div', { class: 'row' },
+      h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
+        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com {coluna} na aba Dados'),
+        usable.map((a) => h('option', { value: a.id, selected: a.id === value }, a.name)),
+        value && !known ? h('option', { value, selected: true }, `${value} (não serve aqui ou foi excluída)`) : null),
+      button({ icon: 'edit', title: 'Editar a API', disabled: !current, onClick: () => current && ctx.onEditApi?.(current) }),
+      button({ icon: 'plus', title: 'Nova API', onClick: () => ctx.onNewApi?.() })),
+    wants.length ? h('p', { class: ['field-help', absent.length && 'text-error'] },
+      absent.length ? `A tabela de entrada não tem: ${absent.join(', ')}.` : `Usa as colunas: ${wants.join(', ')}.`) : null);
 }
 
 function folder(field, value, set, ctx, id) {
@@ -362,6 +387,20 @@ function joinColumns(ctx, values) {
     }
   }
   return out;
+}
+
+/** Nome da planilha de cada tabela extra ligada ao Output Data (spec 021). */
+function sheetPorts(field, value, set, ctx) {
+  const ports = ctx.extraInputs?.() || [];
+  if (!ports.length) return h('p', { class: 'field-help' }, 'Ligue outra tabela na próxima entrada da caixa para criar mais uma planilha.');
+  const names = { ...(value || {}) };
+  return h('div', { class: 'stack-xs' }, ports.map((p) => h('label', { class: 'sheet-port' },
+    h('span', { class: 'ellipsis', title: p.source }, p.source),
+    h('input', {
+      class: 'input input-sm', value: names[p.id] || '', placeholder: p.fallback, maxlength: 31,
+      'aria-label': `Nome da planilha de ${p.source}`,
+      onchange: (e) => { names[p.id] = e.target.value.trim(); if (!names[p.id]) delete names[p.id]; set({ ...names }); },
+    }))));
 }
 
 const CASTS = [['', 'Manter'], ['Int64', 'Inteiro'], ['Float64', 'Decimal'], ['String', 'Texto'], ['Boolean', 'Booleano'], ['Date', 'Data']];
@@ -657,5 +696,5 @@ const WIDGETS = {
   color, optional_number: optionalNumber, category_colors: categoryColors, column_values: columnValues,
   rename_labels: renameLabels,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
-  list, select_columns: selectColumns, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
+  list, select_columns: selectColumns, sheet_ports: sheetPorts, api_source: apiSource, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
 };

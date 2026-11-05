@@ -127,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.5.0 · Windows</span><span>Outubro de 2026</span></div>
+    <div class="meta"><span>Versão 0.5.5 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -139,7 +139,7 @@
   <p>Em vez de fórmulas espalhadas por várias abas, você monta um <strong>fluxo</strong>: caixas ligadas por linhas, em que cada caixa faz uma coisa (ler um arquivo, limpar, filtrar, juntar, calcular, resumir, gerar um gráfico). O fluxo fica salvo, pode ser executado de novo com dados novos em segundos e mostra o resultado de <strong>cada etapa</strong>, então dá para ver exatamente de onde veio cada número.</p>
 
   <div class="stat-row">
-    <div class="stat"><b>28</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
+    <div class="stat"><b>30</b><span>ferramentas prontas, de leitura de dados a Machine Learning</span></div>
     <div class="stat"><b>6</b><span>formatos de arquivo + PostgreSQL e SQL Server</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
     <div class="stat"><b>100%</b><span>local: funciona offline, os dados ficam na sua máquina</span></div>
@@ -265,13 +265,34 @@
     <figcaption>A senha vai para o Gerenciador de Credenciais do Windows — nunca para arquivos do projeto.</figcaption>
   </figure>
   <div class="callout ok"><strong>Seguro por padrão</strong>As conexões são somente leitura: apenas consultas de leitura (<code>SELECT</code>/<code>WITH</code>) são aceitas, e comandos que alteram dados são recusados antes de chegar ao banco. Por padrão, cada execução consulta o banco de novo; a opção "Reaproveitar resultado" evita consultas repetidas quando os dados não mudam.</div>
+
+  <h3>APIs</h3>
+  <p>Em <strong>Dados &gt; APIs</strong>, cadastre o endereço, o método (GET ou POST), parâmetros, cabeçalhos e autenticação: token, chave de API, usuário e senha ou OAuth 2. Com <strong>Testar</strong>, as colunas aparecem antes de salvar. A resposta pode ser JSON, CSV ou XML: campos aninhados viram colunas (<code>dono.nome</code>) e uma lista interna pode virar linhas.</p>
+  <p>Em <strong>Páginas</strong>, escolha como a API divide os dados: número de página, deslocamento, cursor ou link para a próxima. O PRO.DATA lê até acabar ou até o limite de páginas, e avisa se parou com dados faltando. Depois de salva, a API é mais uma fonte do <strong>Input Data</strong>.</p>
+  <figure>
+    <div class="frame"><img src="img/api-editor.png" alt="Cadastro de API com teste"></div>
+    <figcaption>O teste mostra as colunas antes de salvar. Tokens e senhas vão para o cofre do Windows.</figcaption>
+  </figure>
+  <h3>Uma chamada por linha: API Loop</h3>
+  <p>Escreva <code>{coluna}</code> no endereço, nos parâmetros ou no corpo e use a ferramenta <strong>API Loop</strong>: ela chama a API uma vez para cada linha da tabela de entrada e junta as respostas numa tabela só. A entrada pode ser a saída de outra API, como uma lista de clientes alimentando o detalhe de cada um.</p>
+  <div class="grid-2">
+    <div>
+      <ul>
+        <li>A saída <strong>R</strong> traz as respostas ao lado da linha que as pediu; a <strong>E</strong>, as chamadas que falharam e o motivo.</li>
+        <li>Valores iguais são chamados uma vez só.</li>
+        <li>Chamadas ao mesmo tempo, chamadas por segundo e um limite total protegem a API e a sua cota.</li>
+        <li>O API Loop e os POST não rodam ao abrir um fluxo: esperam o clique em <strong>Executar</strong>.</li>
+      </ul>
+    </div>
+    <figure style="margin:0"><div class="frame"><img src="img/api-loop.png" alt="Configuração do API Loop"></div><figcaption>O Configurar diz quais colunas a API usa.</figcaption></figure>
+  </div>
 </section>
 
 <!-- ================================================================ 5. FLUXO -->
 <section class="chapter">
   <div class="eyebrow">5 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
-  <p class="intro">28 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <p class="intro">30 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
     <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
@@ -361,6 +382,29 @@
     </ul>
     <figure style="margin:0"><div class="frame"><img src="img/menu-crop.png" alt="Menu do botão direito numa caixa"></div><figcaption>Menu do botão direito numa caixa.</figcaption></figure>
   </div>
+  </div>
+
+  <div class="avoid">
+    <h3>Fórmula que olha outras linhas</h3>
+    <div class="grid-2">
+      <div>
+        <p>A <strong>Multi-Row Formula</strong> usa <code>[Row-1:valor]</code> para a linha anterior e <code>[Row+1:valor]</code> para a seguinte, com as mesmas funções da Formula.</p>
+        <ul>
+          <li><strong>Preencher para baixo</strong>: <code>IF IsNull([uf]) THEN [Row-1:uf] ELSE [uf] ENDIF</code></li>
+          <li><strong>Diferença para a linha anterior</strong>: <code>[valor] - [Row-1:valor]</code></li>
+          <li>Com <strong>Agrupar por</strong>, as referências não atravessam grupos.</li>
+          <li>O cálculo segue a ordem em que as linhas chegam: use um <strong>Sort</strong> antes.</li>
+        </ul>
+      </div>
+      <figure style="margin:0"><div class="frame"><img src="img/multirow.png" alt="Configuração da Multi-Row Formula"></div><figcaption>Preenchendo para baixo os vazios de uma coluna.</figcaption></figure>
+    </div>
+  </div>
+  <div class="avoid">
+    <h3>Várias planilhas no mesmo Excel</h3>
+    <div class="grid-2">
+      <div><p>Com o formato Excel, o <strong>Output Data</strong> oferece uma entrada nova sempre que a anterior é ligada, até 8. Cada tabela vira uma planilha do mesmo arquivo, e o Configurar dá o nome de cada uma.</p></div>
+      <figure style="margin:0"><div class="frame"><img src="img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
+    </div>
   </div>
 </section>
 
@@ -463,6 +507,20 @@
     <div class="frame"><img src="img/dash-edit.png" alt="Modo Editar com o painel Formato"></div>
     <figcaption>O Pareto selecionado e o painel Formato à direita.</figcaption>
   </figure>
+
+  <h3>Filtros na página</h3>
+  <p>Em <strong>Adicionar filtro</strong>, escolha uma coluna: a barra no topo oferece seus valores ou, em número e data, um intervalo. O filtro vale para todos os visuais cuja tabela tem aquela coluna, sem executar o fluxo de novo. Quem não tem a coluna não muda e mostra um aviso discreto, <strong>Sem filtro</strong>. A escolha fica salva no fluxo e aparece no alto da imagem PNG.</p>
+  <figure>
+    <div class="frame"><img src="img/dash-filters.png" alt="Barra de filtros do dashboard"></div>
+    <figcaption>Filtro por UF: os visuais com a coluna mudam na hora, e o aviso marca o que ficou de fora.</figcaption>
+  </figure>
+  <h3>O dashboard em um arquivo HTML</h3>
+  <p><strong>Baixar HTML</strong> gera um arquivo só, que abre em qualquer navegador, sem o PRO.DATA e sem internet, com os detalhes ao passar o mouse e os <strong>filtros funcionando</strong>. Para isso, o arquivo leva as colunas que os visuais e os filtros usam, e nada além delas. Antes de salvar, a tela mostra quanto dado vai dentro.</p>
+  <div class="callout warn"><strong>Cuidado ao compartilhar</strong>Quem recebe o arquivo pode ver todos os dados que ele leva, mesmo o que estiver filtrado fora na hora de abrir.</div>
+  <figure class="narrow">
+    <div class="frame"><img src="img/dash-html.png" alt="Aviso antes de salvar o HTML"></div>
+    <figcaption>O aviso lista as colunas e o tamanho antes de gerar o arquivo.</figcaption>
+  </figure>
 </section>
 
 <!-- ================================================================ 9. ORGANIZAÇÃO -->
@@ -549,8 +607,9 @@
   <div class="eyebrow">11 · Confiança</div>
   <h2>Segurança e privacidade</h2>
   <div class="grid-2">
-    <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador. Nenhum dado é enviado para a internet; o programa funciona offline.</p></div>
+    <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador e funciona offline. A única saída para a rede é a que você cadastra: bancos e APIs. O programa não envia nada por conta própria.</p></div>
     <div class="card"><h4>Senhas no cofre do Windows</h4><p>Senhas de banco ficam no Gerenciador de Credenciais do Windows, criptografadas pelo sistema. Nunca aparecem em arquivos, fluxos ou mensagens de erro.</p></div>
+    <div class="card"><h4>APIs sob controle</h4><p>Tokens e senhas de API ficam no cofre do Windows, fora do fluxo e dos arquivos. O endereço pertence à API cadastrada neste computador, e as credenciais nunca seguem para outro servidor em redirecionamentos ou paginação. POST e API Loop não rodam sozinhos ao abrir um fluxo.</p></div>
     <div class="card"><h4>Bancos somente leitura</h4><p>Comandos que alteram dados (<code>DELETE</code>, <code>UPDATE</code>, <code>DROP</code>…) são recusados antes de chegar ao banco. No PostgreSQL, a sessão é aberta em modo somente leitura.</p></div>
     <div class="card"><h4>Gravação sob controle</h4><p>Fora da pasta de dados, o programa só grava onde você mandar: na pasta escolhida no Output Data ou no fluxo que você salvar. Nomes de arquivo maliciosos são neutralizados.</p></div>
     <div class="card"><h4>Dados preservados</h4><p>Fluxos, arquivos e conexões ficam em <code>%LOCALAPPDATA%\PRO.DATA</code> e sobrevivem a atualizações e à desinstalação.</p></div>
@@ -564,8 +623,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.0-setup.exe</code> (139 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.0-portable.zip</code> (221 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.5-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.5-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -593,9 +652,10 @@
     <div>
       <h3>Incluído nesta versão</h3>
       <ul class="scope-in">
-        <li>Fluxos visuais com 28 ferramentas</li>
+        <li>Fluxos visuais com 30 ferramentas</li>
         <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
         <li>Consultas a PostgreSQL e SQL Server (tabela ou SQL)</li>
+        <li>APIs em JSON, CSV ou XML, com paginação e uma chamada por linha</li>
         <li>Exportação para Excel, CSV, Parquet, JSON e Arrow, em qualquer pasta</li>
         <li>Abas, copiar/colar e editor de fórmulas com autocompletar</li>
         <li>Perfil de qualidade e filtros exploratórios</li>

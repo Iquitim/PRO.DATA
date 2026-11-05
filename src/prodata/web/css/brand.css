@@ -28,41 +28,7 @@
   --series-8: #e34948;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --accent: #5b9bd5;
-    --accent-hover: #78afe0;
-    --accent-weak: #13283d;
-    --accent-text: #04182b;
-    --focus: #78afe0;
 
-    --series-1: #4a8fd6;
-    --series-2: #d95926;
-    --series-3: #14a08c;
-    --series-4: #b08a2a;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
-  }
-}
-
-:root[data-theme="dark"] {
-  --accent: #5b9bd5;
-  --accent-hover: #78afe0;
-  --accent-weak: #13283d;
-  --accent-text: #04182b;
-  --focus: #78afe0;
-
-  --series-1: #4a8fd6;
-  --series-2: #d95926;
-  --series-3: #14a08c;
-  --series-4: #b08a2a;
-  --series-5: #d55181;
-  --series-6: #008300;
-  --series-7: #9085e9;
-  --series-8: #e66767;
-}
 
 /* ---------------------------------------------------------------- barra superior azul-marinho */
 .topbar {
@@ -104,3 +70,17 @@
   :root:not([data-theme="light"]) .dash-logo { content: url('../brand/protege-escudo-claro.svg'); }
 }
 :root[data-theme="dark"] .dash-logo { content: url('../brand/protege-escudo-claro.svg'); }
+
+/* Modo escuro: a barra do topo acompanha a paleta (spec 021). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --brand-gold: #ffb86c; --brand-gold-strong: #ffb86c; }
+  :root:not([data-theme="light"]) .topbar { background: #21222c; border-bottom-color: #44475a; }
+  :root:not([data-theme="light"]) .topbar .btn-primary { color: #21222c; }
+  :root:not([data-theme="light"]) .topbar .btn-primary:hover:not(:disabled) { background: #ffc98e; border-color: #ffc98e; }
+  :root:not([data-theme="light"]) .topbar .segment[aria-selected="true"] { background: #44475a; color: #f8f8f2; }
+}
+:root[data-theme="dark"] { --brand-gold: #ffb86c; --brand-gold-strong: #ffb86c; }
+:root[data-theme="dark"] .topbar { background: #21222c; border-bottom-color: #44475a; }
+:root[data-theme="dark"] .topbar .btn-primary { color: #21222c; }
+:root[data-theme="dark"] .topbar .btn-primary:hover:not(:disabled) { background: #ffc98e; border-color: #ffc98e; }
+:root[data-theme="dark"] .topbar .segment[aria-selected="true"] { background: #44475a; color: #f8f8f2; }

@@ -9,6 +9,7 @@ from fastapi import Depends, Request
 
 from prodata.config import Settings
 from prodata.connectors import ConnectionStore
+from prodata.connectors.api import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
@@ -25,6 +26,7 @@ class Services:
     workflows: WorkflowRepository
     connections: ConnectionStore
     queries: QueryStore
+    apis: ApiStore
 
 
 def get_services(request: Request) -> Services:

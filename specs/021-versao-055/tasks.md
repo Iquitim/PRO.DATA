@@ -1,0 +1,15 @@
+# Tarefas — Spec 021 (versão 0.5.5)
+
+- [x] Caixa de abertura: fechamento repetível e reserva que esconde a janela Tk; verificado no executável (RF-2131)
+- [x] Rótulos do eixo e legendas com muitos itens, em todos os gráficos (RF-2181..2183)
+- [x] Soma e contagem no cabeçalho da tabela de resultados (RF-2141)
+- [x] Summarize: "Agrupar por" opcional deixado claro na tela (RF-2121, RF-2122)
+- [x] Modo escuro análogo ao Dracula, com contraste testado (RF-2151, RF-2152)
+- [x] Multi-Row Formula, com tradução para SQL e teste de equivalência (RF-2191..2197)
+- [x] Output Data com várias tabelas numa pasta de trabalho Excel (RF-2101..2103)
+- [x] Fontes de API: cadastro, autenticação, paginação, leitura e segredos no cofre (RF-2111..2117)
+- [x] API Loop, com saídas R e E (RF-2118, RF-2119)
+- [x] API e API Loop na aba SQL (RF-2120)
+- [x] Filtros na página do dashboard, sem executar o fluxo (RF-2161..2164)
+- [x] Dashboard em HTML, com filtros que funcionam no arquivo e teste contra o motor (RF-2171..2174)
+- [x] Testes em Python e no navegador, regressão contra a 0.4.1, README, guia e PDF

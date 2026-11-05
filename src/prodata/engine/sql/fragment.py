@@ -16,6 +16,7 @@ from typing import Any
 import duckdb
 import polars as pl
 
+from prodata.connectors.api import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.ingestion.datasets import DatasetStore
 
@@ -44,6 +45,7 @@ class SqlContext:
     queries: QueryStore | None = None
     # Tabela que chegou pela porta na última execução, se ainda vale para o fluxo atual.
     sample: Callable[[str], pl.DataFrame | None] = lambda _port: None
+    apis: ApiStore | None = None
 
     def input(self, port: str = "in") -> SqlInput:
         if port not in self.inputs:

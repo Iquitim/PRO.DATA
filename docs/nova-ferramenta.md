@@ -88,3 +88,10 @@ ressalvas. A tradução precisa dar o mesmo resultado que o `run`: acrescente o 
 ## 6. Teste
 
 Adicione um teste em `tests/test_nodes.py` e rode `uv run pytest`.
+
+## Entradas extras e caixas que só rodam a pedido
+
+- `Port(..., required=False, when={"campo": ["valor"]})` cria uma entrada que só aparece ligada ou, quando a
+  configuração bate com `when`, como a próxima livre. É como o Output Data recebe várias planilhas.
+- `only_on_request=` em `@tool` recebe `(ctx, cfg)` e devolve um texto quando a caixa não deve rodar sozinha ao abrir
+  um fluxo: uma chamada que pode gravar dados ou gastar cota. Ela espera o clique em Executar.

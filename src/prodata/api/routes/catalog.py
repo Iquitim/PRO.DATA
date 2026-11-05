@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from prodata import __version__
-from prodata.engine import formula
+from prodata.engine import formula, multirow
 from prodata.ingestion.detect import EXTENSIONS
 from prodata.nodes import CATEGORIES, catalog
 
@@ -34,8 +34,10 @@ def get_catalog() -> dict[str, Any]:
 class ValidateFormulaRequest(BaseModel):
     expression: str
     columns: list[dict[str, str]] = []
+    multirow: bool = False
 
 
 @router.post("/formula/validate")
 def validate_formula(req: ValidateFormulaRequest) -> dict[str, Any]:
-    return formula.validate(req.expression, req.columns)
+    expression = multirow.for_validation(req.expression) if req.multirow else req.expression
+    return formula.validate(expression, req.columns)

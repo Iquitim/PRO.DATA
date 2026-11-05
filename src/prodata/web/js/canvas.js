@@ -12,7 +12,7 @@ import { $, clear, debounce, fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import {
   checkpoint, commit, emit, inspect, isSelected, node, nodeResult, on, select, selectedIds, selectMany, sourceLabel,
-  store, toggleSelected, toolOf,
+  store, toggleSelected, toolOf, visibleInputs,
 } from './store.js';
 import { closeMenu, showMenu, toast } from './ui.js';
 
@@ -37,12 +37,12 @@ let handlers = {};
 /** Altura do cartão: cresce com o número de portas para que nenhuma se sobreponha. */
 export function nodeHeight(n) {
   const spec = toolOf(n);
-  const ports = Math.max(spec?.inputs.length || 0, spec?.outputs.length || 0);
+  const ports = Math.max(n ? visibleInputs(n).length : 0, spec?.outputs.length || 0);
   return Math.max(NODE_MIN_H, (ports + 1) * PORT_GAP);
 }
 
 function portPoint(n, portId, output) {
-  const ports = (output ? toolOf(n)?.outputs : toolOf(n)?.inputs) || [];
+  const ports = (output ? toolOf(n)?.outputs : visibleInputs(n)) || [];
   const idx = Math.max(0, ports.findIndex((p) => p.id === portId));
   return { x: n.x + (output ? NODE_W : 0), y: n.y + (nodeHeight(n) * (idx + 1)) / (ports.length + 1) };
 }
@@ -177,7 +177,7 @@ function buildNode(n) {
   const spec = toolOf(n);
   const res = nodeResult(n.id);
   const status = statusOf(n);
-  const inputs = (spec?.inputs || []).map((p, index) => ({ ...p, index }));
+  const inputs = visibleInputs(n).map((p, index) => ({ ...p, index }));
   const outputs = (spec?.outputs || []).map((p, index) => ({ ...p, index }));
   const cp = held.get(n.id);
   const annotation = status === 'error' ? 'Erro — veja a configuração'
@@ -217,7 +217,7 @@ function buildNode(n) {
 
 function nodeKey(n) {
   const res = nodeResult(n.id);
-  return JSON.stringify([n.type, n.label, n.disabled, n.cache_point, statusOf(n), res?.annotation, res?.error,
+  return JSON.stringify([n.type, n.label, n.disabled, n.cache_point, statusOf(n), res?.annotation, res?.error, visibleInputs(n).map((p) => p.id),
     res?.extra?.frozen_at, isSelected(n.id), !store.inspect.via && store.inspect.nodeId === n.id && store.inspect.anchor,
     held.get(n.id)?.id, held.get(n.id) && store.selection.nodeId === held.get(n.id).id,
     store.inspect.via?.nodeId === n.id && store.inspect.via.port]);

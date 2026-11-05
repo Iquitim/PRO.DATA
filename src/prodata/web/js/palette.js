@@ -9,7 +9,7 @@ import { store } from './store.js';
 const collapsed = new Set(storage('prodata.palette.collapsed', []));
 
 function signature(tool) {
-  const ins = tool.inputs.map((p) => p.label).join('·');
+  const ins = tool.inputs.filter((p) => !p.when).map((p) => p.label).join('·');
   const outs = tool.outputs.map((p) => p.label).join('·');
   return ins ? `${ins} → ${outs}` : `→ ${outs}`;
 }

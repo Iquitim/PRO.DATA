@@ -91,7 +91,7 @@
   transition: opacity .12s, transform .12s, color .12s, background .12s;
 }
 .node:hover .node-delete, .node.selected .node-delete, .node-delete:focus-visible { opacity: 1; transform: none; }
-.node-delete:hover { color: #fff; background: var(--err); border-color: var(--err); }
+.node-delete:hover { color: var(--surface); background: var(--err); border-color: var(--err); }
 
 /* portas */
 .port {

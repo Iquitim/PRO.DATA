@@ -88,8 +88,8 @@ body[data-view="sql"] .sql-view { display: grid; }
 .sql-rows { font: 500 11px var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums; }
 .sql-tag { padding: 0 5px; border-radius: 999px; font: 600 10px var(--font); white-space: nowrap; background: var(--surface-3); color: var(--text-2); }
 .sql-tag.shared { background: var(--accent-weak); color: var(--accent); }
-.sql-tag.nosql { background: var(--err); color: #fff; }
-.sql-tag.problem { background: var(--warn); color: #fff; }
+.sql-tag.nosql { background: var(--err); color: var(--surface); }
+.sql-tag.problem { background: var(--warn); color: var(--surface); }
 .sql-tag.differs { background: var(--err-weak); color: var(--err); }
 .sql-tag.note { background: var(--warn-weak); color: var(--warn); }
 .sql-row.differs .sql-card { border-color: var(--err); }
@@ -133,7 +133,7 @@ body[data-view="sql"] .sql-view { display: grid; }
 .sql-t-i { color: var(--fx-col); }
 .sql-t-c { color: var(--text-3); font-style: italic; }
 .sql-mark { background: color-mix(in srgb, var(--warn) 30%, transparent); color: inherit; border-radius: 2px; }
-.sql-mark.now { background: var(--warn); color: #fff; }
+.sql-mark.now { background: var(--warn); color: var(--surface); }
 
 /* ------------------------------------------------------------------ fluxo completo */
 .sql-map {

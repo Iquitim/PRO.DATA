@@ -6,6 +6,7 @@ import {
 } from './actions.js';
 import { api } from './api.js';
 import { cacheActions, heldBy, NODE_W, nodeHeight, selectionActions } from './canvas.js';
+import { openApiEditor, placeholdersOf } from './apis.js';
 import { connectionTables, openConnectionDialog, openQueryEditor, refreshQueries, slug } from './connections.js';
 import { chooseFolder, isDesktop, reveal } from './desktop.js';
 import { button, debounce, fmt, h } from './dom.js';
@@ -14,7 +15,7 @@ import { renderFields } from './fields.js';
 import { formatOf, openPreview } from './datasets.js';
 import { icon } from './icons.js';
 import {
-  mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
+  API_PREFIX, apiOf, mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
 } from './store.js';
 import { showMenu, toast, toastError } from './ui.js';
 
@@ -226,6 +227,12 @@ function nodeContext(n) {
   const res = nodeResult(n.id);
   const ctx = {
     columns: (port) => upstreamColumns(n.id, port || null),
+    extraInputs: () => (toolOf(n)?.inputs || []).filter((p) => p.when).flatMap((p) => {
+      const edge = store.workflow.edges.find((e) => e.target === n.id && e.targetHandle === p.id);
+      if (!edge) return [];
+      const from = node(edge.source);
+      return [{ id: p.id, source: from?.label || toolOf(from)?.name || edge.source, fallback: p.title }];
+    }),
     values: (column, port, search) => upstreamValues(n.id, column, port || null, search || ''),
     datasets: store.datasets,
     errorField: res?.status === 'error' ? res.error_field?.split('.')[0] : null,
@@ -233,19 +240,36 @@ function nodeContext(n) {
   if (n.type === 'io.input_data') Object.assign(ctx, sourceContext(n, spec));
   if (n.type === 'io.output_data') ctx.chooseFolder = chooseFolder;
   if (n.type === 'io.database_input') Object.assign(ctx, databaseContext(n));
+  if (n.type === 'io.api_loop') {
+    Object.assign(ctx, {
+      apis: store.apis,
+      needsLoop: (a) => placeholdersOf(a).length > 0,
+      columnsWanted: placeholdersOf,
+      onEditApi: (a) => openApiEditor({ source: a, onSaved: () => {} }),
+      onNewApi: () => openApiEditor({ onSaved: (saved) => updateConfig(n.id, ['source'], saved.id) }),
+    });
+  }
   return ctx;
 }
 
 /** Input Data: arquivos e consultas da aba Dados no mesmo seletor (spec 009). */
 function sourceContext(n, spec) {
   const cfg = n.config;
-  const isQuery = Boolean(cfg.dataset?.startsWith(QUERY_PREFIX));
+  const isApi = Boolean(cfg.dataset?.startsWith(API_PREFIX));
+  const isQuery = isApi || Boolean(cfg.dataset?.startsWith(QUERY_PREFIX));
   const ctx = {
     queries: store.queries,
+    apis: store.apis,
+    needsLoop: (a) => placeholdersOf(a).length > 0,
     isQuery,
     fileOptions: !isQuery,
     onNewQuery: () => openQueryEditor({ onSaved: (saved) => setSource(n, `${QUERY_PREFIX}${saved.id}`) }),
   };
+  if (isApi) {
+    const a = apiOf(cfg.dataset);
+    ctx.onPreview = () => a && openApiEditor({ source: a, onSaved: () => {} });
+    return ctx;
+  }
   if (isQuery) {
     const q = queryOf(cfg.dataset);
     ctx.onPreview = () => q && openQueryEditor({ query: q, onSaved: () => {} });

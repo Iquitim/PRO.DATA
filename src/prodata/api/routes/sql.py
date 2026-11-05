@@ -36,7 +36,11 @@ class DownloadRequest(GenerateRequest):
 
 def _env(services: Services, workflow: Workflow) -> Env:
     return Env(
-        services.cache, services.datasets, services.queries, lambda n: services.runner.is_fresh(workflow, n)
+        services.cache,
+        services.datasets,
+        services.queries,
+        lambda n: services.runner.is_fresh(workflow, n),
+        services.apis,
     )
 
 

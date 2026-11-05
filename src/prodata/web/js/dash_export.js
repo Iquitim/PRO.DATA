@@ -1,11 +1,11 @@
 // Imagem PNG do dashboard ou de um visual (spec 014, RF-1450..RF-1452), sem biblioteca externa:
 // o HTML vira um SVG com <foreignObject>, com o CSS e as fontes embutidos, desenhado num <canvas> 2×.
 
-import { savePng } from './desktop.js';
+import { saveDownload, savePng } from './desktop.js';
 
 const inlined = new Map(); // url → data URI (fontes e imagens do CSS)
 
-async function toDataUri(url) {
+export async function toDataUri(url) {
   if (!inlined.has(url)) {
     inlined.set(url, fetch(url).then((r) => (r.ok ? r.blob() : null)).then((blob) => (blob ? new Promise((resolve) => {
       const reader = new FileReader();
@@ -17,7 +17,7 @@ async function toDataUri(url) {
 }
 
 /** CSS da página com url(...) trocadas por data URI: dentro de uma imagem SVG o navegador não busca nada. */
-async function collectCss() {
+export async function collectCss() {
   const parts = [];
   for (const sheet of document.styleSheets) {
     let rules;
@@ -92,4 +92,4 @@ export const stamp = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}h${p(d.getMinutes())}`;
 };
 
-export { savePng };
+export { saveDownload, savePng };

@@ -11,9 +11,11 @@ from typing import Any, Literal
 
 import duckdb
 import polars as pl
+import xlsxwriter
 from pydantic import BaseModel, Field
 
 from prodata.connectors import sql
+from prodata.connectors.api import read_api, run_loop, source_api_id
 from prodata.connectors.queries import read_definition, source_query_id
 from prodata.engine.sql.fragment import (
     OWN_RESULT,
@@ -41,7 +43,7 @@ class InputDataConfig(ReadOptions, ToolConfig):
     dataset: str = Field(
         "",
         title="Fonte",
-        description="Arquivo ou consulta de banco cadastrados na aba Dados.",
+        description="Arquivo, consulta de banco ou API cadastrados na aba Dados.",
         json_schema_extra=ui(widget="dataset"),
     )
     limit: int = Field(0, ge=0, title="Limite de linhas", description="0 = todas as linhas.")
@@ -50,6 +52,13 @@ class InputDataConfig(ReadOptions, ToolConfig):
 def _source_signature(ctx: NodeContext, cfg: InputDataConfig) -> str:
     if not cfg.dataset:
         return ""
+    api_id = source_api_id(cfg.dataset)
+    if api_id is not None:
+        if ctx.apis is None:
+            return ""
+        api = ctx.apis.get(api_id)
+        # Sem reaproveitar, cada execução chama de novo: a resposta pode ter mudado.
+        return f"a{api.digest()}" + ("" if api.cache_results else f"t{time.time_ns()}")
     query_id = source_query_id(cfg.dataset)
     if query_id is None:
         return ctx.datasets.signature(cfg.dataset)
@@ -63,7 +72,17 @@ def _source_signature(ctx: NodeContext, cfg: InputDataConfig) -> str:
 def _source_annotation(cfg: InputDataConfig) -> str:
     if not cfg.dataset:
         return "Escolha uma fonte"
+    if source_api_id(cfg.dataset):
+        return "API"
     return "Consulta de banco" if source_query_id(cfg.dataset) else cfg.dataset
+
+
+def _source_on_request(ctx: NodeContext, cfg: InputDataConfig) -> str | None:
+    """Um POST pode gravar do outro lado: não roda só porque o fluxo foi aberto."""
+    api_id = source_api_id(cfg.dataset)
+    if api_id is None or ctx.apis is None or ctx.apis.get(api_id).method == "GET":
+        return None
+    return "Esta caixa faz um POST na API. Clique em Executar para chamar."
 
 
 @tool(
@@ -71,16 +90,29 @@ def _source_annotation(cfg: InputDataConfig) -> str:
     name="Input Data",
     category="inout",
     icon="database",
-    description="Lê qualquer fonte da aba Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow) ou consultas de banco.",
+    description="Lê qualquer fonte da aba Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), consultas de banco ou APIs.",
     config=InputDataConfig,
     inputs=[],
     outputs=[Port("out", "O", "Dados")],
     annotate=_source_annotation,
     fingerprint=_source_signature,
+    only_on_request=_source_on_request,
 )
 def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
     if not cfg.dataset:
         raise ValueError("Escolha uma fonte no campo 'Fonte'.")
+    api_id = source_api_id(cfg.dataset)
+    if api_id is not None:
+        if ctx.apis is None:
+            raise ValueError("APIs não estão disponíveis neste ambiente.")
+        api = ctx.apis.get(api_id)
+        frame, result = read_api(api, ctx.apis.secret_reader(api.id))
+        extra: dict[str, Any] = {"source": api.name, "source_read_at": _now(), "api_pages": result.pages}
+        if result.truncated:
+            extra["warnings"] = [
+                f"Parou no limite de {result.pages} páginas e ainda havia mais: aumente o limite na aba Dados."
+            ]
+        return NodeOutput(tables={"out": frame.head(cfg.limit) if cfg.limit else frame}, extra=extra)
     query_id = source_query_id(cfg.dataset)
     if query_id is not None:
         if ctx.queries is None or ctx.connections is None:
@@ -103,6 +135,99 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
 
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+# ------------------------------------------------------------------ API Loop
+
+
+class ApiLoopConfig(ToolConfig):
+    source: str = Field(
+        "",
+        title="API",
+        description="Cadastrada na aba Dados, com {coluna} no endereço, nos parâmetros ou no corpo.",
+        json_schema_extra=ui(widget="api_source"),
+    )
+    keep_columns: bool = Field(
+        True,
+        title="Manter as colunas da tabela de entrada",
+        description="Cada linha de resposta sai ao lado da linha que a pediu.",
+    )
+    concurrency: int = Field(4, ge=1, le=16, title="Chamadas ao mesmo tempo")
+    calls_per_second: float = Field(
+        5,
+        ge=0,
+        le=1000,
+        title="Chamadas por segundo",
+        description="Respeita o limite da API. 0 = sem limite.",
+    )
+    max_calls: int = Field(
+        1000,
+        ge=1,
+        le=1_000_000,
+        title="Limite de chamadas",
+        description="Acima disso, nada é chamado: protege a cota da API de uma tabela maior do que o esperado.",
+    )
+    on_error: Literal["continue", "stop"] = Field(
+        "continue",
+        title="Se uma chamada falhar",
+        json_schema_extra=ui(
+            labels={"continue": "Seguir e listar na saída E", "stop": "Parar a caixa com erro"}
+        ),
+    )
+    reuse: bool = Field(
+        False,
+        title="Reaproveitar resultado entre execuções",
+        description="Só chama de novo se a tabela de entrada ou a API mudarem.",
+    )
+
+
+def _loop_signature(ctx: NodeContext, cfg: ApiLoopConfig) -> str:
+    if not cfg.source or ctx.apis is None:
+        return ""
+    return ctx.apis.get(cfg.source).digest() + ("" if cfg.reuse else f"t{time.time_ns()}")
+
+
+def _loop_on_request(_ctx: NodeContext, _cfg: ApiLoopConfig) -> str | None:
+    return "Esta caixa faz uma chamada por linha na API. Clique em Executar para chamar."
+
+
+@tool(
+    type="io.api_loop",
+    name="API Loop",
+    category="inout",
+    icon="repeat",
+    description="Chama uma API para cada linha da tabela e junta as respostas numa tabela só. A tabela pode vir de outra API.",
+    config=ApiLoopConfig,
+    outputs=[Port("out", "R", "Respostas"), Port("errors", "E", "Chamadas com erro")],
+    fingerprint=_loop_signature,
+    only_on_request=_loop_on_request,
+)
+def api_loop(ctx: NodeContext, cfg: ApiLoopConfig) -> NodeOutput:
+    if not cfg.source:
+        raise ValueError("Escolha uma API no campo 'API'.")
+    if ctx.apis is None:
+        raise ValueError("APIs não estão disponíveis neste ambiente.")
+    api = ctx.apis.get(cfg.source)
+    result = run_loop(
+        ctx.input(),
+        api,
+        ctx.apis.secret_reader(api.id),
+        concurrency=cfg.concurrency,
+        per_second=cfg.calls_per_second,
+        max_calls=cfg.max_calls,
+        stop_on_error=cfg.on_error == "stop",
+        keep_columns=cfg.keep_columns,
+        progress=lambda done, total: ctx.report(f"{done}/{total} chamadas"),
+    )
+    warnings = []
+    if result.failed:
+        warnings.append(f"{result.failed} de {result.calls} chamadas falharam: veja a saída E.")
+    if result.truncated:
+        warnings.append(f"{result.truncated} chamadas pararam no limite de páginas da API.")
+    extra: dict[str, Any] = {"api_calls": result.calls, "api_failed": result.failed}
+    if warnings:
+        extra["warnings"] = warnings
+    return NodeOutput(tables={"out": result.table, "errors": result.errors}, extra=extra)
 
 
 # ------------------------------------------------------------------ Text Input
@@ -215,6 +340,13 @@ class OutputDataConfig(ToolConfig):
         title="Nome da planilha",
         json_schema_extra=ui(show_if={"format": ["excel"]}),
     )
+    # Nome da planilha de cada entrada extra (spec 021). A entrada principal usa ``sheet_name``.
+    sheet_names: dict[str, str] = Field(
+        default_factory=dict,
+        title="Planilhas das outras entradas",
+        description="No Excel, ligue mais tabelas nesta caixa: cada uma vira uma planilha do mesmo arquivo.",
+        json_schema_extra=ui(widget="sheet_ports", show_if={"format": ["excel"]}),
+    )
     if_exists: Literal["ask", "replace", "new_file", "add_sheet"] = Field(
         "ask",
         title="Se o arquivo já existir",
@@ -231,6 +363,7 @@ class OutputDataConfig(ToolConfig):
 
 
 _BAD_SHEET_CHARS = set("[]:*?/\\")
+MAX_SHEETS = 8
 
 
 def sheet_title(raw: str) -> str:
@@ -273,6 +406,36 @@ def write_excel_sheet(df: pl.DataFrame, path: Path, sheet: str, add: bool) -> No
     os.replace(tmp, path)
 
 
+def _sheet_list(
+    df: pl.DataFrame, extras: dict[str, pl.DataFrame], cfg: OutputDataConfig
+) -> list[tuple[str, pl.DataFrame]]:
+    """Planilhas do arquivo, na ordem das entradas. Nomes são conferidos antes de gravar qualquer coisa."""
+    ordered = sorted(extras, key=lambda p: int(p[2:]))
+    sheets = [(sheet_title(cfg.sheet_name), df)]
+    sheets += [(sheet_title(cfg.sheet_names.get(p) or f"Planilha {p[2:]}"), extras[p]) for p in ordered]
+    seen: set[str] = set()
+    for name, _ in sheets:
+        if name.casefold() in seen:  # o Excel não diferencia maiúsculas
+            raise InvalidInputError(
+                f'Duas planilhas com o nome "{name}": cada entrada precisa de um nome próprio.'
+            )
+        seen.add(name.casefold())
+    return sheets
+
+
+def write_excel_book(sheets: list[tuple[str, pl.DataFrame]], path: Path, add: bool) -> None:
+    """Grava as planilhas. Sem ``add``, a pasta de trabalho é criada de uma vez, num arquivo temporário."""
+    if add or len(sheets) == 1:
+        for i, (name, table) in enumerate(sheets):
+            write_excel_sheet(table, path, name, add or i > 0)
+        return
+    tmp = path.with_name(path.name + ".tmp.xlsx")
+    with xlsxwriter.Workbook(tmp) as book:
+        for name, table in sheets:
+            table.write_excel(book, worksheet=name, autofit=True)
+    os.replace(tmp, path)
+
+
 def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
     stem = Path(sanitize_filename(cfg.filename or "resultado")).stem
     name = stem + _EXTENSIONS[cfg.format]
@@ -305,6 +468,13 @@ def new_file_path(path: Path) -> Path:
     icon="download",
     description="Grava o resultado em Parquet, CSV, Excel, JSON ou Arrow, na pasta padrão ou numa pasta escolhida.",
     config=OutputDataConfig,
+    inputs=[
+        Port("in", "I", "Entrada"),
+        *[
+            Port(f"in{i}", str(i), f"Planilha {i}", required=False, when={"format": ["excel"]})
+            for i in range(2, MAX_SHEETS + 1)
+        ],
+    ],
     annotate=lambda c: (
         f"{c.filename}{_EXTENSIONS[c.format]}" + (f" · {c.sheet_name}" if c.format == "excel" else "")
     ),
@@ -312,6 +482,10 @@ def new_file_path(path: Path) -> Path:
 )
 def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
     df = ctx.input()
+    extras = {p: t for p, t in ctx.inputs.items() if p != "in"}
+    if extras and cfg.format != "excel":
+        raise InvalidInputError("Só o formato Excel recebe várias tabelas: cada uma vira uma planilha.")
+    sheets = _sheet_list(df, extras, cfg) if cfg.format == "excel" else []
     if cfg.if_exists == "add_sheet" and cfg.format != "excel":
         raise InvalidInputError(
             '"Adicionar planilha" só vale para Excel. Escolha outra opção em "Se o arquivo já existir".'
@@ -330,14 +504,16 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
         case "csv":
             df.write_csv(path, separator=";")
         case "excel":
-            write_excel_sheet(df, path, sheet_title(cfg.sheet_name), cfg.if_exists == "add_sheet")
+            write_excel_book(sheets, path, cfg.if_exists == "add_sheet")
         case "json":
             df.write_json(path)
         case "arrow":
             df.write_ipc(path, compression="zstd")
         case _:
             df.write_parquet(path)
-    extra = {"exported_file": path.name, "export_action": action}
+    extra: dict[str, Any] = {"exported_file": path.name, "export_action": action}
+    if len(sheets) > 1:
+        extra["exported_sheets"] = [name for name, _ in sheets]
     if cfg.folder.strip():
         extra["exported_path"] = str(path)
     return NodeOutput(tables={"out": df}, extra=extra)
@@ -507,6 +683,10 @@ def _csv_extras(name: str, path: Path, opts: ReadOptions, schema: pl.Schema) -> 
 def input_data_sql(ctx: SqlContext, cfg: InputDataConfig) -> dict[str, Fragment]:
     if not cfg.dataset:
         raise ValueError("Escolha uma fonte no campo 'Fonte'.")
+    api_id = source_api_id(cfg.dataset)
+    if api_id is not None:
+        assert ctx.apis is not None
+        return {"out": _database_source(ctx, ctx.apis.get(api_id).name, cfg.limit, "da API", "de uma API")}
     query_id = source_query_id(cfg.dataset)
     if query_id is not None:
         assert ctx.queries is not None
@@ -540,16 +720,18 @@ def input_data_sql(ctx: SqlContext, cfg: InputDataConfig) -> dict[str, Fragment]
     return {"out": Fragment(sql, f"Lê {cfg.dataset}", notes, source=SourceInfo(cfg.dataset, path, schema))}
 
 
-def _database_source(ctx: SqlContext, name: str, limit: int) -> Fragment:
+def _database_source(
+    ctx: SqlContext, name: str, limit: int, reading: str = "do banco", origin: str = "do banco de origem"
+) -> Fragment:
     """Fonte de banco: o SQL original é do banco, não do DuckDB, então a etapa aponta para uma tabela."""
     table = slug(name)
     cached = ctx.sample(OWN_RESULT)
     if cached is None:
-        raise ValueError("Execute o fluxo para ler as colunas desta fonte de banco.")
+        raise ValueError(f"Execute o fluxo para ler as colunas desta fonte {reading}.")
     sql = f"SELECT * FROM {q(table)}" + (f"\nLIMIT {limit}" if limit else "")
-    note = f'A fonte "{name}" é do banco de origem: crie a tabela {table} com ela, ou troque pelo nome da tabela no destino.'
+    note = f'A fonte "{name}" é {origin}: crie a tabela {table} com ela, ou troque pelo nome da tabela no destino.'
     return Fragment(
-        sql, f"Lê {name}, do banco", [note], source=SourceInfo(table, None, cached.schema, file_check=False)
+        sql, f"Lê {name}, {reading}", [note], source=SourceInfo(table, None, cached.schema, file_check=False)
     )
 
 
@@ -598,4 +780,13 @@ def browse_sql(ctx: SqlContext, cfg: BrowseConfig) -> dict[str, Fragment]:
 @sql_for("io.output_data")
 def output_data_sql(ctx: SqlContext, cfg: OutputDataConfig) -> dict[str, Fragment]:
     file = f"{cfg.filename}{_EXTENSIONS[cfg.format]}"
-    return {"out": Fragment(f"SELECT * FROM {q(ctx.input().block)}", f"Grava {file}", export_file=file)}
+    extras = sorted((p for p in ctx.inputs if p != "in"), key=lambda p: int(p[2:]))
+    notes = []
+    if extras:
+        names = ", ".join(ctx.inputs[p].block for p in extras)
+        notes.append(
+            f"O arquivo tem {len(extras) + 1} planilhas: este código é o da primeira. As demais vêm de {names}."
+        )
+    sql = f"SELECT * FROM {q(ctx.input().block)}"
+    explain = f"Grava {file}" + (f", com {len(extras) + 1} planilhas" if extras else "")
+    return {"out": Fragment(sql, explain, notes, export_file=file)}

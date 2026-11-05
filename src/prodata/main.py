@@ -21,6 +21,7 @@ from prodata.api.errors import install_error_handlers
 from prodata.api.routes import routers
 from prodata.config import Settings
 from prodata.connectors import ConnectionStore, KeyringSecretStore, MemorySecretStore, SecretStore
+from prodata.connectors.api import ApiStore
 from prodata.connectors.queries import QueryStore
 from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
@@ -45,6 +46,7 @@ def build_services(settings: Settings) -> Services:
     )
     connections = ConnectionStore(settings.connections_file, secrets)
     queries = QueryStore(settings.queries_file)
+    apis = ApiStore(settings.apis_file, secrets)
     if settings.seed_samples:
         ensure_sample_datasets(settings.datasets_dir)
         if not workflows.exists(DEMO_WORKFLOW_ID) or _uses_removed_tools(workflows.get(DEMO_WORKFLOW_ID)):
@@ -53,10 +55,11 @@ def build_services(settings: Settings) -> Services:
         settings=settings,
         datasets=datasets,
         cache=cache,
-        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries),
+        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries, apis),
         workflows=workflows,
         connections=connections,
         queries=queries,
+        apis=apis,
     )
 
 

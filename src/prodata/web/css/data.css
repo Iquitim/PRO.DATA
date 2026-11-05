@@ -127,7 +127,7 @@
 /* filtros exploratórios (spec 007) */
 .btn .count {
   min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
-  background: var(--accent); color: #fff; font-size: 10.5px; line-height: 16px; text-align: center;
+  background: var(--accent); color: var(--accent-text); font-size: 10.5px; line-height: 16px; text-align: center;
 }
 .btn.active { color: var(--accent); }
 .filter-bar { flex-wrap: wrap; gap: 6px; padding-top: 2px; padding-bottom: 8px; background: var(--surface-2); border-top: 1px solid var(--border); }
@@ -179,9 +179,12 @@
 
 /* Espaços em branco visíveis (spec 018) */
 .data-table td.blank { color: var(--text-3); font-style: italic; background: color-mix(in srgb, var(--status-warning, #fab219) 10%, transparent); }
-.data-table td.padded .ws { color: #a8760c; font-weight: 700; margin: 0 1px; }
+.data-table td.padded .ws { color: var(--warn); font-weight: 700; margin: 0 1px; }
 .th-spaces {
   display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; padding: 0 5px; border-radius: 999px;
-  font: 600 10px var(--font); color: #8a5f00; background: color-mix(in srgb, var(--status-warning, #fab219) 22%, transparent);
+  font: 600 10px var(--font); color: var(--warn); background: color-mix(in srgb, var(--status-warning, #fab219) 22%, transparent);
   white-space: nowrap; vertical-align: middle;
 }
+
+/* Soma ou contagem da coluna no cabeçalho (spec 021) */
+.th-total { margin: 1px 0 2px; font: 500 10.5px var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -15,6 +15,7 @@ from typing import Any
 import polars as pl
 from pydantic import ValidationError
 
+from prodata.connectors.api import ApiStore, source_api_id
 from prodata.connectors.queries import QueryStore, source_query_id
 from prodata.connectors.store import ConnectionStore
 from prodata.domain.execution import (
@@ -91,12 +92,14 @@ class WorkflowRunner:
         exports_dir: Path,
         connections: ConnectionStore | None = None,
         queries: QueryStore | None = None,
+        apis: ApiStore | None = None,
     ) -> None:
         self.cache = cache
         self.datasets = datasets
         self.exports_dir = exports_dir
         self.connections = connections
         self.queries = queries
+        self.apis = apis
         self._lock = threading.Lock()
         # Andamento das execuções em curso, por fluxo (spec 018): a interface consulta para iluminar a caixa da vez.
         self._progress: dict[str, dict[str, Any]] = {}
@@ -139,6 +142,7 @@ class WorkflowRunner:
         return {
             "running": current["running"],
             "done": dict(current["done"]),
+            "detail": current.get("detail"),
             "order": list(current["order"]),
             "active": True,
         }
@@ -165,6 +169,7 @@ class WorkflowRunner:
                 spec = REGISTRY.get(node.type)
                 waiting = self._waiting_export(node) if hold_exports else None
                 progress["running"] = node_id
+                progress["detail"] = None
                 if node_id not in needed:
                     result = self._held_result(workflow, node, spec)
                 elif waiting:
@@ -177,7 +182,9 @@ class WorkflowRunner:
                 elif node_id in frozen:
                     result = self._frozen_result(workflow, node, spec, frozen[node_id], fingerprints)
                 else:
-                    result = self._run_node(workflow, node, spec, results, fingerprints)
+                    result = self._run_node(
+                        workflow, node, spec, results, fingerprints, hold_exports, progress
+                    )
                     if node_id in signatures and result.status in ("executed", "cached"):
                         entry = self.cache.get(workflow.id, node_id)
                         if entry is not None:
@@ -264,7 +271,8 @@ class WorkflowRunner:
         for upstream in sorted(graph.ancestors(workflow, node_id)):
             node = workflow.node(upstream)
             dataset = str(node.config.get("dataset") or "")
-            if node.type != "io.input_data" or not dataset or source_query_id(dataset) is not None:
+            external = source_query_id(dataset) is not None or source_api_id(dataset) is not None
+            if node.type != "io.input_data" or not dataset or external:
                 continue
             try:
                 parts.append(f"{dataset}={self.datasets.signature(dataset)}")
@@ -323,6 +331,8 @@ class WorkflowRunner:
         spec: ToolSpec | None,
         results: dict[str, NodeResult],
         fingerprints: dict[str, str],
+        hold: bool = False,
+        progress: dict[str, Any] | None = None,
     ) -> NodeResult:
         if spec is None:
             return NodeResult(status="error", error=f"Ferramenta desconhecida: {node.type}")
@@ -343,8 +353,16 @@ class WorkflowRunner:
             return NodeResult(status="skipped", error=skip.message, annotation=annotation)
 
         ctx = NodeContext(
-            inputs.tables, inputs.models, self.datasets, self.exports_dir, self.connections, self.queries
+            inputs.tables,
+            inputs.models,
+            self.datasets,
+            self.exports_dir,
+            self.connections,
+            self.queries,
+            self.apis,
         )
+        if progress is not None:
+            ctx.report = lambda text: progress.__setitem__("detail", text)
         started = time.perf_counter()
         try:
             fp = self._fingerprint(node, spec, cfg, ctx, inputs)
@@ -357,6 +375,13 @@ class WorkflowRunner:
                     anchors=_summarize(cached),
                     annotation=annotation,
                     extra=cached.extra,
+                )
+            if hold and spec.only_on_request and (reason := spec.only_on_request(ctx, cfg)):
+                return NodeResult(
+                    status="skipped",
+                    annotation="Clique em Executar",
+                    error=reason,
+                    extra={"api_waiting": True},
                 )
             output = spec.run(ctx, cfg)
         except (ProdataError, ValueError, KeyError, pl.exceptions.PolarsError) as exc:
