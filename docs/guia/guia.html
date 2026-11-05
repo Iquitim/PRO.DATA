@@ -127,7 +127,7 @@
     <div class="rule"></div>
     <p class="lead">Prepare, combine, analise e apresente seus dados em um fluxo visual — sem escrever código e sem os dados saírem do seu computador.</p>
     <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.5.5 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.5.6 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -234,7 +234,7 @@
   </div>
   <figure>
     <div class="frame"><img src="img/flow-crop.png" alt="Fluxo completo"></div>
-    <figcaption>Um fluxo completo, organizado em quatro etapas: ingestão e preparação, junção e indicadores, um modelo preditivo e os visuais de vendas.</figcaption>
+    <figcaption>Um fluxo completo, organizado em etapas: ingestão e preparação, junção e indicadores, um modelo preditivo e os visuais de vendas.</figcaption>
   </figure>
 </section>
 
@@ -267,16 +267,23 @@
   <div class="callout ok"><strong>Seguro por padrão</strong>As conexões são somente leitura: apenas consultas de leitura (<code>SELECT</code>/<code>WITH</code>) são aceitas, e comandos que alteram dados são recusados antes de chegar ao banco. Por padrão, cada execução consulta o banco de novo; a opção "Reaproveitar resultado" evita consultas repetidas quando os dados não mudam.</div>
 
   <h3>APIs</h3>
-  <p>Em <strong>Dados &gt; APIs</strong>, cadastre o endereço, o método (GET ou POST), parâmetros, cabeçalhos e autenticação: token, chave de API, usuário e senha ou OAuth 2. Com <strong>Testar</strong>, as colunas aparecem antes de salvar. A resposta pode ser JSON, CSV ou XML: campos aninhados viram colunas (<code>dono.nome</code>) e uma lista interna pode virar linhas.</p>
-  <p>Em <strong>Páginas</strong>, escolha como a API divide os dados: número de página, deslocamento, cursor ou link para a próxima. O PRO.DATA lê até acabar ou até o limite de páginas, e avisa se parou com dados faltando. Depois de salva, a API é mais uma fonte do <strong>Input Data</strong>.</p>
+  <p>Uma API responde a um endereço com dados, e o PRO.DATA transforma a resposta em tabela. Em <strong>Dados &gt; APIs &gt; Nova</strong>, comece de um dos <strong>exemplos prontos</strong> com APIs públicas ou digite o endereço: o quadro <strong>O que será enviado</strong> mostra o pedido sendo montado, com a credencial sempre oculta.</p>
   <figure>
-    <div class="frame"><img src="img/api-editor.png" alt="Cadastro de API com teste"></div>
-    <figcaption>O teste mostra as colunas antes de salvar. Tokens e senhas vão para o cofre do Windows.</figcaption>
+    <div class="frame"><img src="img/api-nova.png" alt="Nova API, com exemplos e explicação"></div>
+    <figcaption>Antes do primeiro teste, a tela explica o caminho do pedido até a tabela.</figcaption>
   </figure>
+  <p>Com <strong>Testar</strong>, a resposta real aparece ao lado da tabela que ela gerou. Passar o mouse num campo acende a coluna, e clicar em <strong>Usar como linhas</strong> numa lista da resposta escolhe de onde vêm as linhas, sem digitar caminho. Campos aninhados viram colunas (<code>dono.nome</code>), e uma lista interna pode virar linhas.</p>
+  <figure>
+    <div class="frame"><img src="img/api-editor.png" alt="Resposta da API ao lado da tabela"></div>
+    <figcaption>A resposta real do IBGE e a tabela que sai dela.</figcaption>
+  </figure>
+  <p>As abas <strong>Autenticação</strong> (token, chave de API, usuário e senha ou OAuth 2) e <strong>Páginas</strong> (número de página, deslocamento, cursor ou link) têm um esquema que usa os nomes configurados. O PRO.DATA lê até acabar ou até o limite de páginas, e avisa se parou com dados faltando. Depois de salva, a API é mais uma fonte do <strong>Input Data</strong>.</p>
+  <div class="callout tip"><strong>Veja funcionando no exemplo</strong>A etapa <em>5 · API pública do IBGE</em> do fluxo de demonstração lê os estados, busca os municípios de cada um, cruza com os clientes e faz um gráfico por região. Abrir o exemplo não chama a internet: ela espera o clique em <strong>Executar</strong>. Sem rede, só essa etapa dá erro. Qualquer API pode se comportar assim, com a opção <em>Só chamar quando eu clicar em Executar</em>.</div>
   <h3>Uma chamada por linha: API Loop</h3>
-  <p>Escreva <code>{coluna}</code> no endereço, nos parâmetros ou no corpo e use a ferramenta <strong>API Loop</strong>: ela chama a API uma vez para cada linha da tabela de entrada e junta as respostas numa tabela só. A entrada pode ser a saída de outra API, como uma lista de clientes alimentando o detalhe de cada um.</p>
+  <p>Escreva <code>{coluna}</code> no endereço, nos parâmetros ou no corpo e use a ferramenta <strong>API Loop</strong>: ela chama a API uma vez para cada linha da tabela de entrada e junta as respostas numa tabela só. A entrada pode ser a saída de outra API, como a lista de estados alimentando os municípios de cada um.</p>
   <div class="grid-2">
     <div>
+      <p>O esquema <strong>Como funciona</strong> mostra tudo com os seus dados: a entrada, cada chamada montada com o valor no lugar e a saída. Passar o mouse num valor destaca o caminho dele.</p>
       <ul>
         <li>A saída <strong>R</strong> traz as respostas ao lado da linha que as pediu; a <strong>E</strong>, as chamadas que falharam e o motivo.</li>
         <li>Valores iguais são chamados uma vez só.</li>
@@ -284,7 +291,7 @@
         <li>O API Loop e os POST não rodam ao abrir um fluxo: esperam o clique em <strong>Executar</strong>.</li>
       </ul>
     </div>
-    <figure style="margin:0"><div class="frame"><img src="img/api-loop.png" alt="Configuração do API Loop"></div><figcaption>O Configurar diz quais colunas a API usa.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="img/api-loop.png" alt="Esquema do API Loop"></div><figcaption>Da tabela de estados às chamadas e às respostas.</figcaption></figure>
   </div>
 </section>
 
@@ -623,8 +630,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.5-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.5-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.5.6-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.5.6-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>

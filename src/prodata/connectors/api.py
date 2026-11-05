@@ -149,6 +149,8 @@ class SavedApi(ApiDefinition):
     id: str = Field(pattern=ID_PATTERN)
     name: str = Field(min_length=1, max_length=120)
     cache_results: bool = False
+    # Não chama ao abrir um fluxo: espera o clique em Executar (spec 022).
+    hold_on_open: bool = False
 
     def digest(self) -> str:
         """Muda quando a definição muda; entra no fingerprint de quem lê a fonte."""
@@ -408,6 +410,36 @@ def _column(name: str, values: list[Any]) -> pl.Series:
     return pl.Series(name, [None if v is None else _as_str(v) for v in values], dtype=pl.String)
 
 
+SAMPLE_ITEMS = 3
+SAMPLE_FIELDS = 30
+SAMPLE_DEPTH = 6
+SAMPLE_TEXT = 80
+
+
+def sample_document(node: Any, path: str = "", depth: int = 0) -> dict[str, Any]:
+    """Amostra da resposta para a tela (RF-2225): poucos itens por lista, textos curtos, profundidade limitada."""
+    if isinstance(node, dict):
+        fields = list(node.items())
+        if depth >= SAMPLE_DEPTH:
+            return {"kind": "more", "text": f"{len(fields)} campos"}
+        shown = [
+            [str(k), sample_document(v, f"{path}.{k}" if path else str(k), depth + 1)]
+            for k, v in fields[:SAMPLE_FIELDS]
+        ]
+        return {"kind": "object", "fields": shown, "hidden": max(0, len(fields) - SAMPLE_FIELDS)}
+    if isinstance(node, list):
+        inner = f"{path}.*" if path else "*"
+        items = (
+            []
+            if depth >= SAMPLE_DEPTH
+            else [sample_document(v, inner, depth + 1) for v in node[:SAMPLE_ITEMS]]
+        )
+        return {"kind": "list", "path": path, "total": len(node), "items": items}
+    if isinstance(node, str) and len(node) > SAMPLE_TEXT:
+        return {"kind": "value", "value": node[:SAMPLE_TEXT] + "…", "path": path}
+    return {"kind": "value", "value": node, "path": path}
+
+
 def _as_str(value: Any) -> str:
     return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
 
@@ -427,6 +459,8 @@ class ApiResult:
     pages: int = 0
     # Parou no limite de páginas com mais dados para trazer.
     truncated: bool = False
+    # Documento JSON da primeira página: só o editor usa, para mostrar a resposta.
+    document: Any = None
 
 
 @dataclass
@@ -709,6 +743,8 @@ class ApiClient:
             records, document = parse_records(answer.body, answer.headers.get("content-type", ""), d)
             result.rows.extend(records)
             result.pages += 1
+            if result.pages == 1:
+                result.document = document
             following: str | None = None
             if pager.type == "none":
                 return result

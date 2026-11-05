@@ -762,7 +762,7 @@ details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
 .sheet-port { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
 
 /* Editor de API (spec 021) */
-.api-layout { display: grid; grid-template-columns: 540px minmax(0, 1fr); gap: 16px; min-height: 480px; }
+.preview-layout.api-layout { display: grid; grid-template-columns: 500px minmax(0, 1fr); gap: 16px; min-height: 480px; }
 .api-form { min-width: 0; overflow: hidden auto; max-height: 68vh; padding: 2px 8px 2px 16px; }
 .api-form .segmented { display: flex; flex-wrap: wrap; height: auto; }
 .api-form .field { min-width: 0; }
@@ -771,4 +771,66 @@ details.explainer[open] > summary .x-toggle { transform: rotate(90deg); }
 .api-secret { display: inline-flex; align-items: center; gap: 3px; color: var(--text-3); cursor: pointer; }
 .api-warn { display: flex; gap: 6px; align-items: flex-start; margin: 0; font-size: 12px; color: var(--warn); }
 .api-notices:empty { display: none; }
-@media (max-width: 900px) { .api-layout { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 900px) { .preview-layout.api-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* API didática (spec 022) */
+.api-main { display: flex; flex-direction: column; min-width: 0; max-height: 68vh; overflow-y: auto; }
+.api-main .preview-grid { flex: none; max-height: 240px; overflow: auto; }
+.api-main .preview-grid:empty { display: none; }
+.api-flow { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; }
+.api-flow .x-arrow { flex-direction: row; justify-content: center; gap: 4px; }
+.api-flow .x-arrow .icon { transform: rotate(90deg); }
+.api-intro { display: flex; flex-direction: column; gap: 6px; }
+.api-intro-lead { margin: 0 0 4px; font-size: 13px; color: var(--text); }
+.api-stage { min-width: 0; }
+.api-json { margin: 0; padding: 8px 10px; font: 12px/1.45 var(--mono); color: var(--text-2); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; white-space: pre-wrap; }
+.api-how { display: flex; gap: 6px; padding: 8px 10px; font-size: 12px; color: var(--text-2); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border-radius: 6px; }
+.api-how > .icon { flex: none; margin-top: 2px; color: var(--accent); }
+.api-how-body { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.api-how-body p { margin: 0; }
+.auth-code { display: block; padding: 4px 8px; font: 11.5px var(--mono); overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+.page-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.page-chip { padding: 2px 6px; font: 11px var(--mono); overflow-wrap: anywhere; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 4px; }
+.page-arrow { color: var(--text-3); }
+.api-request { padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; }
+.req { font: 12px/1.5 var(--mono); }
+.req-line { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+.req-method { flex: none; padding: 0 5px; font-size: 10.5px; font-weight: 700; color: var(--surface); background: var(--cat-inout); border-radius: 3px; }
+.req-url { min-width: 0; overflow-wrap: anywhere; }
+.req-host { color: var(--text-2); }
+.req-path { color: var(--cat-prep); }
+.req-param { color: var(--cat-transform); }
+.req-col { padding: 0 2px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--brand-gold, #b58a2a) 35%, var(--surface)); border-radius: 3px; }
+.req-headers { margin-top: 3px; padding-left: 8px; color: var(--text-2); border-left: 2px solid var(--border-strong); overflow-wrap: anywhere; }
+.req-key { color: var(--text-3); }
+.req-legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; font: 10.5px var(--font); }
+.api-examples { display: flex; flex-direction: column; }
+.api-example-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.api-example { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 6px 8px; font: inherit; text-align: left; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; }
+.api-example:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.api-example:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.api-example strong { font-size: 12px; }
+.api-example span { overflow: hidden; font-size: 11px; color: var(--text-3); text-overflow: ellipsis; white-space: nowrap; }
+.tree { padding: 6px 8px; font: 12px/1.5 var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; max-height: 300px; overflow: auto; }
+.tree-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; border-radius: 3px; }
+.tree-row.x-lit { background: color-mix(in srgb, var(--accent) 28%, var(--surface)); }
+.tree-kids { margin-left: 6px; padding-left: 8px; border-left: 1px solid var(--border-strong); }
+.tree-key { color: var(--cat-prep); }
+.tree-string { color: var(--fx-str); overflow-wrap: anywhere; }
+.tree-number { color: var(--fx-num); }
+.tree-boolean { color: var(--fx-kw); }
+.tree-null { color: var(--text-3); }
+.tree-badge { padding: 0 5px; font: 600 10.5px var(--font); color: var(--text-2); background: var(--surface-3); border-radius: 3px; }
+.tree-here { display: inline-flex; align-items: center; gap: 2px; font: 600 10.5px var(--font); color: var(--ok); }
+.tree-index { display: block; font: 10.5px var(--font); color: var(--text-3); }
+.tree-list.is-records > .tree-kids { border-left: 2px solid var(--ok); }
+
+/* Esquema do API Loop */
+.x-calls { display: flex; flex-direction: column; gap: 3px; }
+.x-call { display: flex; gap: 5px; align-items: baseline; padding: 3px 6px; font: 11px/1.4 var(--mono); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+.x-method { flex: none; font-weight: 700; color: var(--cat-inout); }
+.x-url { min-width: 0; color: var(--text-2); overflow-wrap: anywhere; }
+.x-value { padding: 0 2px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); border-radius: 3px; }
+.x-value.x-lit { background: color-mix(in srgb, var(--accent) 38%, var(--surface)); }
+.x-more { font-size: 11px; color: var(--text-3); }
+.x-loop-bar { margin-top: 6px; }

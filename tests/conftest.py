@@ -3,17 +3,53 @@ from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 from prodata.config import Settings
+from prodata.connectors import api as api_module
+from prodata.connectors.api import ApiStore
+from prodata.connectors.secrets import MemorySecretStore
 from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
 from prodata.main import create_app
+from prodata.samples.apis import seed_example_apis
 from prodata.samples.datasets import ensure_sample_datasets
 from prodata.samples.workflows import demo_workflow
+
+REGIOES = {"SP": "Sudeste", "RJ": "Sudeste", "MG": "Sudeste", "PR": "Sul", "BA": "Nordeste"}
+UFS = ["AC", "BA", "DF", "GO", "MG", "PE", "PR", "RJ", "RS", "SC", "SP"]
+
+
+def fake_ibge(request: httpx.Request) -> httpx.Response:
+    """Respostas no formato do IBGE: nenhum teste sai para a rede."""
+    if request.url.path.endswith("/estados"):
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "id": i,
+                    "sigla": uf,
+                    "nome": f"Estado {uf}",
+                    "regiao": {"id": 1, "nome": REGIOES.get(uf, "Outra")},
+                }
+                for i, uf in enumerate(UFS)
+            ],
+        )
+    if "/municipios" in request.url.path:
+        uf = request.url.path.split("/")[-2]
+        return httpx.Response(
+            200, json=[{"municipio-id": f"{uf}{i}", "municipio-nome": f"Cidade {i}"} for i in range(3)]
+        )
+    return httpx.Response(404)
+
+
+@pytest.fixture(autouse=True)
+def no_real_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(api_module, "_transport", httpx.MockTransport(fake_ibge))
 
 
 @pytest.fixture
@@ -44,7 +80,9 @@ def store(tmp_path: Path) -> DatasetStore:
 def runner(tmp_path: Path, store: DatasetStore) -> WorkflowRunner:
     exports = tmp_path / "exports"
     exports.mkdir()
-    return WorkflowRunner(ResultCache(tmp_path / "cache"), store, exports)
+    apis = ApiStore(tmp_path / "apis.json", MemorySecretStore())
+    seed_example_apis(apis)
+    return WorkflowRunner(ResultCache(tmp_path / "cache"), store, exports, apis=apis)
 
 
 @pytest.fixture

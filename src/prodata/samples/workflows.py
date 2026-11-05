@@ -8,10 +8,13 @@ from typing import Any
 
 from prodata.dashboard.layouts import LayoutItem, Rect, VisualHint, arrange
 from prodata.domain.dashboard import DashPage
+from prodata.samples.apis import ESTADOS_ID, MUNICIPIOS_ID
 
 DEMO_WORKFLOW_ID = "demo_pipeline_360"
 # Caixas criadas na v0.3 (spec 014): sem elas, a demonstração salva é de uma versão anterior.
 DEMO_V3_NODES = ("n_pareto", "n_venn")
+# Etapa da API pública (spec 022): quem já tem a demonstração salva a recebe sem perder o que alterou.
+API_FIRST_NODE = "n_api_estados"
 LOGO = Path(__file__).resolve().parents[1] / "web" / "brand" / "protege-escudo.svg"
 
 # Colunas do canvas para cartões de 188 px com 60 px de folga (spec 004, RF-403).
@@ -38,7 +41,92 @@ def _container(cid: str, title: str, color: str, x: int, y: int, width: int, hei
     return {"id": cid, "title": title, "color": color, "x": x, "y": y, "width": width, "height": height}
 
 
+def api_section() -> dict[str, list[dict[str, Any]]]:
+    """Etapa que consome uma API pública: não chama nada até o clique em Executar (RF-2213)."""
+    return {
+        "containers": [
+            {
+                **_container("c_api", "5 · API pública do IBGE", "#10b981", 20, 620, 2212, 170),
+                "description": "Chama a internet só ao clicar em Executar. Abra cada caixa para ver como funciona.",
+            }
+        ],
+        "nodes": [
+            _node("n_api_estados", "io.input_data", "Estados (IBGE)", 0, 690, dataset=f"api:{ESTADOS_ID}"),
+            _node(
+                "n_api_municipios",
+                "io.api_loop",
+                "Municípios por estado",
+                1,
+                690,
+                source=MUNICIPIOS_ID,
+                reuse=True,
+            ),
+            _node(
+                "n_api_contagem",
+                "transform.summarize",
+                "Conta municípios",
+                2,
+                690,
+                group_by=["sigla", "nome", "regiao.nome"],
+                aggregations=[{"column": "municipio-id", "agg": "count", "alias": "municipios"}],
+            ),
+            _node(
+                "n_api_join",
+                "transform.join",
+                "Clientes × IBGE",
+                5,
+                690,
+                keys=[{"left": "uf", "right": "sigla"}],
+            ),
+            _node(
+                "n_api_chart",
+                "bi.chart",
+                "MRR por região",
+                6,
+                690,
+                title="MRR por região do Brasil",
+                chart_type="bar",
+                x_column="regiao.nome",
+                y_column="mrr_mensal",
+                agg="sum",
+            ),
+        ],
+        "edges": [
+            _edge("e_api1", "n_api_estados", "out", "n_api_municipios"),
+            _edge("e_api2", "n_api_municipios", "out", "n_api_contagem"),
+            _edge("e_api3", "n_join", "J", "n_api_join", "L"),
+            _edge("e_api4", "n_api_contagem", "out", "n_api_join", "R"),
+            _edge("e_api5", "n_api_join", "J", "n_api_chart"),
+        ],
+    }
+
+
+def add_api_section(workflow: dict[str, Any]) -> bool:
+    """Acrescenta a etapa a uma demonstração salva, sem tocar no resto. Precisa da junção de clientes."""
+    ids = {n["id"] for n in workflow["nodes"]}
+    if API_FIRST_NODE in ids or "n_join" not in ids:
+        return False
+    section = api_section()
+    # Abaixo do que já existir, para não cobrir o que o usuário mudou de lugar.
+    bottom = max(
+        [n["y"] + 56 for n in workflow["nodes"]]
+        + [c["y"] + c["height"] for c in workflow.get("containers", [])]
+    )
+    shift = max(0, bottom + 20 - 620)
+    for box in section["containers"]:
+        box["y"] += shift
+    for node in section["nodes"]:
+        node["y"] += shift
+    workflow.setdefault("containers", []).extend(section["containers"])
+    workflow["nodes"].extend(section["nodes"])
+    workflow.setdefault("edges", []).extend(section["edges"])
+    if workflow.get("dashboard"):
+        workflow["dashboard"].setdefault("hidden", []).append("n_api_chart")
+    return True
+
+
 def demo_workflow() -> dict[str, Any]:
+    section = api_section()
     return {
         "id": DEMO_WORKFLOW_ID,
         "name": "Pipeline 360° de clientes",
@@ -48,6 +136,7 @@ def demo_workflow() -> dict[str, Any]:
             _container("c_bi", "2 · Junção, metas e indicadores", "#8b5cf6", 1010, 20, 1222, 420),
             _container("c_ml", "3 · Modelo de inadimplência", "#06b6d4", 1010, 460, 1222, 140),
             _container("c_vendas", "4 · Vendas no dashboard", "#f59e0b", 20, 300, 972, 300),
+            *section["containers"],
         ],
         "nodes": [
             _node("n_clientes", "io.input_data", "Clientes", 0, 70, dataset="clientes_enterprise.csv"),
@@ -266,6 +355,7 @@ def demo_workflow() -> dict[str, Any]:
                 filename="clientes_pontuados",
                 format="parquet",
             ),
+            *section["nodes"],
         ],
         "edges": [
             _edge("e1", "n_clientes", "out", "n_cleanse"),
@@ -289,6 +379,7 @@ def demo_workflow() -> dict[str, Any]:
             _edge("e19", "n_vendas", "out", "n_kpi_mes"),
             _edge("e20", "n_vendas", "out", "n_stacked"),
             _edge("e21", "n_vendas", "out", "n_venn"),
+            *section["edges"],
         ],
         "dashboard": demo_dashboard(),
     }
@@ -333,5 +424,6 @@ def demo_dashboard() -> dict[str, Any]:
                 for n, _ in visuals
             ),
         ],
-        "hidden": [],
+        # O gráfico da API fica fora da página: o dashboard do exemplo não depende de rede (RF-2216).
+        "hidden": ["n_api_chart"],
     }

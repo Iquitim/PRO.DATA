@@ -52,27 +52,39 @@
 }
 .container-box:hover .container-resize, .container-box.selected .container-resize { opacity: 1; }
 
-/* nós: cartão horizontal com ícone, nome e resumo da configuração */
+/* nós: cartão na cor da família, com faixa lateral, ícone cheio, nome e resumo da configuração */
 .node { position: absolute; user-select: none; }
 .node-card {
   position: absolute; inset: 0; display: flex; align-items: center; gap: 10px;
-  padding: 0 12px 0 10px; border-radius: var(--radius-lg);
-  background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-sm);
+  padding: 0 12px 0 14px; border-radius: var(--radius-lg);
+  background: linear-gradient(100deg, color-mix(in srgb, var(--cat) 10%, var(--surface)), var(--surface) 65%);
+  border: 1px solid color-mix(in srgb, var(--cat) 45%, var(--border-strong));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--cat) 18%, transparent), 0 4px 10px color-mix(in srgb, var(--cat) 12%, transparent), var(--shadow-sm);
   cursor: grab; transition: box-shadow 0.12s, border-color 0.12s;
 }
-.node:hover .node-card { border-color: var(--text-3); box-shadow: var(--shadow-md); }
+.node-card::before {
+  content: ""; position: absolute; top: -1px; bottom: -1px; left: -1px; width: 5px;
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg); background: var(--cat);
+}
+.node:hover .node-card {
+  border-color: var(--cat);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--cat) 22%, transparent), 0 8px 18px color-mix(in srgb, var(--cat) 22%, transparent), var(--shadow-md);
+}
 .node.selected .node-card { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak), var(--shadow-md); }
 .node.status-disabled .node-card { opacity: 0.45; border-style: dashed; }
 .node.status-skipped .node-card { opacity: 0.55; }
 .node.status-error .node-card { border-color: var(--err); }
+.node.status-error .node-card::before { background: var(--err); }
+.node.status-held .node-card::before { background: var(--brand-gold, #a9852f); }
 
 .node-icon {
   display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: var(--radius);
-  color: var(--cat); background: color-mix(in srgb, var(--cat) 13%, transparent);
+  color: var(--surface); background: var(--cat);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 1px 3px color-mix(in srgb, var(--cat) 40%, transparent);
 }
 .node-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
 .node-label { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.node-annot { font-size: 11.5px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-annot { font-size: 11.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node.status-error .node-annot { color: var(--err); }
 
 .node-status {
@@ -97,7 +109,7 @@
 .port {
   position: absolute; z-index: 2; width: 14px; height: 14px; margin-top: -7px;
   display: grid; place-items: center; border-radius: 4px;
-  background: var(--surface); border: 1.5px solid var(--border-strong);
+  background: var(--surface); border: 1.5px solid color-mix(in srgb, var(--cat, var(--border-strong)) 60%, var(--border-strong));
   font: 700 8.5px var(--mono); color: var(--text-2); cursor: crosshair;
   transition: transform 0.1s, background 0.1s, border-color 0.1s;
 }
@@ -105,9 +117,9 @@
 .port.out { right: -7px; }
 .port.model { border-style: dashed; }
 .port:hover { transform: scale(1.25); border-color: var(--accent); color: var(--accent); }
-.port.out.inspected, .port.in.inspected { background: var(--accent); border-color: var(--accent); color: #fff; }
-.port.can-drop { transform: scale(1.4); background: var(--ok); border-color: var(--ok); color: #fff; }
-.port.cannot-drop { background: var(--err); border-color: var(--err); color: #fff; }
+.port.out.inspected, .port.in.inspected { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.port.can-drop { transform: scale(1.4); background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.port.cannot-drop { background: var(--err); border-color: var(--err); color: var(--surface); }
 
 /* fios */
 .edge { pointer-events: auto; cursor: pointer; }
@@ -175,7 +187,7 @@
 /* ponto de cache: selo dourado no canto inferior esquerdo da caixa */
 .node-cache {
   position: absolute; z-index: 3; left: 8px; bottom: -9px; display: inline-flex; align-items: center; gap: 3px;
-  height: 17px; padding: 0 6px; border-radius: 999px; background: var(--brand-gold, #a9852f); color: #fff;
+  height: 17px; padding: 0 6px; border-radius: 999px; background: var(--brand-gold, #a9852f); color: var(--surface);
   font: 700 9.5px var(--font); letter-spacing: .04em; text-transform: uppercase; box-shadow: var(--shadow-sm);
 }
 .node.cache-point .node-card { box-shadow: inset 0 -2px 0 var(--brand-gold, #a9852f), var(--shadow-sm); }

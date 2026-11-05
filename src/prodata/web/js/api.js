@@ -81,6 +81,7 @@ export const api = {
   dashboardFilterOptions: (workflow) => request('POST', '/api/dashboard/filter-options', { workflow }),
   dashboardExportData: (workflow) => request('POST', '/api/dashboard/export-data', { workflow }),
   apis: () => request('GET', '/api/apis'),
+  apiExamples: () => request('GET', '/api/apis/examples'),
   saveApi: (body) => request('PUT', `/api/apis/${enc(body.source.id)}`, body),
   deleteApi: (id) => request('DELETE', `/api/apis/${enc(id)}`),
   previewApi: (body, rows = 100) => request('POST', `/api/apis/preview?rows=${rows}`, body),

@@ -80,9 +80,12 @@ def _source_annotation(cfg: InputDataConfig) -> str:
 def _source_on_request(ctx: NodeContext, cfg: InputDataConfig) -> str | None:
     """Um POST pode gravar do outro lado: não roda só porque o fluxo foi aberto."""
     api_id = source_api_id(cfg.dataset)
-    if api_id is None or ctx.apis is None or ctx.apis.get(api_id).method == "GET":
+    if api_id is None or ctx.apis is None:
         return None
-    return "Esta caixa faz um POST na API. Clique em Executar para chamar."
+    api = ctx.apis.get(api_id)
+    if api.method != "GET":
+        return "Esta caixa faz um POST na API. Clique em Executar para chamar."
+    return "Esta caixa só chama a API quando você clica em Executar." if api.hold_on_open else None
 
 
 @tool(
@@ -201,6 +204,7 @@ def _loop_on_request(_ctx: NodeContext, _cfg: ApiLoopConfig) -> str | None:
     outputs=[Port("out", "R", "Respostas"), Port("errors", "E", "Chamadas com erro")],
     fingerprint=_loop_signature,
     only_on_request=_loop_on_request,
+    explainer="api_loop",
 )
 def api_loop(ctx: NodeContext, cfg: ApiLoopConfig) -> NodeOutput:
     if not cfg.source:

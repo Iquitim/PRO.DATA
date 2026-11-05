@@ -7,11 +7,11 @@ import { DND_DATASET, viewportCenter } from './canvas.js';
 import { slug } from './connections.js';
 import { previewTable } from './datasets.js';
 import { button, fmt, h } from './dom.js';
+import { arrow, linkHover, mini } from './explainers.js';
 import { icon } from './icons.js';
-import { API_PREFIX, commit, emit, on, store } from './store.js';
+import { API_PREFIX, commit, emit, on, placeholdersOf, store } from './store.js';
 import { confirmDialog, openDialog, toast, toastError } from './ui.js';
 
-const PLACEHOLDER = /\{([^{}"':\r\n]+)\}/g;
 const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i;
 
 export async function refreshApis() {
@@ -24,19 +24,161 @@ const blank = () => ({
   auth: { type: 'none', key_name: 'X-API-Key', key_in: 'header', username: '', token_url: '', client_id: '', scope: '' },
   format: 'auto', records_path: '', explode_path: '', flatten: true,
   pagination: { type: 'none', page_param: 'page', start_page: 1, size_param: '', page_size: 100, offset_param: 'offset', limit_param: 'limit', cursor_param: 'cursor', cursor_path: 'next_cursor', next_path: '', max_pages: 100 },
-  timeout_s: 30, max_mb: 200, retries: 3, cache_results: false,
+  timeout_s: 30, max_mb: 200, retries: 3, cache_results: false, hold_on_open: false,
 });
 
-export function placeholdersOf(d) {
-  const texts = [d.url, d.method === 'POST' ? d.body : '',
-    ...[...d.params, ...d.headers].filter((p) => !p.secret).map((p) => p.value)];
-  return [...new Set(texts.flatMap((t) => [...(t || '').matchAll(PLACEHOLDER)].map((m) => m[1])))];
-}
+export { placeholdersOf };
 
 export function addApiNode(saved) {
   const c = viewportCenter();
   if (placeholdersOf(saved).length) addNode('io.api_loop', c.x - 94, c.y - 28, { source: saved.id, __label: saved.name });
   else addNode('io.input_data', c.x - 94, c.y - 28, { dataset: `${API_PREFIX}${saved.id}`, __label: saved.name });
+}
+
+// ------------------------------------------------------------------ esquemas (spec 022)
+
+/** Quadro "Como funciona" dentro de uma aba do editor. */
+function how(...children) {
+  return h('div', { class: 'api-how' }, icon('info', 13), h('div', { class: 'api-how-body' }, children));
+}
+
+/** Texto com {coluna} destacado. */
+function marked(text, cls = '') {
+  const out = [];
+  let last = 0;
+  for (const m of (text || '').matchAll(/\{([^{}"':\r\n]+)\}/g)) {
+    out.push(text.slice(last, m.index), h('span', { class: 'req-col', title: `Vem da coluna ${m[1]}, uma chamada por linha` }, m[0]));
+    last = m.index + m[0].length;
+  }
+  out.push((text || '').slice(last));
+  return h('span', { class: cls }, out);
+}
+
+const DOTS = '••••••';
+
+function authLines(state) {
+  const a = state.auth;
+  return {
+    bearer: [['Authorization', `Bearer ${DOTS}`]],
+    basic: [['Authorization', `Basic ${DOTS}`]],
+    oauth2: [['Authorization', `Bearer ${DOTS}`]],
+    api_key: a.key_in === 'header' ? [[a.key_name, DOTS]] : [],
+  }[a.type] || [];
+}
+
+/** O pedido montado (RF-2222): muda enquanto se digita e nunca mostra uma credencial. */
+function requestPreview(state) {
+  const url = state.url.trim();
+  if (!url) return h('p', { class: 'field-help' }, 'Digite o endereço para ver o pedido sendo montado.');
+  const m = /^(https?:\/\/[^/?#]*)([^?#]*)(\?[^#]*)?/i.exec(url);
+  const host = m ? m[1] : '';
+  const path = m ? m[2] : url;
+  const inline = m?.[3] || '';
+  const query = [...state.params.filter((p) => p.name).map((p) => [p.name, p.secret ? DOTS : p.value])];
+  if (state.auth.type === 'api_key' && state.auth.key_in === 'query') query.push([state.auth.key_name, DOTS]);
+  const pager = state.pagination;
+  if (pager.type === 'page') {
+    query.push([pager.page_param, String(pager.start_page)]);
+    if (pager.size_param) query.push([pager.size_param, String(pager.page_size)]);
+  } else if (pager.type === 'offset') query.push([pager.offset_param, '0'], [pager.limit_param, String(pager.page_size)]);
+  const headers = [...state.headers.filter((p) => p.name).map((p) => [p.name, p.secret ? DOTS : p.value]), ...authLines(state)];
+  return h('div', { class: 'req' },
+    h('div', { class: 'req-line' }, h('span', { class: 'req-method' }, state.method),
+      h('span', { class: 'req-url' }, h('span', { class: 'req-host' }, host), marked(path, 'req-path'), inline ? marked(inline, 'req-param') : null,
+        query.map(([k, v], i) => h('span', { class: 'req-param' }, `${i || inline ? '&' : '?'}${k}=`, marked(v))))),
+    headers.length ? h('div', { class: 'req-headers' }, headers.map(([k, v]) => h('div', {}, h('span', { class: 'req-key' }, `${k}: `), marked(v)))) : null,
+    state.method === 'POST' && state.body.trim() ? h('div', { class: 'req-headers' }, marked(state.body.length > 160 ? `${state.body.slice(0, 160)}…` : state.body)) : null,
+    h('div', { class: 'req-legend' },
+      h('span', { class: 'req-host' }, 'servidor'), h('span', { class: 'req-path' }, 'caminho'), h('span', { class: 'req-param' }, 'parâmetros'),
+      h('span', { class: 'req-col' }, '{coluna}')));
+}
+
+/** Sequência de pedidos da paginação, com os nomes configurados (RF-2223). */
+function pagesScheme(p) {
+  const chip = (text) => h('span', { class: 'page-chip' }, text);
+  const go = h('span', { class: 'page-arrow' }, '→');
+  const size = p.size_param ? `&${p.size_param}=${p.page_size}` : '';
+  const flows = {
+    page: [[chip(`?${p.page_param}=${p.start_page}${size}`), go.cloneNode(true), chip(`?${p.page_param}=${p.start_page + 1}${size}`), go.cloneNode(true), chip(`?${p.page_param}=${p.start_page + 2}${size}`)],
+      p.size_param ? `Para quando uma página vier com menos de ${p.page_size} linhas.` : 'Para quando uma página vier vazia ou igual à anterior.'],
+    offset: [[chip(`?${p.offset_param}=0&${p.limit_param}=${p.page_size}`), go.cloneNode(true), chip(`?${p.offset_param}=${p.page_size}&${p.limit_param}=${p.page_size}`), go.cloneNode(true), chip(`?${p.offset_param}=${p.page_size * 2}&${p.limit_param}=${p.page_size}`)],
+      `Pula as linhas já lidas. Para quando vierem menos de ${p.page_size} linhas.`],
+    cursor: [[chip('1º pedido'), go.cloneNode(true), chip(`resposta traz ${p.cursor_path}: "abc"`), go.cloneNode(true), chip(`?${p.cursor_param}=abc`)],
+      'Cada resposta diz onde continuar. Para quando o cursor vier vazio.'],
+    next_link: [[chip('1º pedido'), go.cloneNode(true), chip(p.next_path ? `resposta traz ${p.next_path}` : 'cabeçalho Link: rel="next"'), go.cloneNode(true), chip('abre esse link')],
+      'A própria resposta traz o link da próxima página. As credenciais só vão para o mesmo servidor.'],
+  }[p.type];
+  if (!flows) return how('A API devolve tudo de uma vez. Escolha outro tipo se a resposta trouxer só uma parte dos dados, com algo como "page" ou "next".');
+  return how(h('div', { class: 'page-flow' }, flows[0]), h('p', {}, flows[1]));
+}
+
+function authScheme(state) {
+  const a = state.auth;
+  const code = (text) => h('code', { class: 'auth-code' }, text);
+  return {
+    none: () => how('A API é aberta: nada de credencial no pedido. É o caso de muitas APIs públicas, como a do IBGE.'),
+    bearer: () => how('O token vai em todo pedido, neste cabeçalho:', code(`Authorization: Bearer ${DOTS}`)),
+    api_key: () => how('A chave vai em todo pedido:', code(a.key_in === 'header' ? `${a.key_name}: ${DOTS}` : `…?${a.key_name}=${DOTS}`),
+      a.key_in === 'query' ? h('p', {}, 'No endereço, a chave pode aparecer em registros de servidores. Prefira o cabeçalho, se a API aceitar.') : null),
+    basic: () => how('Usuário e senha vão codificados em todo pedido:', code(`Authorization: Basic ${DOTS}`)),
+    oauth2: () => how(h('div', { class: 'page-flow' }, h('span', { class: 'page-chip' }, 'ID + segredo'), h('span', { class: 'page-arrow' }, '→'), h('span', { class: 'page-chip' }, 'servidor do token'), h('span', { class: 'page-arrow' }, '→'), h('span', { class: 'page-chip' }, 'token'), h('span', { class: 'page-arrow' }, '→'), h('span', { class: 'page-chip' }, 'chamada')),
+      h('p', {}, 'O PRO.DATA pede o token sozinho e renova quando vence.')),
+  }[a.type]();
+}
+
+/** Resposta real em árvore: listas dizem quantos itens têm e podem virar as linhas da tabela (RF-2225). */
+function responseTree(sample, state, { onPick, onExplode }) {
+  const recordsPrefix = state.records_path ? `${state.records_path}.*.` : '*.';
+  const leafLink = (path) => {
+    if (!path) return null;
+    if (path.startsWith(recordsPrefix)) return `c:${path.slice(recordsPrefix.length).replace(/\.\*\./g, '.')}`;
+    return null;
+  };
+  const scalar = (v) => (v === null ? 'null' : typeof v === 'string' ? `"${v}"` : String(v));
+  const walk = (node, key) => {
+    const label = key === null ? null : h('span', { class: 'tree-key' }, `${key}: `);
+    if (node.kind === 'value') {
+      const link = leafLink(node.path);
+      return h('div', { class: 'tree-row', dataset: link ? { link } : undefined }, label, h('span', { class: `tree-v tree-${node.value === null ? 'null' : typeof node.value}` }, scalar(node.value)));
+    }
+    if (node.kind === 'more') return h('div', { class: 'tree-row muted' }, label, node.text);
+    if (node.kind === 'object') {
+      return h('div', {}, key === null ? null : h('div', { class: 'tree-row' }, label, h('span', { class: 'muted' }, 'objeto')),
+        h('div', { class: key === null ? null : 'tree-kids' }, node.fields.map(([k, v]) => walk(v, k)),
+          node.hidden ? h('div', { class: 'tree-row muted' }, `e mais ${node.hidden} campos`) : null));
+    }
+    const isRecords = node.path === state.records_path || (!state.records_path && !node.path);
+    const nested = node.path.startsWith(recordsPrefix);
+    const relative = nested ? node.path.slice(recordsPrefix.length) : '';
+    let action = null;
+    if (!node.path.includes('*') && !isRecords) {
+      action = button({ label: 'Usar como linhas', size: 'sm', variant: 'ghost', title: `Cada item de "${node.path}" vira uma linha`, onClick: () => onPick(node.path) });
+    } else if (nested && !relative.includes('*')) {
+      const on_ = state.explode_path === relative;
+      action = button({ label: on_ ? 'Não abrir em linhas' : 'Abrir em linhas', size: 'sm', variant: 'ghost', title: 'Uma linha por item, repetindo os outros campos', onClick: () => onExplode(on_ ? '' : relative) });
+    }
+    return h('div', { class: ['tree-list', isRecords && 'is-records'] },
+      h('div', { class: 'tree-row' }, label, h('span', { class: 'tree-badge' }, `lista · ${fmt.int(node.total)} ${node.total === 1 ? 'item' : 'itens'}`),
+        isRecords ? h('span', { class: 'tree-here' }, icon('check', 11), 'linhas da tabela') : null, action),
+      h('div', { class: 'tree-kids' }, node.items.map((item, i) => h('div', { class: 'tree-item' }, h('span', { class: 'tree-index' }, `item ${i + 1}`), walk(item, null))),
+        node.total > node.items.length ? h('div', { class: 'tree-row muted' }, `e mais ${fmt.int(node.total - node.items.length)} itens`) : null));
+  };
+  return h('div', { class: 'tree' }, walk(sample, null));
+}
+
+/** Antes de testar: o caminho do pedido até a tabela, com um exemplo (RF-2224). */
+function howItWorks() {
+  const stage = (n, title, body) => h('div', { class: 'api-stage' }, h('div', { class: 'x-title' }, `${n}. ${title}`), body);
+  const answer = h('pre', { class: 'api-json' }, '[\n  { "sigla": "SP",\n    "nome": "São Paulo",\n    "regiao": { "nome": "Sudeste" } },\n  { "sigla": "RJ",\n    "nome": "Rio de Janeiro",\n    "regiao": { "nome": "Sudeste" } }\n]');
+  return h('div', { class: 'api-intro' },
+    h('p', { class: 'api-intro-lead' }, 'Uma API responde a um endereço com dados. O PRO.DATA transforma a resposta em tabela:'),
+    stage(1, 'O pedido', h('div', { class: 'req' }, h('div', { class: 'req-line' }, h('span', { class: 'req-method' }, 'GET'), h('span', { class: 'req-url' }, h('span', { class: 'req-host' }, 'https://servicodados.ibge.gov.br'), h('span', { class: 'req-path' }, '/api/v1/localidades/estados'))))),
+    arrow('a API responde'),
+    stage(2, 'A resposta', answer),
+    arrow('cada item vira uma linha'),
+    stage(3, 'A tabela', mini('', [{ text: 'sigla', kind: 'to' }, { text: 'nome', kind: 'to' }, { text: 'regiao.nome', kind: 'to' }],
+      [['SP', 'São Paulo', 'Sudeste'], ['RJ', 'Rio de Janeiro', 'Sudeste']].map((r) => r.map((text) => ({ text }))))),
+    h('p', { class: 'field-help' }, 'Nesta figura, os dados são de exemplo. Clique em Testar para ver a resposta da sua API.'));
 }
 
 // ------------------------------------------------------------------ pedaços do formulário
@@ -123,7 +265,7 @@ function pagesPane(state, redraw) {
     p.type === 'none' ? null : field('Limite de páginas', number(p, 'max_pages', { min: 1 }), 'Se chegar aqui e ainda houver dados, a caixa avisa.'));
 }
 
-function answerPane(state) {
+function answerPane(state, _redraw) {
   return h('div', { class: 'stack-sm' },
     field('Formato', choice(state, 'format', [['auto', 'Detectar'], ['json', 'JSON'], ['csv', 'CSV'], ['xml', 'XML']])),
     field('Onde estão as linhas', text(state, 'records_path', { placeholder: 'data.itens' }), 'Vazio: usa a lista da resposta, se houver só uma.'),
@@ -137,17 +279,21 @@ function answerPane(state) {
 
 // ------------------------------------------------------------------ editor
 
-export function openApiEditor({ source = null, onSaved = null } = {}) {
-  const state = { ...blank(), ...(source ? structuredClone(source) : {}), secrets: {}, stored: source?.set_secrets || [], onChange: () => {} };
-  const samples = {};
+export function openApiEditor({ source = null, onSaved = null, preset = null, values = {} } = {}) {
+  const state = { ...blank(), ...(source ? structuredClone(source) : {}), ...(preset ? structuredClone(preset) : {}), secrets: {}, stored: source?.set_secrets || [], onChange: () => {} };
+  if (preset) state.id = '';
+  const samples = { ...values };
   const meta = h('div', { class: 'preview-meta' }, h('span', { class: 'muted' }, 'Clique em Testar para ver as colunas.'));
   const grid = h('div', { class: 'preview-grid' });
+  const flow = linkHover(h('div', { class: 'api-flow' }, howItWorks()));
   const notices = h('div', { class: 'stack-xs api-notices' });
+  const requestBox = h('div', { class: 'api-request' });
+  const drawRequest = () => requestBox.replaceChildren(h('div', { class: 'x-title' }, 'O que será enviado'), requestPreview(state));
   const pane = h('div', { class: 'api-pane' });
   let tab = 'params';
 
   const definition = () => {
-    const { id, name, cache_results, secrets, stored, onChange, set_secrets, missing_secrets, ...d } = state;
+    const { id, name, cache_results, hold_on_open, secrets, stored, onChange, set_secrets, missing_secrets, ...d } = state;
     return d;
   };
   const drawNotices = () => {
@@ -166,7 +312,7 @@ export function openApiEditor({ source = null, onSaved = null } = {}) {
         : null,
     ].filter(Boolean));
   };
-  state.onChange = drawNotices;
+  state.onChange = () => { drawNotices(); drawRequest(); };
 
   const tabs = h('div', { class: 'segmented small' });
   const drawTabs = () => {
@@ -179,18 +325,46 @@ export function openApiEditor({ source = null, onSaved = null } = {}) {
     }, l)));
   };
   const drawPane = () => {
-    const redraw = () => { drawPane(); drawNotices(); };
+    const redraw = () => { drawPane(); drawNotices(); drawRequest(); };
     pane.replaceChildren({
-      params: () => pairs(state, state.params, 'param', redraw),
-      headers: () => pairs(state, state.headers, 'header', redraw),
+      params: () => h('div', { class: 'stack-sm' },
+        how(h('p', {}, 'Cada linha entra no endereço como ', h('code', {}, '?nome=valor'), '. Para filtrar, ordenar ou limitar, veja a documentação da API. Um valor como ', h('code', {}, '{coluna}'), ' vem da tabela, no API Loop.')),
+        pairs(state, state.params, 'param', redraw)),
+      headers: () => h('div', { class: 'stack-sm' },
+        how('Informações que acompanham o pedido, fora do endereço. A credencial tem aba própria: use o cadeado para qualquer outro valor sigiloso.'),
+        pairs(state, state.headers, 'header', redraw)),
       body: () => h('div', { class: 'stack-sm' },
         field('Tipo', choice(state, 'body_type', [['json', 'JSON'], ['text', 'Texto']])),
-        field('Corpo', h('textarea', { class: 'input mono', rows: 8, spellcheck: false, oninput: (e) => { state.body = e.target.value; drawNotices(); } }, state.body),
+        field('Corpo', h('textarea', { class: 'input mono', rows: 8, spellcheck: false, oninput: (e) => { state.body = e.target.value; state.onChange(); } }, state.body),
           'Num JSON, escreva a coluna entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
-      auth: () => authPane(state, redraw),
-      pages: () => pagesPane(state, redraw),
-      answer: () => answerPane(state),
+      auth: () => h('div', { class: 'stack-sm' }, authScheme(state), authPane(state, redraw)),
+      pages: () => h('div', { class: 'stack-sm' }, pagesScheme(state.pagination), pagesPane(state, redraw)),
+      answer: () => h('div', { class: 'stack-sm' },
+        how('Depois de testar, a resposta aparece ao lado: clique numa lista dela para escolher de onde vêm as linhas, sem precisar digitar o caminho.'),
+        answerPane(state, redraw)),
     }[tab]());
+  };
+
+  /** A resposta real ao lado da tabela que ela gerou; passar o mouse num campo acende a coluna. */
+  const drawAnswer = (res) => {
+    const retest = () => {
+      drawPane();
+      if (state.method === 'GET') test();
+      else meta.replaceChildren(h('span', { class: 'muted' }, 'Clique em Testar para ver o resultado: um POST não é repetido sozinho.'));
+    };
+    const cols = res.columns.slice(0, 5).map((c) => c.name);
+    const table = mini(`A tabela: ${res.columns.length} colunas`, cols.map((c) => ({ text: c, kind: 'to', link: `c:${c}` })),
+      res.rows.slice(0, 3).map((r) => cols.map((c) => ({ text: r[c] === null || r[c] === undefined ? '—' : String(r[c]), link: `c:${c}` }))));
+    const tree = res.sample
+      ? responseTree(res.sample, state, {
+        onPick: (path) => { state.records_path = path; state.explode_path = ''; retest(); },
+        onExplode: (path) => { state.explode_path = path; retest(); },
+      })
+      : h('p', { class: 'field-help' }, 'Resposta em CSV ou XML: cada linha ou elemento repetido vira uma linha da tabela.');
+    flow.replaceChildren(
+      h('div', { class: 'api-stage' }, h('div', { class: 'x-title' }, 'A resposta da API (amostra)'), tree),
+      arrow('vira'),
+      h('div', { class: 'api-stage' }, table));
   };
 
   const test = async () => {
@@ -210,9 +384,11 @@ export function openApiEditor({ source = null, onSaved = null } = {}) {
       }
       meta.replaceChildren(h('span', { class: 'badge' }, icon('check', 12), 'Respondeu'),
         h('span', { class: 'muted' }, `${res.columns.length} colunas · ${fmt.int(res.total)} linhas nesta página${res.more_pages ? ' · há mais páginas' : ''}`));
+      drawAnswer(res);
       grid.replaceChildren(previewTable(res.columns, res.rows));
     } catch (err) {
       meta.replaceChildren(h('span', { class: 'text-error' }, icon('alert', 14), ` ${err.message}`));
+      flow.replaceChildren(howItWorks());
       grid.replaceChildren();
     } finally {
       grid.classList.remove('loading');
@@ -225,7 +401,7 @@ export function openApiEditor({ source = null, onSaved = null } = {}) {
     try { host = new URL(state.url.replace(/\{[^}]*\}/g, 'x')).hostname; } catch { /* a validação do servidor explica */ }
     const name = state.name.trim() || host;
     const secrets = Object.fromEntries(Object.entries(state.secrets).filter(([, v]) => v));
-    const saved = await api.saveApi({ source: { ...definition(), name, cache_results: state.cache_results, id: state.id || slug(name) }, secrets });
+    const saved = await api.saveApi({ source: { ...definition(), name, cache_results: state.cache_results, hold_on_open: state.hold_on_open, id: state.id || slug(name) }, secrets });
     state.id = saved.id;
     await refreshApis();
     const users = (store.workflow?.nodes || []).filter((n) => n.config?.dataset === `${API_PREFIX}${saved.id}` || (n.type === 'io.api_loop' && n.config?.source === saved.id));
@@ -244,13 +420,24 @@ export function openApiEditor({ source = null, onSaved = null } = {}) {
     }
   };
 
+  const examples = source || preset ? null : h('div', { class: 'api-examples' }, h('div', { class: 'x-title' }, 'Começar de um exemplo'));
+  if (examples) {
+    api.apiExamples().then((list) => examples.append(h('div', { class: 'api-example-list' }, list.map((ex) => h('button', {
+      type: 'button', class: 'api-example', title: ex.what,
+      onclick: () => { close(); openApiEditor({ preset: ex.source, values: ex.values, onSaved }); },
+    }, h('strong', {}, ex.title), h('span', {}, ex.source.name)))))).catch(() => examples.remove());
+  }
   const form = h('div', { class: 'api-form stack-sm' },
+    examples,
     field('Nome', text(state, 'name', { placeholder: 'Ex.: Clientes do CRM' })),
     h('div', { class: 'api-url' },
-      choice(state, 'method', [['GET', 'GET'], ['POST', 'POST']], () => { drawTabs(); drawPane(); drawNotices(); }),
-      text(state, 'url', { placeholder: 'https://api.exemplo.com/v1/clientes/{id}', 'aria-label': 'Endereço da API', class: 'input mono', oninput: drawNotices }),
+      choice(state, 'method', [['GET', 'GET'], ['POST', 'POST']], () => { drawTabs(); drawPane(); state.onChange(); }),
+      text(state, 'url', { placeholder: 'https://api.exemplo.com/v1/clientes/{id}', 'aria-label': 'Endereço da API', class: 'input mono', oninput: () => state.onChange() }),
       button({ label: 'Testar', icon: 'play', onClick: test })),
-    notices, tabs, pane,
+    requestBox, notices, tabs, pane,
+    h('label', { class: 'switch', title: 'Ligado: abrir um fluxo não chama esta API. Ela espera o clique em Executar.' },
+      h('input', { type: 'checkbox', checked: state.hold_on_open, onchange: (e) => { state.hold_on_open = e.target.checked; } }),
+      h('span', { class: 'switch-track' }), h('span', {}, 'Só chamar quando eu clicar em Executar')),
     h('label', { class: 'switch', title: 'Desligado: a API é chamada de novo a cada execução.' },
       h('input', { type: 'checkbox', checked: state.cache_results, onchange: (e) => { state.cache_results = e.target.checked; } }),
       h('span', { class: 'switch-track' }), h('span', {}, 'Reaproveitar resultado entre execuções')));
@@ -258,10 +445,11 @@ export function openApiEditor({ source = null, onSaved = null } = {}) {
   drawTabs();
   drawPane();
   drawNotices();
+  drawRequest();
   const { close } = openDialog({
     title: source ? `Editar API · ${source.name}` : 'Nova API',
     size: 'xl',
-    body: h('div', { class: 'preview-layout api-layout' }, form, h('div', { class: 'preview-main' }, meta, grid)),
+    body: h('div', { class: 'preview-layout api-layout' }, form, h('div', { class: 'preview-main api-main' }, meta, flow, grid)),
     actions: [
       button({ label: 'Cancelar', onClick: () => close() }),
       onSaved ? null : button({ label: 'Salvar', icon: 'save', onClick: () => finish(false) }),

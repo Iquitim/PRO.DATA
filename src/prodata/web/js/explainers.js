@@ -5,7 +5,7 @@
 import { api } from './api.js';
 import { fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
-import { inspect, nodeResult, on, store } from './store.js';
+import { inspect, nodeResult, on, placeholdersOf, store } from './store.js';
 
 const SAMPLE_ROWS = 200;
 const samples = new Map(); // "nó|saída" → Promise<linhas>
@@ -28,7 +28,7 @@ const show = (v) => (v === null || v === undefined ? '—' : typeof v === 'numbe
 const distinct = (rows, col, n) => [...new Set(rows.map((r) => show(r[col])))].slice(0, n);
 
 /** Tabela pequena; cada célula pode ter `link` (destaque compartilhado) e `kind` (cor). */
-function mini(title, head, rows) {
+export function mini(title, head, rows) {
   const cell = (tag, c) => h(tag, {
     class: [c.kind && `x-${c.kind}`], dataset: c.link ? { link: c.link } : undefined, title: c.title || null,
   }, c.text);
@@ -37,10 +37,10 @@ function mini(title, head, rows) {
       h('tbody', {}, rows.map((r) => h('tr', {}, r.map((c) => cell('td', c)))))));
 }
 
-const arrow = (label) => h('div', { class: 'x-arrow' }, icon('chevron-right', 18), h('span', {}, label));
+export const arrow = (label) => h('div', { class: 'x-arrow' }, icon('chevron-right', 18), h('span', {}, label));
 
 /** Destaque ao passar o mouse: todas as células com o mesmo data-link acendem juntas. */
-function linkHover(root) {
+export function linkHover(root) {
   const lit = (link, on_) => root.querySelectorAll(`[data-link="${CSS.escape(link)}"]`).forEach((el) => el.classList.toggle('x-lit', on_));
   root.addEventListener('mouseover', (e) => { const el = e.target.closest('[data-link]'); if (el) lit(el.dataset.link, true); });
   root.addEventListener('mouseout', (e) => { const el = e.target.closest('[data-link]'); if (el) lit(el.dataset.link, false); });
@@ -254,6 +254,96 @@ function summarize(cfg, rows) {
   };
 }
 
+// ------------------------------------------------------------------ API Loop (spec 022)
+
+const LOOP_EXAMPLE = {
+  url: 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/{sigla}/municipios', method: 'GET', params: [], headers: [],
+};
+const EXAMPLE_VALUES = ['SP', 'RJ', 'MG'];
+
+/** O endereço com os valores da linha, cada um destacado e ligado à célula de onde veio. */
+function callLine(source, values, link) {
+  const pieces = (text) => {
+    const out = [];
+    let last = 0;
+    for (const m of text.matchAll(/\{([^{}"':\r\n]+)\}/g)) {
+      out.push(text.slice(last, m.index));
+      out.push(m[1] in values ? h('mark', { class: 'x-value', dataset: { link } }, show(values[m[1]])) : m[0]);
+      last = m.index + m[0].length;
+    }
+    out.push(text.slice(last));
+    return out;
+  };
+  const params = (source.params || []).filter((p) => p.name && !p.secret);
+  return h('div', { class: 'x-call' }, h('span', { class: 'x-method' }, source.method || 'GET'),
+    h('span', { class: 'x-url' }, pieces(source.url.replace(/^https?:\/\/[^/]+/, '…')),
+      params.map((p, i) => h('span', {}, `${i ? '&' : '?'}${p.name}=`, pieces(p.value)))));
+}
+
+function apiLoop(n, cfg, rows, answers) {
+  const source = store.apis.find((a) => a.id === cfg.source) || null;
+  const shown = source || LOOP_EXAMPLE;
+  const wants = placeholdersOf(shown);
+  const missing = rows?.length ? wants.filter((c) => !(c in rows[0])) : [];
+  const real = Boolean(source && rows?.length && !missing.length && wants.length);
+  const data = real ? rows : EXAMPLE_VALUES.map((v, i) => Object.fromEntries(wants.map((c) => [c, wants.length === 1 ? v : `${c}${i + 1}`])));
+  const keyOf = (r) => `k:${wants.map((c) => show(r[c])).join('|')}`;
+  const seen = [...new Map(data.map((r) => [keyOf(r), r])).values()];
+  const calls = seen.slice(0, 3);
+  const others = real ? Object.keys(rows[0]).filter((c) => !wants.includes(c)).slice(0, Math.max(0, 3 - wants.length)) : [];
+  const repeated = data.length - seen.length;
+  // Mostra uma linha repetida, se houver: é o que explica por que há menos chamadas do que linhas.
+  const twin = repeated ? data.find((r, i) => calls.some((c) => keyOf(c) === keyOf(r)) && data.findIndex((x) => keyOf(x) === keyOf(r)) !== i) : null;
+  const input = mini('Entrada: cada linha pede uma chamada',
+    [...wants.map((c) => ({ text: c, kind: 'from' })), ...others.map((c) => ({ text: c }))],
+    [...calls, ...(twin ? [twin] : [])].map((r) => [
+      ...wants.map((c) => ({ text: show(r[c]), kind: 'from', link: keyOf(r) })),
+      ...others.map((c) => ({ text: show(r[c]) })),
+    ]));
+  const callBox = h('div', { class: 'x-table' }, h('div', { class: 'x-title' }, 'Chamadas'),
+    h('div', { class: 'x-calls' }, calls.map((r) => callLine(shown, r, keyOf(r))),
+      seen.length > calls.length ? h('div', { class: 'x-more' }, `e mais ${fmt.int(seen.length - calls.length)} nesta amostra`) : null));
+  let output;
+  if (answers?.length) {
+    const cols = Object.keys(answers[0]);
+    const ordered = [...wants.filter((c) => cols.includes(c)), ...cols.filter((c) => !(rows?.[0] && c in rows[0]))].slice(0, 4);
+    const fromInput = new Set(wants);
+    output = mini('Saída R: as respostas ao lado da linha que pediu',
+      ordered.map((c) => ({ text: c, kind: fromInput.has(c) ? null : 'to' })),
+      answers.slice(0, 4).map((r) => ordered.map((c) => ({
+        text: show(r[c]), kind: fromInput.has(c) ? null : 'to', link: wants.every((w) => w in r) ? keyOf(r) : undefined,
+      }))));
+  } else {
+    output = mini('Saída R: as respostas ao lado da linha que pediu',
+      [...wants.map((c) => ({ text: c })), { text: 'campos da resposta', kind: 'to' }],
+      calls.slice(0, 2).flatMap((r) => [0, 1].map((i) => [
+        ...wants.map((c) => ({ text: show(r[c]), link: keyOf(r) })),
+        { text: `item ${i + 1} da resposta`, kind: 'to', link: keyOf(r) },
+      ])));
+  }
+  const res = nodeResult(n.id);
+  const counts = { out: res?.anchors?.out?.row_count, errors: res?.anchors?.errors?.row_count };
+  const bar = h('div', { class: 'x-join-bar x-loop-bar' }, [['out', 'R', 'Respostas', 'x-J'], ['errors', 'E', 'Com erro', 'x-L']].map(([port, letter, label, tone]) => h('button', {
+    type: 'button', class: ['x-join-part', tone], disabled: counts[port] === undefined,
+    title: counts[port] === undefined ? 'Execute o fluxo para ver as linhas' : `Ver as linhas da saída ${letter}`,
+    onclick: () => inspect(n.id, port),
+  }, h('b', {}, letter), h('span', {}, label), h('strong', {}, counts[port] === undefined ? '—' : fmt.int(counts[port])))));
+  const notes = [];
+  if (!source) notes.push('Escolha abaixo uma API que tenha {coluna} no endereço, nos parâmetros ou no corpo.');
+  else if (!wants.length) notes.push('Esta API não pede nenhuma coluna: escreva {coluna} no cadastro dela, na aba Dados.');
+  if (missing.length) notes.push(`A tabela de entrada não tem ${missing.map((c) => `[${c}]`).join(', ')}: renomeie a coluna ou ajuste a API.`);
+  if (source && wants.length) notes.push(`Cada valor de ${wants.map((c) => `[${c}]`).join(' e ')} vira uma chamada, e as respostas se juntam numa tabela só.`);
+  if (repeated) notes.push(`Valores iguais são chamados uma vez: nesta amostra, ${fmt.int(data.length)} linhas pedem ${fmt.int(seen.length)} chamadas.`);
+  notes.push('O que falhar sai em E, com o motivo, sem parar as outras chamadas.');
+  return { body: [input, arrow('uma chamada por valor'), callBox, arrow('junta as respostas'), output, bar], caption: notes.join(' '), sample: real };
+}
+
+/** Primeiras linhas da saída da própria caixa, depois de executar. */
+function ownAnswers(n) {
+  if (!nodeResult(n.id)?.anchors?.out) return Promise.resolve(null);
+  return api.results(store.workflow.id, n.id, 'out', { limit: 8 }).then((page) => page.rows).catch(() => null);
+}
+
 // ------------------------------------------------------------------ montagem
 
 const OPEN_KEY = 'prodata.explainer.open';
@@ -272,6 +362,9 @@ export function explainerEl(n, spec) {
     if (spec.explainer === 'join') {
       const [l, r] = await Promise.all([sampleOf(n.id, 'L'), sampleOf(n.id, 'R')]);
       out = join(n, cfg, l, r);
+    } else if (spec.explainer === 'api_loop') {
+      const [rows, answers] = await Promise.all([sampleOf(n.id), ownAnswers(n)]);
+      out = apiLoop(n, cfg, rows, answers);
     } else {
       const rows = await sampleOf(n.id);
       out = ({ crosstab, transpose, summarize }[spec.explainer])(cfg, rows?.length ? rows : null);

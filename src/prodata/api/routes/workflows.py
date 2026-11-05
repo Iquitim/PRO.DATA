@@ -7,6 +7,7 @@ from fastapi import APIRouter, Path, Response
 from prodata.api.deps import ServicesDep
 from prodata.domain.workflow import ID_PATTERN, Workflow
 from prodata.engine import graph
+from prodata.samples.apis import seed_example_apis
 from prodata.samples.workflows import demo_workflow
 from prodata.services.workflows import WorkflowSummary
 
@@ -20,7 +21,8 @@ def list_workflows(services: ServicesDep) -> list[WorkflowSummary]:
 
 
 @router.get("/demo")
-def get_demo() -> Workflow:
+def get_demo(services: ServicesDep) -> Workflow:
+    seed_example_apis(services.apis)  # o exemplo abre sempre pronto para executar
     return Workflow.model_validate(demo_workflow())
 
 

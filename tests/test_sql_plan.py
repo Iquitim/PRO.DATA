@@ -21,7 +21,7 @@ DATA = Path(__file__).parent / "data"
 
 
 def env_for(runner: WorkflowRunner, store: DatasetStore, workflow: Workflow) -> Env:
-    return Env(runner.cache, store, None, lambda node: runner.is_fresh(workflow, node))
+    return Env(runner.cache, store, None, lambda node: runner.is_fresh(workflow, node), runner.apis)
 
 
 def flow_with_outputs(demo: Workflow) -> Workflow:

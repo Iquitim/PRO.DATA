@@ -20,7 +20,9 @@ localmente.
 - **APIs**: cadastre uma API na aba Dados (GET ou POST, JSON, CSV ou XML, com
   paginação e novas tentativas) e leia no Input Data. Token, chave, senha e OAuth 2
   ficam no cofre do sistema. O **API Loop** chama a API uma vez por linha de uma
-  tabela, que pode ser a saída de outra API, e junta as respostas.
+  tabela, que pode ser a saída de outra API, e junta as respostas. O cadastro tem
+  exemplos prontos e mostra a resposta ao lado da tabela, e o fluxo de demonstração
+  consome a API pública do IBGE, só depois do clique em Executar.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo
   pode ser salvo e aberto de qualquer pasta (*Salvar como…* / *Abrir arquivo…*).
 - **30 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
@@ -68,8 +70,8 @@ localmente.
   expressões regulares) e botões de operadores. Diferente é `!=` (`<>` também
   vale). A Formula cria colunas novas ou altera colunas existentes, e calcula
   entre colunas da mesma linha com `Average`, `Sum`, `Median`, `Mode`, `StdDev`, `Max` e `Min`.
-- **Esquemas visuais** no Configurar do Cross Tab, do Transpose, do Join e do
-  Summarize: o antes e o depois com uma amostra dos seus dados.
+- **Esquemas visuais** no Configurar do Cross Tab, do Transpose, do Join, do
+  Summarize e do API Loop: o antes e o depois com uma amostra dos seus dados.
 - **Aba SQL**: o fluxo escrito em SQL do DuckDB, com um código por saída (só o
   que existe entre as entradas e ela) ou um código unificado de várias saídas,
   sem repetir etapas. Cada etapa é rodada e comparada com o resultado do fluxo:
@@ -236,7 +238,8 @@ Documentação interativa em http://127.0.0.1:8765/docs.
 | GET · PUT · DELETE | `/api/queries[/{id}]` | Consultas de banco da aba Dados (sem senha) |
 | POST | `/api/queries/preview` | Prévia de uma consulta ainda não salva |
 | GET · PUT · DELETE | `/api/apis[/{id}]` | Fontes de API da aba Dados (segredos entram no PUT, nunca saem) |
-| POST | `/api/apis/preview` | Chamada de teste de uma API, só a primeira página |
+| POST | `/api/apis/preview` | Chamada de teste de uma API, só a primeira página, com amostra da resposta |
+| GET | `/api/apis/examples` | APIs públicas de exemplo para começar um cadastro (nada é chamado) |
 | POST | `/api/dashboard/filter-options` · `/filtered` | Valores dos filtros · visuais recalculados, sem executar o fluxo |
 | POST · GET | `/api/dashboard/export-data` · `/viewer.js` | Dados e script do dashboard em HTML |
 | POST | `/api/files/workflow/save` · `/open` | Salvar / abrir fluxo num caminho escolhido (`.prodata.json`) |

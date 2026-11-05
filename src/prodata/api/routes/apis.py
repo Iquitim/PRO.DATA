@@ -8,10 +8,19 @@ from fastapi import APIRouter, Path, Query, Response
 from pydantic import BaseModel, Field
 
 from prodata.api.deps import ServicesDep
-from prodata.connectors.api import ApiClient, ApiDefinition, ApiInfo, SavedApi, is_insecure, rows_to_frame
+from prodata.connectors.api import (
+    ApiClient,
+    ApiDefinition,
+    ApiInfo,
+    SavedApi,
+    is_insecure,
+    rows_to_frame,
+    sample_document,
+)
 from prodata.domain.workflow import ID_PATTERN
 from prodata.engine.profiling import schema_of
 from prodata.engine.serialize import json_rows
+from prodata.samples.apis import editor_examples
 
 router = APIRouter(prefix="/api/apis", tags=["apis"])
 ApiId = Annotated[str, Path(pattern=ID_PATTERN)]
@@ -35,6 +44,12 @@ class PreviewRequest(BaseModel):
 @router.get("")
 def list_apis(services: ServicesDep) -> list[ApiInfo]:
     return services.apis.list()
+
+
+@router.get("/examples")
+def api_examples() -> list[dict[str, Any]]:
+    """Pontos de partida do cadastro: nada é chamado até o usuário clicar em Testar."""
+    return editor_examples()
 
 
 @router.put("/{api_id}")
@@ -69,4 +84,5 @@ def preview_api(
         "total": df.height,
         "more_pages": result.truncated,
         "insecure": is_insecure(definition.url),
+        "sample": None if result.document is None else sample_document(result.document),
     }

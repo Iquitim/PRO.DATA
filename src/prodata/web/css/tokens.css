@@ -35,6 +35,7 @@
   --cat-transform: #6d4fc9;
   --cat-bi: #b7740f;
   --cat-ml: #138496;
+  --cat-org: #64748b;
 
   /* Paleta categórica de gráficos (ordem fixa, validada para daltonismo). */
   --series-1: #2a78d6;
@@ -106,6 +107,7 @@
     --cat-transform: #bd93f9;
     --cat-bi: #ffb86c;
     --cat-ml: #ff79c6;
+    --cat-org: #a5adcb;
     --series-1: #8be9fd;
     --series-2: #ffb86c;
     --series-3: #50fa7b;
@@ -166,6 +168,7 @@
   --cat-transform: #bd93f9;
   --cat-bi: #ffb86c;
   --cat-ml: #ff79c6;
+  --cat-org: #a5adcb;
   --series-1: #8be9fd;
   --series-2: #ffb86c;
   --series-3: #50fa7b;
@@ -195,3 +198,11 @@
   --fx-d1: #8be9fd;
   --fx-d2: #ffb86c;
 }
+
+/* Cor de cada família de ferramentas: caixas do fluxo, paleta e busca rápida leem --cat. */
+[data-category="inout"] { --cat: var(--cat-inout); }
+[data-category="prep"] { --cat: var(--cat-prep); }
+[data-category="transform"] { --cat: var(--cat-transform); }
+[data-category="bi"] { --cat: var(--cat-bi); }
+[data-category="ml"] { --cat: var(--cat-ml); }
+[data-category="org"] { --cat: var(--cat-org); }

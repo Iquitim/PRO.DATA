@@ -262,6 +262,13 @@ function mergeExecution(previous, report) {
 /** Prefixo das fontes do Input Data que são consultas de banco (spec 009). */
 export const QUERY_PREFIX = 'sql:';
 export const API_PREFIX = 'api:';
+const API_PLACEHOLDER = /\{([^{}"':\r\n]+)\}/g;
+/** Colunas que uma API pede, como {sigla}: sem elas, ela precisa do API Loop. */
+export function placeholdersOf(d) {
+  const texts = [d.url, d.method === 'POST' ? d.body : '',
+    ...[...(d.params || []), ...(d.headers || [])].filter((p) => !p.secret).map((p) => p.value)];
+  return [...new Set(texts.flatMap((t) => [...(t || '').matchAll(API_PLACEHOLDER)].map((m) => m[1])))];
+}
 export const apiOf = (source) => (source?.startsWith(API_PREFIX)
   ? store.apis.find((a) => a.id === source.slice(API_PREFIX.length)) || null : null);
 export const queryOf = (source) => (source?.startsWith(QUERY_PREFIX)

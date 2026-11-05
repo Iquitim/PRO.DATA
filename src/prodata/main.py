@@ -28,8 +28,9 @@ from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
 from prodata.nodes import REGISTRY
+from prodata.samples.apis import seed_example_apis
 from prodata.samples.datasets import ensure_sample_datasets
-from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, demo_workflow
+from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, add_api_section, demo_workflow
 from prodata.services.workflows import WorkflowRepository
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -51,6 +52,12 @@ def build_services(settings: Settings) -> Services:
         ensure_sample_datasets(settings.datasets_dir)
         if not workflows.exists(DEMO_WORKFLOW_ID) or _uses_removed_tools(workflows.get(DEMO_WORKFLOW_ID)):
             workflows.save(Workflow.model_validate(demo_workflow()))
+            seed_example_apis(apis)
+        else:
+            saved = workflows.get(DEMO_WORKFLOW_ID).model_dump(mode="json", by_alias=True)
+            if add_api_section(saved):
+                workflows.save(Workflow.model_validate(saved))
+                seed_example_apis(apis)
     return Services(
         settings=settings,
         datasets=datasets,
