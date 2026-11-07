@@ -1,0 +1,106 @@
+/* Editor de fórmulas (spec 010) e referência a constante (spec 028). Saiu de app.css. */
+
+/* código sem ligaduras: "!=", ">=" e "<=" aparecem como digitados (spec 010, RF-1010) */
+code, kbd, pre, textarea, .mono, .code, .input.code, .input.mono { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
+/* ---------------------------------------------------------------- editor de fórmulas (spec 010) */
+.fx { display: flex; flex-direction: column; gap: 6px; }
+.fx-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.fx-ops { display: none; flex-wrap: wrap; align-items: center; gap: 3px; flex-basis: 100%; }
+.fx:focus-within .fx-ops { display: flex; }
+.fx-hint-key { margin-left: auto; font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
+.fx-hint-key kbd { font-size: 9.5px; padding: 0 3px; }
+.fx:focus-within .fx-hint-key { display: none; }
+.fx-tool {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 7px;
+  border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); color: var(--text-2);
+  font: 500 11.5px var(--font); cursor: pointer;
+}
+.fx-tool:hover { color: var(--text); border-color: var(--text-3); }
+.fx-fx { font: italic 700 12px var(--mono); color: var(--fx-fn); }
+.fx-sep { width: 1px; height: 16px; margin: 0 2px; background: var(--border); }
+.fx-chip {
+  height: 22px; min-width: 24px; padding: 0 6px; border: 1px solid var(--border); border-radius: 5px;
+  background: var(--surface-2); font: 600 11.5px var(--mono); cursor: pointer;
+  font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+}
+.fx-chip:hover { background: var(--surface); border-color: var(--border-strong); }
+.fx-chip.fx-cmp { color: var(--fx-cmp); }
+.fx-chip.fx-logic { color: var(--fx-logic); }
+.fx-chip.fx-op { color: var(--fx-op); }
+.fx-chip.fx-kw { color: var(--fx-kw); }
+
+/* textarea transparente sobre o <pre> colorido: mesma fonte, padding e quebra */
+.fx-box {
+  position: relative; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface);
+}
+.fx-box:hover { border-color: var(--text-3); }
+.fx-box:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px var(--accent-weak); }
+.fx-hl, .fx-input {
+  margin: 0; padding: 7px 9px; border: 0; font: 12.5px/1.6 var(--mono); letter-spacing: 0; tab-size: 2;
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal;
+  font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+}
+.fx-hl { position: absolute; inset: 0; overflow: hidden; pointer-events: none; color: var(--text); }
+.fx-mirror { visibility: hidden; height: auto; bottom: auto; }
+.fx-input {
+  position: relative; display: block; width: 100%; min-height: 64px; resize: vertical; overflow: auto;
+  background: transparent; color: transparent; caret-color: var(--text); outline: none;
+}
+.fx-input::placeholder { color: var(--text-3); }
+.fx-input::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); color: transparent; }
+
+.fx-col { color: var(--fx-col); background: var(--fx-col-bg); border-radius: 3px; }
+.fx-fn { color: var(--fx-fn); font-weight: 600; }
+.fx-fn-other { font-weight: 500; }
+.fx-kw { color: var(--fx-kw); font-weight: 700; }
+.fx-logic { color: var(--fx-logic); font-weight: 700; }
+.fx-cmp { color: var(--fx-cmp); font-weight: 700; }
+.fx-op { color: var(--fx-op); }
+.fx-str { color: var(--fx-str); }
+.fx-num { color: var(--fx-num); }
+.fx-const { color: var(--fx-const); font-weight: 600; }
+.fx-paren.fx-d0 { color: var(--fx-d0); }
+.fx-paren.fx-d1 { color: var(--fx-d1); }
+.fx-paren.fx-d2 { color: var(--fx-d2); }
+.fx-match { background: var(--accent-weak); outline: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 2px; }
+.fx-bad { text-decoration: underline wavy var(--err); text-decoration-skip-ink: none; text-underline-offset: 3px; }
+.fx-paren.fx-bad { color: var(--err); font-weight: 700; }
+
+.fx-hint {
+  display: flex; flex-direction: column; gap: 2px; padding: 5px 8px; border-radius: 6px;
+  background: var(--surface-2); border: 1px solid var(--border); font-size: 11.5px; color: var(--text-2);
+}
+.fx-hint-sig { font: 12px var(--mono); color: var(--text); font-variant-ligatures: none; }
+.fx-hint-arg { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; color: var(--accent); }
+
+.fx-suggest {
+  position: fixed; z-index: 1000; width: min(380px, calc(100vw - 16px)); max-height: 270px; overflow-y: auto;
+  padding: 4px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; box-shadow: var(--shadow-lg);
+}
+.fx-item { display: grid; grid-template-columns: 26px auto 1fr; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 12.5px; }
+.fx-item.active { background: var(--accent-weak); }
+.fx-item-kind { font: 700 10.5px var(--mono); text-align: center; color: var(--text-3); }
+.fx-item-function .fx-item-kind { color: var(--fx-fn); }
+.fx-item-column .fx-item-kind { color: var(--fx-col); }
+.fx-item-keyword .fx-item-kind { color: var(--fx-kw); }
+.fx-item-label { font: 600 12.5px var(--mono); }
+.fx-item-detail { font: 11px var(--mono); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.fx-item-doc { margin-top: 4px; padding: 6px 8px 4px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--text-2); display: grid; gap: 3px; }
+.fx-item-doc code { font: 11px var(--mono); color: var(--text); }
+
+.fx-catalog {
+  position: fixed; z-index: 1000; width: min(420px, calc(100vw - 16px)); max-height: 410px; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow-lg);
+}
+.fx-cat-list { overflow-y: auto; min-height: 0; }
+.fx-cat-title { position: sticky; top: 0; padding: 6px 4px 3px; background: var(--surface); font: 600 10.5px var(--font); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.fx-cat-item { display: grid; gap: 2px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; text-align: left; cursor: pointer; color: var(--text); }
+.fx-cat-item:hover, .fx-cat-item:focus-visible { background: var(--accent-weak); outline: none; }
+.fx-cat-sig { font: 12px var(--mono); }
+.fx-cat-desc { font-size: 11.5px; color: var(--text-2); }
+.fx-cat-ex { font: 11px var(--mono); color: var(--text-3); font-variant-ligatures: none; }
+
+/* Constantes (spec 028): âmbar, a cor da referência [#nome] no editor de fórmula. */
+.fx-cst { color: var(--fx-cst); background: var(--fx-cst-bg); border-radius: 3px; font-weight: 600; }
+.fx-cst-tool { color: var(--fx-cst); }

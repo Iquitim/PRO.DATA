@@ -21,6 +21,7 @@ from prodata.domain.labels import (
     Confidentiality,
     needs_protection,
 )
+from prodata.engine import constants as constants_engine
 from prodata.errors import InvalidInputError
 from prodata.forms import ui
 from prodata.ingestion.datasets import resolve_inside, sanitize_filename
@@ -106,7 +107,7 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
     if api_id is not None:
         if ctx.apis is None:
             raise ValueError("APIs não estão disponíveis neste ambiente.")
-        api = ctx.apis.get(api_id)
+        api = _with_constants(ctx.apis.get(api_id), ctx)
         frame, result = read_api(api, ctx.apis.secret_reader(api.id))
         extra: dict[str, Any] = {"source": api.name, "source_read_at": _now(), "api_pages": result.pages}
         if result.truncated:
@@ -132,6 +133,22 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
     if info.linked_path:
         extra["source_linked"] = info.linked_path
     return NodeOutput(tables={"out": df}, extra=extra)
+
+
+def _with_constants(api: Any, ctx: NodeContext) -> Any:
+    """Constantes no endereço e nos parâmetros fixos da API (spec 028): entram com o valor de agora."""
+    if not ctx.constants:
+        return api
+    fill = lambda text: constants_engine.fill_text(text, ctx.constants)  # noqa: E731
+    return api.model_copy(
+        update={
+            "url": fill(api.url),
+            "params": [p if p.secret else p.model_copy(update={"value": fill(p.value)}) for p in api.params],
+            "headers": [
+                h if h.secret else h.model_copy(update={"value": fill(h.value)}) for h in api.headers
+            ],
+        }
+    )
 
 
 def _now() -> str:
@@ -222,7 +239,7 @@ def api_loop(ctx: NodeContext, cfg: ApiLoopConfig) -> NodeOutput:
         raise ValueError("Escolha uma API no campo 'API'.")
     if ctx.apis is None:
         raise ValueError("APIs não estão disponíveis neste ambiente.")
-    api = ctx.apis.get(cfg.source)
+    api = _with_constants(ctx.apis.get(cfg.source), ctx)
     result = run_loop(
         ctx.input(),
         api,

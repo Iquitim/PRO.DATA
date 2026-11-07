@@ -6,6 +6,7 @@ import { api } from './api.js';
 import { fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import { distanceOf, recipeOf, targetOf } from './multirow_recipes.js';
+import { qualityExplain } from './quality_ui.js';
 import { inspect, nodeResult, on, placeholdersOf, store } from './store.js';
 
 const SAMPLE_ROWS = 200;
@@ -493,6 +494,8 @@ export function explainerEl(n, spec) {
     if (spec.explainer === 'join') {
       const [l, r] = await Promise.all([sampleOf(n.id, 'L'), sampleOf(n.id, 'R')]);
       out = join(n, cfg, l, r);
+    } else if (spec.explainer === 'quality') {
+      out = qualityExplain(cfg, await sampleOf(n.id, 'in'), nodeResult(n.id), { mini });
     } else if (spec.explainer === 'multirow') {
       const [rows, answers] = await Promise.all([sampleOf(n.id), ownAnswers(n)]);
       out = multirowExplain(cfg, rows, answers);

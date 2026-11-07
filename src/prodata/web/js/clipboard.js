@@ -42,7 +42,15 @@ function selectionClip(nodeWidth) {
   return { kind: KIND, nodes: clone(nodes), edges: clone(edges), containers: clone(containers), origin: { x: Math.min(...xs), y: Math.min(...ys) } };
 }
 
+/** Caixas de um fluxo em modo protegido não saem dele: colar num fluxo confiável burlaria a proteção. */
+function protectedFlow() {
+  if (!(store.trust?.protected && store.trust.workflowId === store.workflow?.id)) return false;
+  toast('Confie no fluxo antes de copiar caixas dele', { kind: 'info', detail: 'Ele está em modo protegido porque veio de fora.' });
+  return true;
+}
+
 export function copySelection({ nodeWidth = 188 } = {}) {
+  if (protectedFlow()) return false;
   const clip = selectionClip(nodeWidth);
   if (!clip) return false;
   persist(KEY, clip);
@@ -53,6 +61,7 @@ export function copySelection({ nodeWidth = 188 } = {}) {
 }
 
 export function cutSelection({ nodeWidth = 188 } = {}) {
+  if (protectedFlow()) return false;
   const clip = selectionClip(nodeWidth);
   if (!clip) return false;
   persist(KEY, clip);

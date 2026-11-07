@@ -28,6 +28,7 @@ from prodata.domain.execution import (
     NodeResult,
 )
 from prodata.domain.workflow import Node, Workflow
+from prodata.engine import constants as constants_engine
 from prodata.engine import graph
 from prodata.engine.cache import FrozenEntry, NodeEntry, ResultCache
 from prodata.engine.profiling import simple_type
@@ -35,6 +36,7 @@ from prodata.errors import NotFoundError, ProdataError
 from prodata.ingestion.datasets import DatasetStore
 from prodata.nodes import REGISTRY, NodeContext, ToolSpec
 from prodata.nodes.io import OutputDataConfig, export_path
+from prodata.services.constants import ConstantStore
 
 log = logging.getLogger(__name__)
 
@@ -94,7 +96,9 @@ class WorkflowRunner:
         connections: ConnectionStore | None = None,
         queries: QueryStore | None = None,
         apis: ApiStore | None = None,
+        constants: ConstantStore | None = None,
     ) -> None:
+        self.constants = constants
         self.cache = cache
         self.datasets = datasets
         self.exports_dir = exports_dir
@@ -113,6 +117,8 @@ class WorkflowRunner:
         """Executa o fluxo. ``hold_exports``: execução automática (ao abrir o fluxo, trocar de aba): exportações
         em "Perguntar" cujo arquivo já existe esperam o usuário clicar em Executar (spec 017)."""
         started = time.perf_counter()
+        resolution = self.resolve(workflow)
+        workflow = resolution.workflow
         order = graph.topological_order(workflow)
         if target_node_id:
             if target_node_id not in order:
@@ -123,9 +129,36 @@ class WorkflowRunner:
         progress: dict[str, Any] = {"order": order, "running": None, "done": {}}
         self._progress[workflow.id] = progress
         try:
-            return self._run_locked(workflow, order, progress, started, hold_exports)
+            return self._run_locked(workflow, order, progress, started, hold_exports, resolution)
         finally:
             self._progress.pop(workflow.id, None)
+
+    def api_texts(self, node: Node) -> list[str]:
+        """Textos da API que a caixa lê, onde uma constante pode aparecer: endereço e parâmetros fixos."""
+        dataset = str(node.config.get("dataset") or "")
+        api_id = source_api_id(dataset) if node.type == "io.input_data" else node.config.get("source")
+        if self.apis is None or not api_id or node.type not in ("io.input_data", "io.api_loop"):
+            return []
+        try:
+            api = self.apis.get(str(api_id))
+        except NotFoundError, ProdataError:
+            return []
+        return [
+            api.url,
+            *(p.value for p in api.params if not p.secret),
+            *(h.value for h in api.headers if not h.secret),
+        ]
+
+    def resolve(self, workflow: Workflow) -> constants_engine.Resolution:
+        """O fluxo com as constantes trocadas pelo valor (spec 028)."""
+        shared = self.constants.all() if self.constants else {}
+        return constants_engine.resolve(workflow, shared, self.api_texts)
+
+    def snapshot(self, workflow: Workflow) -> Workflow:
+        """Grava no fluxo o valor das constantes compartilhadas que ele usa (RF-2850)."""
+        shared = self.constants.all() if self.constants else {}
+        saved = constants_engine.snapshot(workflow, shared, self.api_texts)
+        return workflow.model_copy(update={"shared_constants": saved})
 
     def _freshness(self, workflow: Workflow, node_id: str) -> str:
         return f"{graph.upstream_signature(workflow, node_id)}:{self._sources_signature(workflow, node_id)}"
@@ -133,7 +166,7 @@ class WorkflowRunner:
     def is_fresh(self, workflow: Workflow, node_id: str) -> bool:
         """O resultado guardado da caixa ainda corresponde à configuração e aos arquivos atuais?"""
         ran = self._ran.get(workflow.id, {}).get(node_id)
-        return ran is not None and ran == self._freshness(workflow, node_id)
+        return ran is not None and ran == self._freshness(self.resolve(workflow).workflow, node_id)
 
     def progress(self, workflow_id: str) -> dict[str, Any]:
         """Caixa em execução e caixas já concluídas da execução em curso (vazio se nada roda)."""
@@ -155,6 +188,7 @@ class WorkflowRunner:
         progress: dict[str, Any],
         started: float,
         hold_exports: bool,
+        resolution: constants_engine.Resolution,
     ) -> ExecutionReport:
         results: dict[str, NodeResult] = {}
         fingerprints: dict[str, str] = {}
@@ -184,7 +218,7 @@ class WorkflowRunner:
                     result = self._frozen_result(workflow, node, spec, frozen[node_id], fingerprints)
                 else:
                     result = self._run_node(
-                        workflow, node, spec, results, fingerprints, hold_exports, progress
+                        workflow, node, spec, results, fingerprints, hold_exports, progress, resolution
                     )
                     if node_id in signatures and result.status in ("executed", "cached"):
                         entry = self.cache.get(workflow.id, node_id)
@@ -334,6 +368,25 @@ class WorkflowRunner:
         fingerprints: dict[str, str],
         hold: bool = False,
         progress: dict[str, Any] | None = None,
+        resolution: constants_engine.Resolution | None = None,
+    ) -> NodeResult:
+        if resolution is not None and node.id in resolution.problems and not node.disabled:
+            return NodeResult(status="error", error=resolution.problems[node.id])
+        result = self._run_node_inner(workflow, node, spec, results, fingerprints, hold, progress, resolution)
+        if resolution is not None and (notes := resolution.warnings.get(node.id)):
+            result.extra = {**result.extra, "warnings": [*result.extra.get("warnings", []), *notes]}
+        return result
+
+    def _run_node_inner(
+        self,
+        workflow: Workflow,
+        node: Node,
+        spec: ToolSpec | None,
+        results: dict[str, NodeResult],
+        fingerprints: dict[str, str],
+        hold: bool,
+        progress: dict[str, Any] | None,
+        resolution: constants_engine.Resolution | None,
     ) -> NodeResult:
         if spec is None:
             return NodeResult(status="error", error=f"Ferramenta desconhecida: {node.type}")
@@ -361,6 +414,7 @@ class WorkflowRunner:
             self.connections,
             self.queries,
             self.apis,
+            constants=resolution.values.get(node.id, {}) if resolution else {},
         )
         if progress is not None:
             ctx.report = lambda text: progress.__setitem__("detail", text)

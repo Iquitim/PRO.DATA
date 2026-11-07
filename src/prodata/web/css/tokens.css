@@ -71,6 +71,7 @@
 
   /* sintaxe de fórmulas (spec 010) */
   --fx-col: #0f766e; --fx-col-bg: #e6f5f2;
+  --fx-cst: #a15c07; --fx-cst-bg: #fbf0de;
   --fx-fn: #7c3aed; --fx-kw: #1d4ed8; --fx-logic: #c2410c; --fx-cmp: #b45309;
   --fx-op: #475569; --fx-str: #15803d; --fx-num: #be185d; --fx-const: #0369a1;
   --fx-d0: #57574f; --fx-d1: #2a63d6; --fx-d2: #b7740f;
@@ -125,6 +126,8 @@
     --shadow-lg: 0 16px 40px rgb(15 16 24 / 0.5);
     --fx-col: #8be9fd;
     --fx-col-bg: #2d4250;
+    --fx-cst: #ffb86c;
+    --fx-cst-bg: #40362c;
     --fx-fn: #50fa7b;
     --fx-kw: #ff79c6;
     --fx-logic: #ff79c6;
@@ -186,6 +189,8 @@
   --shadow-lg: 0 16px 40px rgb(15 16 24 / 0.5);
   --fx-col: #8be9fd;
   --fx-col-bg: #2d4250;
+  --fx-cst: #ffb86c;
+  --fx-cst-bg: #40362c;
   --fx-fn: #50fa7b;
   --fx-kw: #ff79c6;
   --fx-logic: #ff79c6;

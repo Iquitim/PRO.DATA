@@ -1,4 +1,4 @@
-// Painel "Dados": upload, lista de arquivos e diálogo de pré-visualização com opções de leitura.
+// Arquivos: envio, vínculo, exclusão e o diálogo de pré-visualização com opções de leitura. A lista fica na vista Dados.
 
 import { addNode } from './actions.js';
 import { api, ApiError } from './api.js';
@@ -21,7 +21,7 @@ export async function refreshDatasets() {
   emit('datasets');
 }
 
-const accept = () => Object.keys(store.catalog.file_formats).join(',');
+export const accept = () => Object.keys(store.catalog.file_formats).join(',');
 
 /** Lê as opções de leitura do catálogo (mesmos campos do nó Input Data). */
 function readOptionFields() {
@@ -36,7 +36,7 @@ export function formatOf(name, options = {}) {
 
 // ------------------------------------------------------------------ upload
 
-export async function uploadFiles(files, { onUploaded } = {}) {
+export async function uploadFiles(files, { onUploaded, overwrite = false } = {}) {
   for (const file of files) {
     const progress = h('progress', { max: 1, value: 0 });
     const dismiss = toast(`Enviando ${file.name}`, { timeout: 0, detail: fmt.bytes(file.size) });
@@ -44,7 +44,7 @@ export async function uploadFiles(files, { onUploaded } = {}) {
     try {
       let info;
       try {
-        info = await api.uploadDataset(file, { onProgress: (p) => { progress.value = p; } });
+        info = await api.uploadDataset(file, { overwrite, onProgress: (p) => { progress.value = p; } });
       } catch (err) {
         if (!(err instanceof ApiError && err.status === 409)) throw err;
         const ok = await confirmDialog({
@@ -73,32 +73,8 @@ export async function uploadFiles(files, { onUploaded } = {}) {
 /** Data e hora da última modificação do arquivo (vinculado ou cópia). */
 const modifiedText = (d) => (d.modified_at ? `modificado em ${new Date(d.modified_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : '');
 
-function datasetItem(d) {
-  const meta = d.missing ? `Arquivo não encontrado: ${d.linked_path}`
-    : d.linked_path ? `Vinculado · ${FORMAT_LABELS[d.format] || d.format} · ${modifiedText(d)}`
-      : `${FORMAT_LABELS[d.format] || d.format} · ${fmt.bytes(d.size_bytes)} · ${fmt.date(d.modified_at)}`;
-  return h('div', {
-    class: ['dataset-item', d.linked_path && 'linked', d.missing && 'missing'],
-    draggable: 'true',
-    title: d.linked_path
-      ? `Vinculado: ${d.linked_path}\nLido sempre na versão atual do arquivo.\nArraste para o canvas para criar um Input Data`
-      : 'Cópia enviada ao PRO.DATA · arraste para o canvas para criar um Input Data',
-    ondragstart: (e) => {
-      e.dataTransfer.setData(DND_DATASET, d.name);
-      e.dataTransfer.effectAllowed = 'copy';
-    },
-  },
-  h('span', { class: 'dataset-icon' }, icon(d.missing ? 'alert' : d.linked_path ? 'link' : FORMAT_ICONS[d.format] || 'file', 16)),
-  h('button', { type: 'button', class: 'dataset-main', disabled: d.missing, onclick: () => openPreview(d.name) },
-    h('span', { class: 'dataset-name' }, d.name),
-    h('span', { class: 'dataset-meta' }, meta)),
-  h('div', { class: 'dataset-actions' },
-    button({ icon: 'plus', title: 'Adicionar ao fluxo', size: 'sm', variant: 'ghost', onClick: () => addInputNode(d.name) }),
-    button({ icon: 'trash', title: d.linked_path ? 'Remover o vínculo (o arquivo não é apagado)' : 'Excluir arquivo', size: 'sm', variant: 'ghost', onClick: () => removeDataset(d) })));
-}
-
 /** Vincular (spec 017): em vez de copiar, lê o arquivo onde está — pasta da rede, OneDrive — sempre atualizado. */
-async function linkFile() {
+export async function linkFile() {
   const path = await chooseDataFile();
   if (!path) return;
   try {
@@ -117,12 +93,12 @@ async function linkFile() {
   }
 }
 
-function addInputNode(name, options = {}) {
+export function addInputNode(name, options = {}) {
   const c = viewportCenter();
   addNode('io.input_data', c.x - 80, c.y - 28, { ...options, dataset: name, __label: sourceLabel(name) });
 }
 
-async function removeDataset(d) {
+export async function removeDataset(d) {
   const { name } = d;
   const used = store.workflow?.nodes.some((n) => n.config?.dataset === name);
   const warn = used ? ' Este fluxo usa a fonte e deixará de funcionar.' : '';
@@ -144,45 +120,6 @@ async function removeDataset(d) {
   } catch (err) {
     toastError(err, 'Não foi possível excluir');
   }
-}
-
-export function renderDatasetsPanel(root) {
-  const input = h('input', { type: 'file', multiple: true, hidden: true, accept: accept(),
-    onchange: (e) => { uploadFiles([...e.target.files]); e.target.value = ''; } });
-  const drop = h('button', { type: 'button', class: 'dropzone', onclick: () => input.click() },
-    icon('upload', 20),
-    h('strong', {}, 'Enviar arquivos'),
-    h('span', {}, 'Arraste aqui ou clique · CSV, Excel, Parquet, JSON, Arrow'));
-  for (const type of ['dragenter', 'dragover']) {
-    drop.addEventListener(type, (e) => {
-      if (!e.dataTransfer.types.includes('Files')) return;
-      e.preventDefault();
-      drop.classList.add('over');
-    });
-  }
-  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    drop.classList.remove('over');
-    uploadFiles([...e.dataTransfer.files]);
-  });
-
-  const list = h('div', { class: 'dataset-list' });
-  const draw = () => {
-    list.replaceChildren(...(store.datasets.length
-      ? store.datasets.map(datasetItem)
-      : [h('p', { class: 'muted pad' }, 'Nenhum arquivo ainda.')]));
-  };
-  on('datasets', draw);
-  const link = button({
-    icon: 'link', label: 'Vincular arquivo', size: 'sm', class: 'btn btn-sm link-file',
-    title: 'Vincular um arquivo da rede ou do computador: lido onde está, sempre na versão atual (para planilhas atualizadas todo dia)',
-    onClick: linkFile,
-  });
-  root.replaceChildren(h('div', { class: 'pad stack-sm' }, drop, input, link,
-    h('p', { class: 'field-help' }, 'Enviar faz uma cópia. Vincular lê o original: se ele for atualizado, o fluxo pega a versão nova.')),
-    h('div', { class: 'panel-subtitle' }, 'Arquivos'), list);
-  draw();
 }
 
 /** Soltar arquivos do sistema direto no canvas: envia e cria o nó Input Data no ponto. */

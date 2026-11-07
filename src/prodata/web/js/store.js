@@ -14,6 +14,7 @@ export const store = {
   connections: [],
   queries: [], // consultas de banco da aba Dados (spec 009)
   apis: [],
+  constants: [], // constantes compartilhadas, da vista Dados (spec 028)
   workflow: null,
   filePath: null, // arquivo .prodata.json fora da biblioteca, quando aberto/salvo por "Salvar como"
 
@@ -21,6 +22,7 @@ export const store = {
   execution: null,
   running: false,
   progress: null, // andamento da execução em curso (spec 018)
+  trust: null, // abertura protegida (spec 028): { workflowId, protected, summary }
   pending: new Set(), // nós alterados desde a última execução
   // nodeIds: todas as caixas selecionadas; nodeId só quando há exatamente uma (spec 012).
   selection: { nodeId: null, edgeId: null, containerId: null, nodeIds: [] },
@@ -184,6 +186,13 @@ export const canRedo = () => history.redo.length > 0;
 export const node = (id) => store.workflow?.nodes.find((n) => n.id === id) || null;
 export const toolOf = (n) => (n ? store.tools[n.type] : null);
 
+/** `when` olha um campo da configuração, ou um campo de cada item de uma lista: "rules[].values_from". */
+function whenMatches(config, key, values) {
+  const [list, field] = key.split('[].');
+  if (field === undefined) return values.includes(config?.[key]);
+  return (config?.[list] || []).some((item) => values.includes(item?.[field]));
+}
+
 /** Entradas à mostra: as fixas, as extras ligadas e a próxima livre, quando a configuração permite (spec 021). */
 export function visibleInputs(n) {
   const inputs = toolOf(n)?.inputs || [];
@@ -192,7 +201,7 @@ export function visibleInputs(n) {
   return inputs.filter((p) => {
     if (!p.when) return true;
     if (used.has(p.id)) return true;
-    const allowed = Object.entries(p.when).every(([k, values]) => values.includes(n.config?.[k]));
+    const allowed = Object.entries(p.when).every(([k, values]) => whenMatches(n.config, k, values));
     if (!allowed || offered) return false;
     offered = true;
     return true;

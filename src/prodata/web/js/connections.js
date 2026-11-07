@@ -4,11 +4,11 @@
 
 import { addNode } from './actions.js';
 import { api } from './api.js';
-import { DND_DATASET, viewportCenter } from './canvas.js';
+import { viewportCenter } from './canvas.js';
 import { previewTable } from './datasets.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { icon } from './icons.js';
-import { commit, emit, on, QUERY_PREFIX, store } from './store.js';
+import { commit, emit, QUERY_PREFIX, store } from './store.js';
 import { confirmDialog, openDialog, toast, toastError } from './ui.js';
 
 const KINDS = { postgres: 'PostgreSQL', mssql: 'SQL Server' };
@@ -53,7 +53,8 @@ function field(label, control, help) {
     help ? h('p', { class: 'field-help' }, help) : null);
 }
 
-export function openConnectionDialog(existing = null, { onSaved } = {}) {
+/** Formulário de conexão com banco, para um diálogo ou para a vista Dados (spec 028). */
+export function connectionEditor(existing = null, { onSaved } = {}, host) {
   const conn = existing
     ? { ...existing }
     : { id: '', name: '', kind: 'postgres', host: 'localhost', port: 0, database: '', user: '', ssl_mode: 'prefer', encrypt: true, trust_server_certificate: false };
@@ -100,7 +101,7 @@ export function openConnectionDialog(existing = null, { onSaved } = {}) {
     }
   };
 
-  const { close } = openDialog({
+  return {
     title: existing ? `Editar conexão · ${existing.name}` : 'Nova conexão com banco de dados',
     body: h('div', { class: 'form conn-form' },
       h('div', { class: 'conn-grid' },
@@ -118,13 +119,13 @@ export function openConnectionDialog(existing = null, { onSaved } = {}) {
       status),
     actions: [
       button({ label: 'Testar conexão', icon: 'check', onClick: test }),
-      button({ label: 'Cancelar', onClick: () => close() }),
+      button({ label: 'Cancelar', onClick: () => host.close() }),
       button({
         label: 'Salvar', variant: 'primary', icon: 'save',
         onClick: async () => {
           try {
             const saved = await save();
-            close();
+            host.close();
             onSaved?.(saved);
             toast(`Conexão "${saved.name}" salva`, { kind: 'success', detail: saved.has_password ? 'Senha no cofre do Windows.' : 'Sem senha salva.' });
           } catch (err) {
@@ -133,10 +134,17 @@ export function openConnectionDialog(existing = null, { onSaved } = {}) {
         },
       }),
     ],
-  });
+  };
 }
 
-async function removeConnection(c) {
+export function openConnectionDialog(existing = null, opts = {}) {
+  const host = { close: () => {} };
+  const editor = connectionEditor(existing, opts, host);
+  const { close } = openDialog({ title: editor.title, body: editor.body, actions: editor.actions });
+  host.close = close;
+}
+
+export async function removeConnection(c) {
   const used = store.workflow?.nodes.some((n) => n.config?.connection === c.id);
   const dependents = store.queries.filter((q) => q.connection === c.id).length;
   const warnings = [
@@ -161,11 +169,116 @@ async function removeConnection(c) {
 
 // ------------------------------------------------------------------ editor de consulta (spec 009)
 
+const queryConn = (state) => store.connections.find((c) => c.id === state.connection) || null;
+
+/** Prévia de até 100 linhas da tabela ou da consulta escolhida. */
+async function previewQuery(state, meta, grid) {
+  const conn = queryConn(state);
+  if (!conn) return;
+  grid.classList.add('loading');
+  meta.replaceChildren(h('span', { class: 'muted' }, 'Consultando…'));
+  try {
+    const res = await api.previewQuery({ connection: state.connection, mode: state.mode, table: state.table, query: state.query }, 100);
+    meta.replaceChildren(h('span', { class: 'badge' }, icon('check', 12), KINDS[conn.kind]),
+      h('span', { class: 'muted' }, `${res.columns.length} colunas · prévia de ${fmt.int(res.rows.length)} linhas`));
+    grid.replaceChildren(previewTable(res.columns, res.rows));
+  } catch (err) {
+    meta.replaceChildren(h('span', { class: 'text-error' }, icon('alert', 14), err.message));
+    grid.replaceChildren();
+  } finally {
+    grid.classList.remove('loading');
+  }
+}
+
+/** Lista de tabelas e views da conexão, com busca. `onPick(qualified)` ao clicar numa. */
+function tablePicker(state, onPick) {
+  const list = h('div', { class: 'explorer-list' });
+  const search = h('input', { class: 'input input-search input-sm', type: 'search', placeholder: 'Buscar tabela' });
+  let tables = [];
+  const draw = () => {
+    const q = search.value.trim().toLowerCase();
+    const shown = tables.filter((t) => !q || t.qualified.toLowerCase().includes(q));
+    list.replaceChildren(...(shown.length ? shown.map((t) => h('button', {
+      type: 'button', class: ['explorer-item', state.table === t.qualified && 'active'],
+      onclick: () => { state.table = t.qualified; onPick(); draw(); },
+    }, icon(t.type === 'view' ? 'eye' : 'table', 14), h('span', { class: 'ellipsis' }, h('span', { class: 'muted' }, `${t.schema}.`), t.name)))
+      : [h('p', { class: 'muted pad' }, !queryConn(state) ? 'Escolha ou cadastre uma conexão.' : tables.length ? 'Nenhuma tabela encontrada.' : 'Carregando…')]));
+  };
+  search.addEventListener('input', debounce(draw, 150));
+  const load = () => {
+    tables = [];
+    draw();
+    if (!queryConn(state)) return;
+    connectionTables(state.connection).then((t) => { tables = t; draw(); })
+      .catch((err) => list.replaceChildren(h('p', { class: 'text-error pad' }, icon('alert', 14), err.message)));
+  };
+  return { el: h('div', { class: 'explorer-side' }, h('div', { class: 'pad-sm' }, search), list), load };
+}
+
+/** Tabela ou Consulta SQL: as duas maneiras de escolher o que ler. */
+function queryModes(state, tablePane, onPreview) {
+  const queryBox = h('textarea', {
+    class: 'input code', rows: 9, spellcheck: false, placeholder: 'SELECT * FROM vendas WHERE ...',
+    oninput: (e) => { state.query = e.target.value; },
+  }, state.query);
+  const queryPane = h('div', { class: 'explorer-side pad stack-sm' },
+    h('label', { class: 'field-label' }, 'Consulta SQL (somente leitura)'), queryBox,
+    button({ label: 'Pré-visualizar', icon: 'play', onClick: onPreview }),
+    h('p', { class: 'field-help' }, icon('lock', 12), ' Somente SELECT/WITH. A prévia traz até 100 linhas.'));
+  const side = h('div', { class: 'explorer-left' });
+  const tabs = h('div', { class: 'segmented small' });
+  const setMode = (m) => {
+    state.mode = m;
+    for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.m === m));
+    side.replaceChildren(m === 'table' ? tablePane : queryPane);
+    if (m === 'query') queryBox.focus();
+  };
+  tabs.append(...[['table', 'Tabela'], ['query', 'Consulta SQL']].map(([m, l]) => h('button', {
+    type: 'button', class: 'segment', dataset: { m }, onclick: () => setMode(m),
+  }, l)));
+  setMode(state.mode);
+  return h('div', { class: 'explorer-col' }, h('div', { class: 'pad-sm' }, tabs), side);
+}
+
+/** Nome, conexão e reaproveitamento do resultado. `onConnection()` quando a conexão muda. */
+function queryHeader(state, nameInput, onConnection) {
+  const connSelect = h('select', { class: 'input' });
+  const drawConnections = () => connSelect.replaceChildren(
+    h('option', { value: '' }, store.connections.length ? 'Escolha uma conexão…' : 'Nenhuma conexão cadastrada'),
+    ...store.connections.map((c) => h('option', { value: c.id, selected: c.id === state.connection }, `${c.name} · ${KINDS[c.kind]}`)));
+  connSelect.addEventListener('change', () => { state.connection = connSelect.value; onConnection(); });
+  drawConnections();
+  return h('div', { class: 'query-head' },
+    h('div', { class: 'field' }, h('label', { class: 'field-label' }, 'Nome da consulta'), nameInput),
+    h('div', { class: 'field' }, h('label', { class: 'field-label' }, 'Conexão'),
+      h('div', { class: 'row' }, connSelect, button({
+        icon: 'plus', title: 'Nova conexão',
+        onClick: () => openConnectionDialog(null, { onSaved: (c) => { state.connection = c.id; drawConnections(); onConnection(); } }),
+      }))),
+    h('label', { class: 'switch query-cache', title: 'Desligado: o banco é consultado de novo a cada execução.' },
+      h('input', { type: 'checkbox', checked: state.cache_results, onchange: (e) => { state.cache_results = e.target.checked; } }),
+      h('span', { class: 'switch-track' }), h('span', {}, 'Reaproveitar resultado entre execuções')));
+}
+
+/** Grava a consulta e marca como pendentes as caixas do fluxo aberto que a leem. */
+async function saveQuerySource(state) {
+  if (!state.connection) throw new Error('Escolha uma conexão.');
+  if (state.mode === 'table' && !state.table) throw new Error('Escolha uma tabela.');
+  if (state.mode === 'query' && !state.query.trim()) throw new Error('Escreva a consulta.');
+  const name = state.name.trim() || (state.mode === 'table' ? state.table.split('.').pop() : 'Consulta SQL');
+  const saved = await api.saveQuery({ ...state, name, id: state.id || slug(name) });
+  state.id = saved.id;
+  await refreshQueries();
+  const users = (store.workflow?.nodes || []).filter((n) => n.config?.dataset === `${QUERY_PREFIX}${saved.id}`);
+  if (users.length) commit({ affects: users.map((n) => n.id) });
+  return saved;
+}
+
 /**
  * Cria ou edita uma consulta de banco da aba Dados: conexão, tabela ou SQL livre, prévia e nome.
  * `initial` pré-preenche (ex.: conversão do Database Input); `onSaved(query)` substitui a ação padrão.
  */
-export function openQueryEditor({ query = null, connectionId = '', initial = {}, onSaved = null } = {}) {
+export function queryEditor({ query = null, connectionId = '', initial = {}, onSaved = null } = {}, host) {
   const state = {
     id: query?.id || '',
     name: query?.name || initial.name || '',
@@ -176,118 +289,22 @@ export function openQueryEditor({ query = null, connectionId = '', initial = {},
     cache_results: query?.cache_results ?? initial.cache_results ?? false,
   };
   let nameTouched = Boolean(state.name);
-  const list = h('div', { class: 'explorer-list' });
-  const search = h('input', { class: 'input input-search input-sm', type: 'search', placeholder: 'Buscar tabela' });
   const meta = h('div', { class: 'preview-meta' }, h('span', { class: 'muted' }, 'Escolha uma tabela ou escreva uma consulta para ver a prévia.'));
   const grid = h('div', { class: 'preview-table' });
-  const queryBox = h('textarea', {
-    class: 'input code', rows: 9, spellcheck: false, placeholder: 'SELECT * FROM vendas WHERE ...',
-    oninput: (e) => { state.query = e.target.value; },
-  }, state.query);
   const nameInput = h('input', {
     class: 'input', value: state.name, placeholder: 'Ex.: Vendas do mês',
     oninput: (e) => { state.name = e.target.value; nameTouched = true; },
   });
-  const connSelect = h('select', { class: 'input' });
-  let tables = [];
-
-  const conn = () => store.connections.find((c) => c.id === state.connection) || null;
-  const definition = () => ({ connection: state.connection, mode: state.mode, table: state.table, query: state.query });
-  const suggestName = () => {
-    if (nameTouched) return;
-    state.name = state.mode === 'table' && state.table ? state.table.split('.').pop() : state.name;
-    nameInput.value = state.name;
-  };
-
-  const showPreview = async () => {
-    if (!conn()) return;
-    grid.classList.add('loading');
-    meta.replaceChildren(h('span', { class: 'muted' }, 'Consultando…'));
-    try {
-      const res = await api.previewQuery(definition(), 100);
-      meta.replaceChildren(h('span', { class: 'badge' }, icon('check', 12), KINDS[conn().kind]),
-        h('span', { class: 'muted' }, `${res.columns.length} colunas · prévia de ${fmt.int(res.rows.length)} linhas`));
-      grid.replaceChildren(previewTable(res.columns, res.rows));
-    } catch (err) {
-      meta.replaceChildren(h('span', { class: 'text-error' }, icon('alert', 14), err.message));
-      grid.replaceChildren();
-    } finally {
-      grid.classList.remove('loading');
-    }
-  };
-
-  const drawList = () => {
-    const q = search.value.trim().toLowerCase();
-    const shown = tables.filter((t) => !q || t.qualified.toLowerCase().includes(q));
-    list.replaceChildren(...(shown.length ? shown.map((t) => h('button', {
-      type: 'button', class: ['explorer-item', state.table === t.qualified && 'active'],
-      onclick: () => { state.table = t.qualified; suggestName(); drawList(); showPreview(); },
-    }, icon(t.type === 'view' ? 'eye' : 'table', 14), h('span', { class: 'ellipsis' }, h('span', { class: 'muted' }, `${t.schema}.`), t.name)))
-      : [h('p', { class: 'muted pad' }, !conn() ? 'Escolha ou cadastre uma conexão.' : tables.length ? 'Nenhuma tabela encontrada.' : 'Carregando…')]));
-  };
-  search.addEventListener('input', debounce(drawList, 150));
-
-  const loadTables = () => {
-    tables = [];
-    drawList();
-    if (!conn()) return;
-    connectionTables(state.connection).then((t) => { tables = t; drawList(); })
-      .catch((err) => list.replaceChildren(h('p', { class: 'text-error pad' }, icon('alert', 14), err.message)));
-  };
-  const drawConnections = () => {
-    connSelect.replaceChildren(
-      h('option', { value: '' }, store.connections.length ? 'Escolha uma conexão…' : 'Nenhuma conexão cadastrada'),
-      ...store.connections.map((c) => h('option', { value: c.id, selected: c.id === state.connection }, `${c.name} · ${KINDS[c.kind]}`)));
-  };
-  connSelect.addEventListener('change', () => { state.connection = connSelect.value; loadTables(); grid.replaceChildren(); });
-  drawConnections();
-
-  const tablePane = h('div', { class: 'explorer-side' }, h('div', { class: 'pad-sm' }, search), list);
-  const queryPane = h('div', { class: 'explorer-side pad stack-sm' },
-    h('label', { class: 'field-label' }, 'Consulta SQL (somente leitura)'), queryBox,
-    button({ label: 'Pré-visualizar', icon: 'play', onClick: showPreview }),
-    h('p', { class: 'field-help' }, icon('lock', 12), ' Somente SELECT/WITH. A prévia traz até 100 linhas.'));
-  const side = h('div', { class: 'explorer-left' });
-  const tabs = h('div', { class: 'segmented small' }, [['table', 'Tabela'], ['query', 'Consulta SQL']].map(([m, l]) => h('button', {
-    type: 'button', class: 'segment', dataset: { m },
-    onclick: () => setMode(m),
-  }, l)));
-  const setMode = (m) => {
-    state.mode = m;
-    for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.m === m));
-    side.replaceChildren(m === 'table' ? tablePane : queryPane);
-    if (m === 'query') queryBox.focus();
-  };
-  setMode(state.mode);
-
-  const header = h('div', { class: 'query-head' },
-    h('div', { class: 'field' }, h('label', { class: 'field-label' }, 'Nome da consulta'), nameInput),
-    h('div', { class: 'field' }, h('label', { class: 'field-label' }, 'Conexão'),
-      h('div', { class: 'row' }, connSelect, button({
-        icon: 'plus', title: 'Nova conexão',
-        onClick: () => openConnectionDialog(null, { onSaved: (c) => { state.connection = c.id; drawConnections(); loadTables(); } }),
-      }))),
-    h('label', { class: 'switch query-cache', title: 'Desligado: o banco é consultado de novo a cada execução.' },
-      h('input', { type: 'checkbox', checked: state.cache_results, onchange: (e) => { state.cache_results = e.target.checked; } }),
-      h('span', { class: 'switch-track' }), h('span', {}, 'Reaproveitar resultado entre execuções')));
-
-  const persistQuery = async () => {
-    if (!state.connection) throw new Error('Escolha uma conexão.');
-    if (state.mode === 'table' && !state.table) throw new Error('Escolha uma tabela.');
-    if (state.mode === 'query' && !state.query.trim()) throw new Error('Escreva a consulta.');
-    const name = state.name.trim() || (state.mode === 'table' ? state.table.split('.').pop() : 'Consulta SQL');
-    const saved = await api.saveQuery({ ...state, name, id: state.id || slug(name) });
-    state.id = saved.id;
-    await refreshQueries();
-    // Caixas que leem esta consulta ficam desatualizadas até a próxima execução.
-    const users = (store.workflow?.nodes || []).filter((n) => n.config?.dataset === `${QUERY_PREFIX}${saved.id}`);
-    if (users.length) commit({ affects: users.map((n) => n.id) });
-    return saved;
-  };
+  const preview = () => previewQuery(state, meta, grid);
+  const picker = tablePicker(state, () => {
+    if (!nameTouched && state.mode === 'table' && state.table) nameInput.value = state.name = state.table.split('.').pop();
+    preview();
+  });
+  const header = queryHeader(state, nameInput, () => { picker.load(); grid.replaceChildren(); });
   const finish = async (addToFlow) => {
     try {
-      const saved = await persistQuery();
-      close();
+      const saved = await saveQuerySource(state);
+      host.close();
       if (onSaved) onSaved(saved);
       else if (addToFlow) addQueryNode(saved);
       toast(`Consulta "${saved.name}" salva`, { kind: 'success', detail: 'Disponível no Input Data, como um arquivo.' });
@@ -295,29 +312,30 @@ export function openQueryEditor({ query = null, connectionId = '', initial = {},
       toastError(err, 'Não foi possível salvar a consulta');
     }
   };
-
-  const { close } = openDialog({
+  const body = h('div', { class: 'stack-sm' }, header,
+    h('div', { class: 'preview-layout explorer' }, queryModes(state, picker.el, preview), h('div', { class: 'preview-main' }, meta, grid)));
+  picker.load();
+  if ((state.mode === 'table' && state.table) || (state.mode === 'query' && state.query)) preview();
+  return {
     title: query ? `Editar consulta · ${query.name}` : 'Nova consulta de banco',
-    size: 'xl',
-    body: h('div', { class: 'stack-sm' }, header,
-      h('div', { class: 'preview-layout explorer' },
-        h('div', { class: 'explorer-col' }, h('div', { class: 'pad-sm' }, tabs), side),
-        h('div', { class: 'preview-main' }, meta, grid))),
+    body,
     actions: [
-      button({ label: 'Cancelar', onClick: () => close() }),
+      button({ label: 'Cancelar', onClick: () => host.close() }),
       onSaved ? null : button({ label: 'Salvar', icon: 'save', onClick: () => finish(false) }),
-      button({
-        label: onSaved ? 'Salvar' : 'Salvar e adicionar ao fluxo',
-        icon: onSaved ? 'save' : 'plus', variant: 'primary', onClick: () => finish(true),
-      }),
+      button({ label: onSaved ? 'Salvar' : 'Salvar e adicionar ao fluxo', icon: onSaved ? 'save' : 'plus', variant: 'primary', onClick: () => finish(true) }),
     ].filter(Boolean),
-  });
-
-  loadTables();
-  if ((state.mode === 'table' && state.table) || (state.mode === 'query' && state.query)) showPreview();
+  };
 }
 
-async function removeQuery(q) {
+/** O mesmo formulário num diálogo: usado pelos atalhos do Configurar. */
+export function openQueryEditor(opts = {}) {
+  const host = { close: () => {} };
+  const editor = queryEditor(opts, host);
+  const { close } = openDialog({ title: editor.title, size: 'xl', body: editor.body, actions: editor.actions });
+  host.close = close;
+}
+
+export async function removeQuery(q) {
   const used = store.workflow?.nodes.some((n) => n.config?.dataset === `${QUERY_PREFIX}${q.id}`);
   const ok = await confirmDialog({
     title: 'Excluir consulta',
@@ -332,65 +350,4 @@ async function removeQuery(q) {
   } catch (err) {
     toastError(err, 'Não foi possível excluir');
   }
-}
-
-// ------------------------------------------------------------------ painel
-
-function queryItem(q) {
-  const c = store.connections.find((x) => x.id === q.connection);
-  const what = q.mode === 'table' ? q.table : q.query.split(/\s+/).join(' ').slice(0, 40);
-  return h('div', {
-    class: 'dataset-item query-item', draggable: 'true', title: 'Arraste para o canvas para criar um Input Data',
-    ondragstart: (e) => {
-      e.dataTransfer.setData(DND_DATASET, `${QUERY_PREFIX}${q.id}`);
-      e.dataTransfer.effectAllowed = 'copy';
-    },
-  },
-  h('span', { class: 'dataset-icon' }, icon('server', 16)),
-  h('button', { type: 'button', class: 'dataset-main', onclick: () => openQueryEditor({ query: q }), title: 'Editar consulta e ver prévia' },
-    h('span', { class: 'dataset-name' }, q.name),
-    h('span', { class: 'dataset-meta' }, `${c ? c.name : 'conexão excluída'} · ${what.trim()}`)),
-  h('div', { class: 'dataset-actions' },
-    button({ icon: 'plus', title: 'Adicionar ao fluxo', size: 'sm', variant: 'ghost', onClick: () => addQueryNode(q) }),
-    button({ icon: 'trash', title: 'Excluir consulta', size: 'sm', variant: 'ghost', onClick: () => removeQuery(q) })));
-}
-
-export function renderQueriesSection(root) {
-  const list = h('div', { class: 'dataset-list' });
-  const draw = () => list.replaceChildren(...(store.queries.length
-    ? store.queries.map(queryItem)
-    : [h('p', { class: 'muted pad' }, store.connections.length
-      ? 'Nenhuma consulta. Crie uma para ler uma tabela ou um SQL no Input Data.'
-      : 'Cadastre uma conexão abaixo e crie consultas para usá-las no Input Data.')]));
-  on('queries', draw);
-  on('connections', draw);
-  root.append(
-    h('div', { class: 'panel-subtitle row space-between' }, 'Consultas de banco',
-      button({ icon: 'plus', label: 'Nova', size: 'sm', variant: 'ghost', onClick: () => openQueryEditor() })),
-    list);
-  draw();
-}
-
-function connectionItem(c) {
-  return h('div', { class: 'dataset-item conn-item' },
-    h('span', { class: 'dataset-icon' }, icon('link', 16)),
-    h('button', { type: 'button', class: 'dataset-main', onclick: () => openQueryEditor({ connectionId: c.id }), title: 'Nova consulta com esta conexão' },
-      h('span', { class: 'dataset-name' }, c.name),
-      h('span', { class: 'dataset-meta' }, `${KINDS[c.kind]} · ${c.host}/${c.database}${c.has_password ? '' : ' · sem senha'}`)),
-    h('div', { class: 'dataset-actions' },
-      button({ icon: 'edit', title: 'Editar conexão', size: 'sm', variant: 'ghost', onClick: () => openConnectionDialog(c) }),
-      button({ icon: 'trash', title: 'Excluir conexão', size: 'sm', variant: 'ghost', onClick: () => removeConnection(c) })));
-}
-
-export function renderConnectionsSection(root) {
-  const list = h('div', { class: 'dataset-list' });
-  const draw = () => list.replaceChildren(...(store.connections.length
-    ? store.connections.map(connectionItem)
-    : [h('p', { class: 'muted pad' }, 'Nenhuma conexão. PostgreSQL e SQL Server são suportados.')]));
-  on('connections', draw);
-  root.append(
-    h('div', { class: 'panel-subtitle row space-between' }, 'Conexões com bancos',
-      button({ icon: 'plus', label: 'Nova', size: 'sm', variant: 'ghost', onClick: () => openConnectionDialog() })),
-    list);
-  draw();
 }

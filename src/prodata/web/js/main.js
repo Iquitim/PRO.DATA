@@ -8,9 +8,13 @@ import {
 import { copySelection, cutSelection, paste } from './clipboard.js';
 import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
 import { askExports } from './exports_ask.js';
-import { refreshApis, renderApisSection } from './apis.js';
-import { refreshConnections, refreshQueries, renderConnectionsSection, renderQueriesSection } from './connections.js';
-import { enableFileDropOnCanvas, refreshDatasets, renderDatasetsPanel } from './datasets.js';
+import { refreshApis } from './apis.js';
+import { refreshConnections, refreshQueries } from './connections.js';
+import { refreshConstants } from './constants.js';
+import { openFlowConstants } from './constants_ui.js';
+import { renderSourcesPanel } from './data_panel.js';
+import { initDataView, openInData, showDataView } from './data_view.js';
+import { enableFileDropOnCanvas, refreshDatasets } from './datasets.js';
 import { basename, chooseOpenFile, chooseSaveFile, dirname } from './desktop.js';
 import {
   activeIndex, anyDirty, dirtyTabs, findTab, openTab, persistTabs, removeTab, savedTabs, switchTab, tabCount, tabInfo,
@@ -23,6 +27,7 @@ import { initLayout, openPanelsMenu, panelControls } from './layout.js';
 import { renderPalette } from './palette.js';
 import { initResults, showLog } from './results.js';
 import { handleSqlKey, initSqlView, renderSqlView } from './sql_view.js';
+import { blockedByTrust, initTrustBanner, refreshTrust, resetTrustBanner } from './trust_banner.js';
 import {
   canRedo, canUndo, emit, inspect, markSaved, mutate, on, redo, select, selectedIds, selectMany, setExecution, store, undo,
 } from './store.js';
@@ -59,6 +64,7 @@ async function resolveExports(targetNodeId) {
  */
 async function run(targetNodeId = null, { auto = false } = {}) {
   if (store.running || !store.workflow) return;
+  if (await blockedByTrust({ auto })) return; // fluxo de fora, ainda não confirmado: nada executa (spec 028)
   let workflow = store.workflow;
   if (!auto) {
     try {
@@ -396,6 +402,7 @@ function setView(view, { sqlNode = null } = {}) {
   for (const b of document.querySelectorAll('#viewSwitch .segment')) b.setAttribute('aria-selected', String(b.dataset.view === view));
   if (view === 'dashboard') renderDashboard();
   else if (view === 'sql') renderSqlView(sqlNode);
+  else if (view === 'data') showDataView();
   else renderCanvas();
 }
 
@@ -501,6 +508,10 @@ function buildCanvasToolbar() {
     button({ icon: 'fit', title: 'Ajustar à tela (F)', variant: 'ghost', onClick: fitView }),
     h('div', { class: 'divider-v' }),
     button({ icon: 'group', label: 'Etapa', title: 'Nova etapa / contêiner (G)', variant: 'ghost', onClick: addContainerAtCenter }),
+    button({
+      icon: 'hash', label: 'Constantes', title: 'Constantes do fluxo: valores com nome, como o mês de referência', variant: 'ghost',
+      onClick: () => openFlowConstants({ openData: (key) => { if (key) openInData(key); setView('data'); } }),
+    }),
   );
 }
 
@@ -523,10 +534,7 @@ function buildLeftPanel() {
   tabs.append(panelControls('explorer'));
   $('#leftPanel').replaceChildren(tabs, ...Object.values(panes));
   renderPalette(panes.tools);
-  renderDatasetsPanel(panes.data);
-  renderQueriesSection(panes.data);
-  renderApisSection(panes.data);
-  renderConnectionsSection(panes.data);
+  renderSourcesPanel(panes.data, { openInData: (key) => { if (key) openInData(key); setView('data'); } });
   initInspector(panes.config, { runTo: (id) => run(id), run: () => run(), refreshCache });
   on('selection', () => { if (store.selection.nodeId || store.selection.containerId || selectedIds().length > 1) show('config'); });
 }
@@ -644,6 +652,8 @@ async function boot() {
   buildTopbar();
   buildCanvasToolbar();
   buildStatusbar();
+  initTrustBanner($('#canvas'), { confirmed: () => run() });
+  on('workflow:loaded', () => { resetTrustBanner(); refreshTrust(); });
   initCanvas($('#canvas'), { runTo: (id) => run(id), run: () => run(), refreshCache, viewSql: (id) => setView('sql', { sqlNode: id }) });
   enableFileDropOnCanvas($('#canvas'));
   buildLeftPanel();
@@ -651,6 +661,20 @@ async function boot() {
   initInsights($('#insights'), { openDashboard: () => setView('dashboard') });
   initDashboard($('#dashboard'), { run: () => run(), showDesigner: () => setView('designer') });
   initSqlView($('#sqlView'));
+  initDataView($('#dataView'), {
+    showDesigner: () => setView('designer'),
+    // Do mapa de uso: abre o fluxo (ou a aba onde ele já está) com a caixa escolhida.
+    openFlow: async (workflowId, nodeId) => {
+      try {
+        if (store.workflow?.id !== workflowId) await open(await api.workflow(workflowId), { autorun: false });
+        setView('designer');
+        if (nodeId) { select(nodeId); inspect(nodeId); }
+      } catch (err) {
+        toastError(err, 'Não foi possível abrir o fluxo');
+      }
+    },
+  });
+
   setupShortcuts();
   setView('designer');
 
@@ -659,6 +683,7 @@ async function boot() {
     refreshConnections().catch((err) => toastError(err, 'Não foi possível listar as conexões')),
     refreshQueries().catch((err) => toastError(err, 'Não foi possível listar as consultas')),
     refreshApis().catch((err) => toastError(err, 'Não foi possível listar as APIs')),
+    refreshConstants().catch((err) => toastError(err, 'Não foi possível listar as constantes')),
   ]);
 
   await restoreTabs();

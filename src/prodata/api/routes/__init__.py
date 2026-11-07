@@ -2,12 +2,15 @@ from prodata.api.routes import (
     apis,
     catalog,
     connections,
+    constants,
     dashboard,
     datasets,
     execution,
     files,
     queries,
     sql,
+    trust,
+    usage,
     workflows,
 )
 
@@ -15,6 +18,7 @@ routers = [
     catalog.router,
     datasets.router,
     connections.router,
+    constants.router,
     queries.router,
     apis.router,
     workflows.router,
@@ -22,4 +26,6 @@ routers = [
     execution.router,
     dashboard.router,
     sql.router,
+    trust.router,
+    usage.router,
 ]

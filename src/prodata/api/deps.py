@@ -14,6 +14,9 @@ from prodata.connectors.queries import QueryStore
 from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
 from prodata.ingestion import DatasetStore
+from prodata.services.constants import ConstantStore
+from prodata.services.trust import TrustRegistry
+from prodata.services.usage import UsageIndex
 from prodata.services.workflows import WorkflowRepository
 
 
@@ -27,6 +30,9 @@ class Services:
     connections: ConnectionStore
     queries: QueryStore
     apis: ApiStore
+    trust: TrustRegistry
+    usage: UsageIndex
+    constants: ConstantStore
 
 
 def get_services(request: Request) -> Services:

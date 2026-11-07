@@ -24,7 +24,6 @@ import {
   inspect,
   isSelected,
   node,
-  nodeResult,
   on,
   select,
   selectedIds,
@@ -32,17 +31,17 @@ import {
   sourceLabel,
   store,
   toggleSelected,
-  toolOf,
-  visibleInputs,
 } from './store.js';
 import { closeMenu, showMenu, toast } from './ui.js';
 import { els, nodeEls, state, toWorld, view } from './canvas_state.js';
 import { NODE_MIN_H, NODE_W, nodeHeight, portPoint } from './canvas_geometry.js';
 import { canSplice, edgeNear, edgeThroughRect, highlightEdge } from './canvas_hit.js';
 import { openQuickAdd } from './canvas_quickadd.js';
-import { MAX_ANIMATED_NEW, renderEdges, setFlowTarget } from './canvas_edges.js';
+import { renderEdges } from './canvas_edges.js';
 import { containerMenu, dropContainer, placeContainerEl, renameContainer, renderContainers } from './canvas_containers.js';
 import { cacheActions, selectionActions } from './canvas_actions.js';
+import { renderNodes } from './canvas_nodes.js';
+export { heldBy, showProgress } from './canvas_nodes.js';
 export { cacheActions, selectionActions } from './canvas_actions.js';
 export { addContainerAtCenter } from './canvas_containers.js';
 export { isAreaFree } from './canvas_hit.js';
@@ -110,160 +109,6 @@ export function fitView({ minZoom = MIN_ZOOM } = {}) {
 
 // ------------------------------------------------------------------ render
 
-function statusOf(n) {
-  if (n.disabled) return 'disabled';
-  const res = nodeResult(n.id);
-  if (store.pending.has(n.id) && res?.status !== 'error') return 'pending';
-  if (res?.extra?.held) return 'held'; // antes de um ponto de cache: não precisou executar
-  return res?.status || 'pending';
-}
-
-/**
- * Caixas puladas por pontos de cache (spec 016): id da caixa → o ponto de cache que a dispensou.
- * Só o resultado do ponto de cache é guardado; as caixas antes dele não executam enquanto nada mudar.
- */
-export function heldBy() {
-  const out = new Map();
-  const parents = new Map();
-  for (const e of store.workflow?.edges || []) {
-    if (!parents.has(e.target)) parents.set(e.target, []);
-    parents.get(e.target).push(e.source);
-  }
-  for (const cp of (store.workflow?.nodes || []).filter((n) => n.cache_point && nodeResult(n.id)?.extra?.cache_point === 'frozen')) {
-    const stack = [...(parents.get(cp.id) || [])];
-    while (stack.length) {
-      const id = stack.pop();
-      if (out.has(id) || !nodeResult(id)?.extra?.held) continue;
-      out.set(id, cp);
-      stack.push(...(parents.get(id) || []));
-    }
-  }
-  return out;
-}
-
-const STATUS_TITLES = {
-  executed: 'Executado', cached: 'Executado (cache)', error: 'Erro', skipped: 'Não executado',
-  disabled: 'Desabilitado', pending: 'Alterado desde a última execução',
-  held: 'Pulada: o ponto de cache adiante já tem o resultado, então esta caixa não precisou executar',
-};
-
-function portEl(n, port, output, count) {
-  const labelled = count > 1 || port.kind === 'model' || !['in', 'out'].includes(port.id);
-  const top = (nodeHeight(n) * (port.index + 1)) / (count + 1);
-  return h('div', {
-    class: ['port', output ? 'out' : 'in', port.kind === 'model' && 'model',
-      (output ? !store.inspect.via && store.inspect.nodeId === n.id && store.inspect.anchor === port.id
-        : store.inspect.via?.nodeId === n.id && store.inspect.via?.port === port.id) && 'inspected'],
-    style: { top: `${top}px` },
-    dataset: { port: port.id, node: n.id },
-    title: `${output ? 'Saída' : 'Entrada'} [${port.label}] · ${port.title}\n${output
-      ? 'Clique para ver os dados que saem · arraste para conectar' : 'Clique para ver os dados que chegam'}`,
-  }, labelled ? port.label : '');
-}
-
-function buildNode(n) {
-  const spec = toolOf(n);
-  const res = nodeResult(n.id);
-  const status = statusOf(n);
-  const inputs = visibleInputs(n).map((p, index) => ({ ...p, index }));
-  const outputs = (spec?.outputs || []).map((p, index) => ({ ...p, index }));
-  const cp = state.held.get(n.id);
-  const annotation = status === 'error' ? 'Erro — veja a configuração'
-    : cp && status === 'held' ? 'Pulada pelo cache'
-      : res?.annotation || spec?.name || '';
-  return h('div', {
-    class: ['node', `status-${status}`, cp && store.selection.nodeId === cp.id && 'held-focus',
-      isSelected(n.id) && 'selected',
-      n.cache_point && 'cache-point',
-      !store.inspect.via && store.inspect.nodeId === n.id && 'inspected'],
-    dataset: { id: n.id, category: spec?.category || 'prep' },
-    style: { transform: `translate(${n.x}px, ${n.y}px)`, width: `${NODE_W}px`, height: `${nodeHeight(n)}px` },
-  },
-  h('div', {
-    class: 'node-card',
-    title: [n.label || spec?.name, res?.annotation, res?.error,
-      cp && status === 'held' ? `Não executou: o ponto de cache “${cp.label || toolOf(cp)?.name}” já tem o resultado.` : null,
-    ].filter(Boolean).join('\n'),
-  },
-  h('span', { class: 'node-icon' }, icon(spec?.icon || 'info', 16)),
-  h('span', { class: 'node-text' },
-    h('span', { class: 'node-label' }, n.label || spec?.name || n.type),
-    h('span', { class: 'node-annot' }, annotation)),
-  h('span', { class: 'node-status', title: STATUS_TITLES[status] })),
-  n.cache_point ? h('span', {
-    class: 'node-cache', title: res?.extra?.frozen_at
-      ? `Ponto de cache · resultado guardado em ${new Date(res.extra.frozen_at).toLocaleString('pt-BR')}`
-      : 'Ponto de cache · execute para guardar o resultado',
-  }, icon('database', 11), 'cache') : null,
-  h('button', {
-    type: 'button', class: 'node-delete', title: 'Excluir caixa (Delete)', 'aria-label': `Excluir ${n.label || spec?.name}`,
-    onclick: (ev) => { ev.stopPropagation(); removeNodes([n.id]); },
-  }, icon('trash', 13)),
-  inputs.map((p) => portEl(n, p, false, inputs.length)),
-  outputs.map((p) => portEl(n, p, true, outputs.length)));
-}
-
-function nodeKey(n) {
-  const res = nodeResult(n.id);
-  return JSON.stringify([n.type, n.label, n.disabled, n.cache_point, statusOf(n), res?.annotation, res?.error, visibleInputs(n).map((p) => p.id),
-    res?.extra?.frozen_at, isSelected(n.id), !store.inspect.via && store.inspect.nodeId === n.id && store.inspect.anchor,
-    state.held.get(n.id)?.id, state.held.get(n.id) && store.selection.nodeId === state.held.get(n.id).id,
-    store.inspect.via?.nodeId === n.id && store.inspect.via.port]);
-}
-
-/**
- * Andamento da execução nas caixas (spec 018): a da vez brilha, as concluídas ganham um sinal e as que
- * ainda vão rodar ficam esmaecidas. `null` limpa tudo ao terminar.
- */
-export function showProgress(progress) {
-  const order = new Set(progress?.order || []);
-  for (const [id, { el }] of nodeEls) {
-    const done = progress?.done?.[id];
-    el.classList.toggle('run-now', !!progress && progress.running === id && !done);
-    el.classList.toggle('run-done', !!done);
-    el.classList.toggle('run-wait', !!progress && order.has(id) && !done && progress.running !== id);
-  }
-  els.viewport.classList.toggle('is-running', !!progress);
-  const running = progress?.running || null;
-  setFlowTarget(running);
-}
-
-function renderNodes() {
-  const wf = store.workflow;
-  state.held = heldBy();
-  const alive = new Set();
-  // Caixa recém-criada surge com um leve crescimento; abrir um fluxo não anima nada.
-  const unseen = nodesWorkflow === wf.id ? wf.nodes.filter((n) => !nodeEls.has(n.id)) : [];
-  if (unseen.length <= MAX_ANIMATED_NEW) for (const n of unseen) enteringUntil.set(n.id, performance.now() + ENTER_MS);
-  nodesWorkflow = wf.id;
-  for (const n of wf.nodes) {
-    alive.add(n.id);
-    const key = nodeKey(n);
-    const current = nodeEls.get(n.id);
-    if (current && current.key === key) {
-      current.el.style.transform = `translate(${n.x}px, ${n.y}px)`;
-      continue;
-    }
-    const el = buildNode(n);
-    // A caixa nova costuma ser refeita logo em seguida, ao ser selecionada: a animação continua nela.
-    if (enteringUntil.get(n.id) > performance.now()) el.classList.add('node-enter');
-    else enteringUntil.delete(n.id);
-    if (current) current.el.replaceWith(el);
-    else els.nodes.append(el);
-    nodeEls.set(n.id, { el, key });
-  }
-  for (const [id, { el }] of nodeEls) {
-    if (!alive.has(id)) {
-      el.remove();
-      nodeEls.delete(id);
-    }
-  }
-}
-
-let nodesWorkflow = null;
-const ENTER_MS = 200;
-const enteringUntil = new Map();
-
 export function render({ containers = false } = {}) {
   if (!store.workflow) return;
   if (containers) renderContainers();
@@ -305,7 +150,7 @@ export function inspectInput(nodeId, port) {
 
 function onPointerDown(e) {
   // A barra flutuante fica dentro do canvas: sem isto o pan capturaria o ponteiro e o clique não chegaria aos botões.
-  if (e.button === 2 || e.target.closest('.canvas-toolbar')) return;
+  if (e.button === 2 || e.target.closest('.canvas-toolbar, .trust-host')) return;
   closeMenu();
   const target = e.target;
   const world = toWorld(e.clientX, e.clientY);
@@ -584,6 +429,7 @@ function onPointerUp(e) {
 }
 
 function onWheel(e) {
+  if (e.target.closest('.trust-host')) return; // a lista da faixa rola sozinha, sem mexer no zoom
   e.preventDefault();
   if (e.ctrlKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
     zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY);
@@ -605,7 +451,7 @@ function renameNodeInInspector(id) {
 
 function onContextMenu(e) {
   e.preventDefault();
-  if (e.target.closest('.canvas-toolbar')) return;
+  if (e.target.closest('.canvas-toolbar, .trust-host')) return;
   const world = toWorld(e.clientX, e.clientY);
   const pasteItem = (label = 'Colar aqui') => ({
     label, icon: 'clipboard', shortcut: 'Ctrl+V', disabled: !hasClipboard(), onSelect: () => paste(world),
@@ -745,7 +591,7 @@ export function initCanvas(root, opts = {}) {
   root.addEventListener('dragleave', () => highlightEdge(null));
   root.addEventListener('drop', onDrop);
   root.addEventListener('dblclick', (e) => {
-    if (!e.target.closest('.node, .container-box, .canvas-toolbar')) openQuickAdd(e.clientX, e.clientY, { to: toWorld(e.clientX, e.clientY) });
+    if (!e.target.closest('.node, .container-box, .canvas-toolbar, .trust-host')) openQuickAdd(e.clientX, e.clientY, { to: toWorld(e.clientX, e.clientY) });
   });
 
   on('workflow:loaded', (payload) => {

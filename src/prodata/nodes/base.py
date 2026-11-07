@@ -60,6 +60,8 @@ class NodeContext:
     apis: ApiStore | None = None
     # Andamento dentro da caixa, para a barra de status: "37/500 chamadas".
     report: Callable[[str], None] = lambda _text: None
+    # Constantes que a caixa usa (spec 028), já com o valor: a API lê as dela nos parâmetros fixos.
+    constants: dict[str, Any] = field(default_factory=dict)
 
     def input(self, port: str = "in") -> pl.DataFrame:
         if port not in self.inputs:

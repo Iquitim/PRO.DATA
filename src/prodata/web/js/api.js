@@ -105,6 +105,12 @@ export const api = {
   sqlGenerate: (workflow, selection = [], temporaryNode = null) =>
     request('POST', '/api/sql/generate', { workflow, selection, temporary_node: temporaryNode }),
   sqlVerify: (workflow) => request('POST', '/api/sql/verify', { workflow }),
+  trustState: (workflow) => request('POST', '/api/trust/state', { workflow }),
+  usage: () => request('GET', '/api/usage'),
+  constants: () => request('GET', '/api/constants'),
+  saveConstant: (constant, previous = null) => request('POST', '/api/constants', { constant, previous }),
+  deleteConstant: (name) => request('DELETE', `/api/constants/${enc(name)}`),
+  trustConfirm: (workflow) => request('POST', '/api/trust/confirm', { workflow }),
   sqlVerifyStatus: (workflowId) => request('GET', `/api/sql/verify/${encodeURIComponent(workflowId)}`),
   sqlDownload: async (workflow, selection, temporaryNode, mode) => {
     const res = await fetch('/api/sql/download', {
@@ -125,7 +131,8 @@ export const api = {
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}/values?${new URLSearchParams({ column, limit, search })}`),
   results: (wfId, nodeId, anchor, params) =>
     request('GET', `/api/results/${enc(wfId)}/${enc(nodeId)}/${enc(anchor)}?${new URLSearchParams(params)}`),
-  validateFormula: (expression, columns, multirow = false) => request('POST', '/api/formula/validate', { expression, columns, multirow }),
+  validateFormula: (expression, columns, multirow = false, constants = []) =>
+    request('POST', '/api/formula/validate', { expression, columns, multirow, constants }),
 
   arrangeDashboard: (body) => request('POST', '/api/dashboard/arrange', body),
   placeDashboard: (body) => request('POST', '/api/dashboard/place', body),

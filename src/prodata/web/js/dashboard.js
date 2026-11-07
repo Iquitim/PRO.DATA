@@ -196,7 +196,7 @@ function exportButton({ icon: name, label, kind, onClick }) {
   el.removeAttribute('title'); // a dica já explica; o título nativo apareceria por cima dela
   const badge = guardBadge(level(), kind);
   if (badge) el.append(badge);
-  return withLabelTip(el, level, 'dash');
+  return withLabelTip(el, level, kind === 'html' ? 'html' : 'image');
 }
 
 const menuAt = (items) => (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, items()); };

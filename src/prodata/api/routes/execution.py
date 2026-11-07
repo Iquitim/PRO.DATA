@@ -27,6 +27,7 @@ class ExecuteRequest(BaseModel):
 @router.post("/execute")
 def execute(req: ExecuteRequest, services: ServicesDep) -> ExecutionReport:
     """Executa o fluxo inteiro ou apenas até ``target_node_id`` (o nó e seus ancestrais)."""
+    services.trust.check_runnable(req.workflow.id)
     return services.runner.run(req.workflow, req.target_node_id, hold_exports=req.hold_exports)
 
 

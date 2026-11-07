@@ -9,8 +9,10 @@ import { button, debounce, fmt, h } from './dom.js';
 import { icon } from './icons.js';
 import { labelPicker } from './label_picker.js';
 import { RECIPES } from './multirow_recipes.js';
+import { qualityRulesField } from './quality_ui.js';
+import { allowedValuesField } from './quality_values.js';
 import { formulaEditor } from './formula_editor.js';
-import { API_PREFIX, QUERY_PREFIX } from './store.js';
+import { API_PREFIX, QUERY_PREFIX, store } from './store.js';
 
 const TYPE_LABEL = { Int64: '123', Float64: '1.2', String: 'abc', Boolean: 'v/f', Date: 'data' };
 
@@ -212,7 +214,8 @@ function expression(field, value, set, ctx, id) {
       return;
     }
     try {
-      const res = await api.validateFormula(expr, cols.map(({ name, type }) => ({ name, type })), Boolean(field.multirow));
+      const res = await api.validateFormula(expr, cols.map(({ name, type }) => ({ name, type })), Boolean(field.multirow),
+        store.workflow?.constants || []);
       status.className = `expr-status ${res.valid ? 'ok' : 'err'}`;
       status.replaceChildren(icon(res.valid ? 'check' : 'alert', 13), res.valid ? 'Expressão válida' : res.error);
     } catch {
@@ -759,5 +762,7 @@ const WIDGETS = {
   rename_labels: renameLabels,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
   recipe_cards: recipeCards, confidentiality,
+  quality_rules: (f, v, s, c) => qualityRulesField(f, v, s, c, { renderFields }),
+  allowed_values: allowedValuesField,
   list, select_columns: selectColumns, sheet_ports: sheetPorts, api_source: apiSource, api_params: apiParams, grid, object, connection: connectionField, db_table: dbTable, db_query: dbQuery,
 };

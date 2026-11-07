@@ -10,9 +10,12 @@
   <link rel="stylesheet" href="/static/css/fonts.css" />
   <link rel="stylesheet" href="/static/css/tokens.css" />
   <link rel="stylesheet" href="/static/css/app.css" />
+  <link rel="stylesheet" href="/static/css/formula.css" />
   <link rel="stylesheet" href="/static/css/canvas.css" />
   <link rel="stylesheet" href="/static/css/data.css" />
   <link rel="stylesheet" href="/static/css/apis.css" />
+  <link rel="stylesheet" href="/static/css/tools.css" />
+  <link rel="stylesheet" href="/static/css/data_view.css" />
   <link rel="stylesheet" href="/static/css/dashboard.css" />
   <link rel="stylesheet" href="/static/css/sql.css" />
   <link rel="stylesheet" href="/static/css/brand.css" />
@@ -29,6 +32,8 @@
       <span id="fileBadge" class="file-badge" hidden></span>
     </div>
     <nav id="viewSwitch" class="segmented" role="tablist" aria-label="Visualização">
+      <button type="button" class="segment" role="tab" data-view="data" aria-selected="false" title="Todas as fontes de dados, para todos os fluxos">Dados</button>
+      <span class="view-sep" aria-hidden="true"></span>
       <button type="button" class="segment" role="tab" data-view="designer" aria-selected="true">Designer</button>
       <button type="button" class="segment" role="tab" data-view="dashboard" aria-selected="false">Dashboard</button>
       <button type="button" class="segment" role="tab" data-view="sql" aria-selected="false">SQL</button>
@@ -63,6 +68,7 @@
     <div class="resizer resizer-v" data-resize="right" aria-hidden="true"></div>
     <div id="slot-right" class="slot slot-side" data-slot="right"></div>
 
+    <section id="dataView" class="data-view" aria-label="Dados"></section>
     <section id="dashboard" class="dashboard" aria-label="Dashboard"></section>
     <section id="sqlView" class="sql-view" aria-label="SQL"></section>
     <div id="panelDropTargets" class="panel-drop-targets" aria-hidden="true"></div>

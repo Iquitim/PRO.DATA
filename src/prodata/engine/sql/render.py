@@ -92,6 +92,12 @@ def _header(plan: SqlPlan, outputs: list[Output], steps: list[str], states: dict
         ("-- Saídas: " if len(outputs) > 1 else "-- Saída: ") + comment(", ".join(o.name for o in outputs))
     )
     lines.append("-- Fontes necessárias: " + comment(", ".join(_sources(plan, steps)) or "nenhuma"))
+    used: dict[str, str] = {}
+    for step in steps:
+        used |= plan.workflow.node(plan.blocks[step].node_id).config.get("__constants") or {}
+    if used:
+        values = ", ".join(f"{name} = {value.split(':', 1)[1]}" for name, value in sorted(used.items()))
+        lines.append(f"-- Constantes usadas (o valor já está no código): {comment(values)}")
     for output in outputs:
         state = states.get(output.id)
         if state:

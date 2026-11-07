@@ -9,7 +9,7 @@ from prodata.engine.formula import FormulaError
 from prodata.engine.graph import GraphError
 from prodata.errors import ProdataError
 
-_STATUS = {"not_found": 404, "conflict": 409, "too_large": 413, "invalid": 400}
+_STATUS = {"not_found": 404, "conflict": 409, "too_large": 413, "invalid": 400, "protected": 423}
 
 
 def install_error_handlers(app: FastAPI) -> None:

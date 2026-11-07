@@ -45,6 +45,7 @@ def _env(services: Services, workflow: Workflow) -> Env:
 
 
 def _plan(services: Services, workflow: Workflow) -> SqlPlan:
+    workflow = services.runner.resolve(workflow).workflow  # constantes viram valores (spec 028)
     try:
         return build_plan(workflow, _env(services, workflow))
     except GraphError as exc:
@@ -186,6 +187,7 @@ def generate(req: GenerateRequest, services: ServicesDep) -> dict[str, Any]:
 def start_verification(req: GenerateRequest, services: ServicesDep) -> dict[str, Any]:
     """Inicia a conferência. Uma nova conferência do mesmo fluxo cancela a anterior (RF-2024)."""
     workflow = req.workflow
+    services.trust.check_runnable(workflow.id)  # conferir executa consultas: fluxo protegido não confere
     signature = _signature(workflow)
     fresh = _fresh_nodes(services, workflow)
     with _jobs_lock:
@@ -205,7 +207,8 @@ def start_verification(req: GenerateRequest, services: ServicesDep) -> dict[str,
     def work() -> None:
         try:
             env = _env(services, workflow)
-            job.result = verify(build_plan(workflow, env), env, job.cancel)
+            resolved = services.runner.resolve(workflow).workflow
+            job.result = verify(build_plan(resolved, env), env, job.cancel)
         except CancelledError:
             pass
         except Exception as exc:  # a conferência nunca pode derrubar o programa

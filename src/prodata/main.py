@@ -32,6 +32,9 @@ from prodata.samples.apis import refresh_example_docs, seed_example_apis
 from prodata.samples.datasets import ensure_sample_datasets
 from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, add_api_section, demo_workflow
 from prodata.services.audit import setup_audit
+from prodata.services.constants import ConstantStore
+from prodata.services.trust import TrustRegistry
+from prodata.services.usage import UsageIndex
 from prodata.services.workflows import WorkflowRepository
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -50,6 +53,10 @@ def build_services(settings: Settings) -> Services:
     connections = ConnectionStore(settings.connections_file, secrets)
     queries = QueryStore(settings.queries_file)
     apis = ApiStore(settings.apis_file, secrets)
+    trust = TrustRegistry(settings.storage_dir / "confianca.json")
+    constants = ConstantStore(settings.storage_dir / "constantes.json")
+    # Na atualização para a 0.6, o que já estava na biblioteca começa confiável (RF-2825).
+    trust.start([workflows.get(s.id) for s in workflows.list()])
     if settings.seed_samples:
         ensure_sample_datasets(settings.datasets_dir)
         if not workflows.exists(DEMO_WORKFLOW_ID) or _uses_removed_tools(workflows.get(DEMO_WORKFLOW_ID)):
@@ -61,15 +68,20 @@ def build_services(settings: Settings) -> Services:
                 workflows.save(Workflow.model_validate(saved))
                 seed_example_apis(apis)
         refresh_example_docs(apis)
+        if workflows.exists(DEMO_WORKFLOW_ID):
+            trust.created(workflows.get(DEMO_WORKFLOW_ID))
     return Services(
         settings=settings,
         datasets=datasets,
         cache=cache,
-        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries, apis),
+        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries, apis, constants),
         workflows=workflows,
         connections=connections,
         queries=queries,
         apis=apis,
+        trust=trust,
+        usage=UsageIndex(settings.workflows_dir),
+        constants=constants,
     )
 
 

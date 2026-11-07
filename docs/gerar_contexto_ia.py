@@ -100,10 +100,12 @@ Peça para salvar a resposta como `nome.prodata.json` e abrir pelo botão **Abri
 ## Formato do arquivo
 
 ```text
-Workflow: id (obrigatório; letras, números, _ e -), name, description, containers[], nodes[], edges[], dashboard
+Workflow: id (obrigatório; letras, números, _ e -), name, description, containers[], nodes[], edges[], dashboard,
+          constants[], shared_constants{{}}
 Node:     id (mesmo formato; único), type, label, x, y, config{{}}, disabled, cache_point, cache_refresh (changes, daily, hourly)
 Edge:     id, source, sourceHandle (porta de saída), target, targetHandle (porta de entrada)
 Container: id, title, description, color, opacity (0 a 0,4), disabled, x, y, width, height
+Constant: name (letra ou _, depois letras, números e _), type (text, number, date), value (texto), description
 ```
 
 - O programa recusa um arquivo com `id` de caixa repetido, ligação para caixa inexistente ou caixa ligada a ela mesma.
@@ -162,6 +164,8 @@ Concat([a], ' - ', [b])                junta textos: o + só soma números
 Palavras de controle: {control}. Operadores lógicos: {logical}.
 
 Na **Multi-Row Formula**, `[Row-1:coluna]` é a linha anterior e `[Row+1:coluna]` é a seguinte, até 100 de distância. A própria coluna calculada só pode olhar para trás.
+
+**Constantes:** `[#nome]` é um valor com nome, como `[#mes_referencia]`. Valem nas fórmulas, no valor do Filter básico, no nome do arquivo do Output Data e nos parâmetros fixos de uma API. As do fluxo ficam em `constants` (data em `AAAA-MM-DD`, número com ponto ou vírgula). As compartilhadas são cadastradas no computador da pessoa; `shared_constants` só guarda o valor que o fluxo usou e o programa o reescreve ao salvar. Para criar uma constante nova, ponha em `constants`; não mexa em `shared_constants`. O mesmo nome nos dois lugares dá erro.
 
 Se você escrever a fórmula da Multi-Row à mão, use `"recipe": "custom"`. Com outra receita, a tela esconde o editor e mostra a fórmula gravada em `expression`, que é o que roda de verdade.
 

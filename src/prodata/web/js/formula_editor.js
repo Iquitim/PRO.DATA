@@ -2,10 +2,10 @@
 // assistente de inserção. Um <textarea> transparente fica sobre um <pre> colorido com a mesma
 // fonte, padding e quebra de linha, então o cursor e a seleção continuam nativos.
 
+import { knownConstants } from './constants.js';
 import { h } from './dom.js';
-import { icon } from './icons.js';
+import { formulaToolbar } from './formula_toolbar.js';
 import { store } from './store.js';
-import { showMenu } from './ui.js';
 
 // ------------------------------------------------------------------ tokens
 
@@ -41,6 +41,7 @@ function classify(tokens, columns, caret) {
   const control = new Set(keywords().control.map((k) => k.toUpperCase()));
   const logical = new Set(keywords().logical.map((k) => k.toUpperCase()));
   const known = new Set(columns.map((c) => c.name));
+  const constants = knownConstants();
   const classes = tokens.map(() => '');
   const stack = [];
   tokens.forEach((t, i) => {
@@ -48,6 +49,11 @@ function classify(tokens, columns, caret) {
       case 'col': {
         const closed = t.text.endsWith(']') && t.text.length > 1;
         const name = t.text.slice(1, closed ? -1 : undefined);
+        // [#nome]: constante (spec 028), com cor própria para nunca parecer coluna.
+        if (name.startsWith('#')) {
+          classes[i] = `fx-cst${!closed || !constants.has(name.slice(1)) ? ' fx-bad' : ''}`;
+          break;
+        }
         // [Row-1:coluna] pode citar a própria coluna nova: quem confere esse caso é a validação do servidor.
         const rowRef = /^Row[+-]\d+:/i.test(name);
         classes[i] = `fx-col${!closed || (!rowRef && known.size && !known.has(name)) ? ' fx-bad' : ''}`;
@@ -147,261 +153,158 @@ function suggestions(ctx, columns) {
 
 // ------------------------------------------------------------------ editor
 
-const OPERATORS = [
-  ['=', 'igual a'], ['!=', 'diferente de'], ['>', 'maior que'], ['>=', 'maior ou igual'], ['<', 'menor que'], ['<=', 'menor ou igual'],
-];
-const ARITHMETIC = [['+', 'soma (ou junta textos com Concat)'], ['-', 'subtração'], ['*', 'multiplicação'], ['/', 'divisão']];
-const LOGIC = [['AND', 'e: as duas condições'], ['OR', 'ou: pelo menos uma'], ['NOT', 'não: inverte a condição']];
 const KIND_LABEL = { function: 'ƒ', column: '[ ]', keyword: 'if', logical: '&' };
+
+/** Ponto na tela logo abaixo do cursor, medido num espelho invisível do texto. */
+function caretPoint(ed) {
+  const pos = ed.area.selectionStart;
+  ed.mirror.innerHTML = `${escapeHtml(ed.area.value.slice(0, pos))}<span class="fx-caret">​</span>`;
+  const mark = ed.mirror.querySelector('.fx-caret');
+  const r = ed.area.getBoundingClientRect();
+  return { x: r.left + mark.offsetLeft, y: r.top + mark.offsetTop - ed.area.scrollTop + mark.offsetHeight + 4 };
+}
+
+/** Lista de sugestões do autocompletar. Vive no body enquanto está aberta, para não ser cortada pelo painel. */
+function suggestPopup(ed) {
+  const el = h('div', { class: 'fx-suggest', role: 'listbox' });
+  const pop = { el, items: [], active: 0, ctx: null };
+  pop.close = () => { el.remove(); pop.items = []; };
+  pop.draw = () => {
+    const { items, active } = pop;
+    if (!items.length) { pop.close(); return; }
+    el.replaceChildren(
+      ...items.map((it, i) => h('div', {
+        class: ['fx-item', i === active && 'active', `fx-item-${it.kind}`], role: 'option', 'aria-selected': String(i === active),
+        onmousedown: (e) => { e.preventDefault(); pop.accept(it); },
+        onmousemove: () => { if (pop.active !== i) { pop.active = i; pop.draw(); } },
+      }, h('span', { class: 'fx-item-kind' }, KIND_LABEL[it.kind]), h('span', { class: 'fx-item-label' }, it.label),
+      h('span', { class: 'fx-item-detail' }, it.detail || ''))),
+      items[active]?.doc ? h('div', { class: 'fx-item-doc' }, items[active].doc.description, h('code', {}, items[active].doc.example)) : null,
+    );
+    if (!el.isConnected) {
+      document.body.append(el);
+      const p = caretPoint(ed);
+      const w = Math.min(380, innerWidth - 16);
+      el.style.left = `${Math.max(8, Math.min(p.x, innerWidth - w - 8))}px`;
+      el.style.top = `${p.y + 260 > innerHeight ? p.y - 280 : p.y}px`;
+    }
+    el.querySelector('.fx-item.active')?.scrollIntoView({ block: 'nearest' });
+  };
+  pop.suggest = (force = false) => {
+    const caret = ed.area.selectionStart;
+    let ctx = contextAt(ed.area.value, caret);
+    if (force && ctx.kind === 'none') ctx = { kind: 'all', prefix: '', start: caret };
+    pop.ctx = ctx;
+    pop.items = suggestions(ctx, ed.columns());
+    // Palavra-chave já completa (ex.: THEN): não atrapalha o Enter.
+    if (!force && pop.items.length && ctx.kind === 'word' && pop.items[0].kind === 'keyword'
+      && pop.items[0].label.toLowerCase() === ctx.prefix.toLowerCase()) pop.items = [];
+    pop.active = 0;
+    pop.draw();
+  };
+  pop.move = (step) => { pop.active = (pop.active + step + pop.items.length) % pop.items.length; pop.draw(); };
+  pop.accept = (it) => {
+    const { area } = ed;
+    const caret = area.selectionStart;
+    const start = pop.ctx?.start ?? caret;
+    let end = caret;
+    const after = area.value.slice(caret);
+    if (it.kind === 'column') {
+      const rest = after.match(/^[^\]\n]*\]/);
+      if (rest) end += rest[0].length;
+      ed.replaceRange(start, end, it.insert);
+    } else if (it.kind === 'function') {
+      end += (after.match(/^\w*/) || [''])[0].length;
+      if (area.value.slice(end).startsWith('(')) ed.replaceRange(start, end + 1, `${it.insert}(`);
+      else ed.replaceRange(start, end, `${it.insert}()`, it.insert.length + 1);
+    } else {
+      end += (after.match(/^\w*/) || [''])[0].length;
+      ed.replaceRange(start, end, `${it.insert} `);
+    }
+    pop.close();
+    ed.updateHint();
+  };
+  return pop;
+}
+
+/** Dica da função em que o cursor está, com o argumento atual destacado. */
+function drawSignature(hint, area) {
+  const call = callAt(area.value, area.selectionStart);
+  if (!call?.doc) { hint.hidden = true; return; }
+  const sig = call.doc.signature;
+  const open = sig.indexOf('(');
+  const args = sig.slice(open + 1, sig.lastIndexOf(')')).split(', ').filter(Boolean);
+  const current = Math.min(call.arg, args.length - 1);
+  hint.hidden = false;
+  hint.replaceChildren(
+    h('span', { class: 'fx-hint-sig' }, h('b', { class: 'fx-fn' }, sig.slice(0, open)), '(',
+      args.map((a, i) => [i ? ', ' : '', i === current ? h('span', { class: 'fx-hint-arg' }, a) : a]), ')'),
+    h('span', { class: 'fx-hint-desc' }, call.doc.description));
+}
+
+function bindKeys(ed, pop) {
+  const { area } = ed;
+  area.addEventListener('input', () => { ed.changed(); pop.suggest(); ed.updateHint(); });
+  area.addEventListener('scroll', () => { ed.hl.scrollTop = area.scrollTop; });
+  area.addEventListener('blur', () => setTimeout(pop.close, 120));
+  area.addEventListener('click', () => { ed.paint(); ed.updateHint(); pop.close(); });
+  area.addEventListener('keyup', (e) => {
+    if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || (!pop.el.isConnected && ['ArrowUp', 'ArrowDown'].includes(e.key))) {
+      ed.paint();
+      ed.updateHint();
+    }
+  });
+  area.addEventListener('keydown', (e) => {
+    if (e.key === ' ' && e.ctrlKey) { e.preventDefault(); pop.suggest(true); return; }
+    if (!pop.el.isConnected) return;
+    if (e.key === 'ArrowDown') { pop.move(1); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { pop.move(-1); e.preventDefault(); }
+    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); pop.accept(pop.items[pop.active]); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); pop.close(); }
+  });
+}
 
 /**
  * Cria o editor. `columns()` devolve as colunas da entrada; `onChange(texto)` a cada alteração.
  * Devolve o elemento raiz.
  */
 export function formulaEditor({ id, value = '', placeholder = '', rows = 3, columns = () => [], onChange = () => {}, rowRefs = false }) {
-  const hl = h('pre', { class: 'fx-hl', 'aria-hidden': 'true' });
-  const mirror = h('div', { class: 'fx-hl fx-mirror', 'aria-hidden': 'true' });
   const area = h('textarea', {
     id, class: 'fx-input', rows, spellcheck: false, autocomplete: 'off', placeholder,
     'aria-autocomplete': 'list', 'aria-label': 'Expressão',
   }, value);
-  const box = h('div', { class: 'fx-box' }, hl, mirror, area);
   const hint = h('div', { class: 'fx-hint', hidden: true });
-  // O popup só fica no documento enquanto está visível (vive no body para não ser cortado pelo painel).
-  const popup = h('div', { class: 'fx-suggest', role: 'listbox' });
-  let items = [];
-  let active = 0;
-  let ctx = null;
-
+  const ed = { area, columns, hl: h('pre', { class: 'fx-hl', 'aria-hidden': 'true' }), mirror: h('div', { class: 'fx-hl fx-mirror', 'aria-hidden': 'true' }) };
   // O campo cresce com o conteúdo (até ~12 linhas), sem esconder o fim da fórmula.
-  const fit = () => {
+  ed.fit = () => {
     area.style.height = 'auto';
     area.style.height = `${Math.min(area.scrollHeight + 2, 300)}px`;
   };
-
-  const paint = () => {
-    hl.innerHTML = highlight(area.value, columns(), area.selectionStart === area.selectionEnd ? area.selectionStart : -1);
-    hl.scrollTop = area.scrollTop;
+  ed.paint = () => {
+    ed.hl.innerHTML = highlight(area.value, columns(), area.selectionStart === area.selectionEnd ? area.selectionStart : -1);
+    ed.hl.scrollTop = area.scrollTop;
   };
-
-  const caretPoint = () => {
-    const pos = area.selectionStart;
-    mirror.innerHTML = `${escapeHtml(area.value.slice(0, pos))}<span class="fx-caret">​</span>`;
-    const mark = mirror.querySelector('.fx-caret');
-    const r = area.getBoundingClientRect();
-    return { x: r.left + mark.offsetLeft, y: r.top + mark.offsetTop - area.scrollTop + mark.offsetHeight + 4 };
-  };
-
-  const closePopup = () => { popup.remove(); items = []; };
-
-  const drawPopup = () => {
-    if (!items.length) { closePopup(); return; }
-    popup.replaceChildren(
-      ...items.map((it, i) => h('div', {
-        class: ['fx-item', i === active && 'active', `fx-item-${it.kind}`], role: 'option', 'aria-selected': String(i === active),
-        onmousedown: (e) => { e.preventDefault(); accept(it); },
-        onmousemove: () => { if (active !== i) { active = i; drawPopup(); } },
-      }, h('span', { class: 'fx-item-kind' }, KIND_LABEL[it.kind]), h('span', { class: 'fx-item-label' }, it.label),
-      h('span', { class: 'fx-item-detail' }, it.detail || ''))),
-      items[active]?.doc ? h('div', { class: 'fx-item-doc' }, items[active].doc.description,
-        h('code', {}, items[active].doc.example)) : null,
-    );
-    if (!popup.isConnected) {
-      document.body.append(popup);
-      const p = caretPoint();
-      const w = Math.min(380, innerWidth - 16);
-      popup.style.left = `${Math.max(8, Math.min(p.x, innerWidth - w - 8))}px`;
-      popup.style.top = `${p.y + 260 > innerHeight ? p.y - 280 : p.y}px`;
-    }
-    popup.querySelector('.fx-item.active')?.scrollIntoView({ block: 'nearest' });
-  };
-
-  const suggest = (force = false) => {
-    const caret = area.selectionStart;
-    ctx = contextAt(area.value, caret);
-    if (force && ctx.kind === 'none') ctx = { kind: 'all', prefix: '', start: caret };
-    if (force && ctx.kind === 'word') ctx = { ...ctx, kind: 'word' };
-    items = suggestions(ctx, columns());
-    // Palavra-chave já completa (ex.: THEN): não atrapalha o Enter.
-    if (!force && items.length && ctx.kind === 'word' && items[0].kind === 'keyword'
-      && items[0].label.toLowerCase() === ctx.prefix.toLowerCase()) items = [];
-    active = 0;
-    drawPopup();
-  };
-
-  const replaceRange = (start, end, text, caretOffset = text.length) => {
+  ed.changed = () => { ed.fit(); ed.paint(); onChange(area.value); };
+  ed.updateHint = () => drawSignature(hint, area);
+  ed.replaceRange = (start, end, text, caretOffset = text.length) => {
     area.setRangeText(text, start, end, 'end');
     area.selectionStart = area.selectionEnd = start + caretOffset;
     area.focus();
-    changed();
+    ed.changed();
   };
-
-  function accept(it) {
-    const caret = area.selectionStart;
-    const start = ctx?.start ?? caret;
-    let end = caret;
-    const after = area.value.slice(caret);
-    if (it.kind === 'column') {
-      const rest = after.match(/^[^\]\n]*\]/);
-      if (rest) end += rest[0].length;
-      replaceRange(start, end, it.insert);
-    } else if (it.kind === 'function') {
-      end += (after.match(/^\w*/) || [''])[0].length;
-      if (area.value.slice(end).startsWith('(')) replaceRange(start, end + 1, `${it.insert}(`);
-      else replaceRange(start, end, `${it.insert}()`, it.insert.length + 1);
-    } else {
-      end += (after.match(/^\w*/) || [''])[0].length;
-      replaceRange(start, end, `${it.insert} `);
-    }
-    closePopup();
-    updateHint();
-  }
-
-  const updateHint = () => {
-    const call = callAt(area.value, area.selectionStart);
-    if (!call?.doc) { hint.hidden = true; return; }
-    const sig = call.doc.signature;
-    const open = sig.indexOf('(');
-    const args = sig.slice(open + 1, sig.lastIndexOf(')')).split(', ').filter(Boolean);
-    const current = Math.min(call.arg, args.length - 1);
-    hint.hidden = false;
-    hint.replaceChildren(
-      h('span', { class: 'fx-hint-sig' }, h('b', { class: 'fx-fn' }, sig.slice(0, open)), '(',
-        args.map((a, i) => [i ? ', ' : '', i === current ? h('span', { class: 'fx-hint-arg' }, a) : a]), ')'),
-      h('span', { class: 'fx-hint-desc' }, call.doc.description));
-  };
-
-  function changed() {
-    fit();
-    paint();
-    onChange(area.value);
-  }
-
   /** Insere no cursor (assistente): `text` com `|` marcando onde o cursor deve ficar. */
   const insert = (text, { spaced = false } = {}) => {
     const s = area.selectionStart;
-    const e = area.selectionEnd;
-    let piece = text;
-    if (spaced) {
-      const before = area.value.slice(0, s);
-      piece = `${before && !/\s$/.test(before) ? ' ' : ''}${text} `;
-    }
+    const before = area.value.slice(0, s);
+    const piece = spaced ? `${before && !/\s$/.test(before) ? ' ' : ''}${text} ` : text;
     const mark = piece.indexOf('|');
     const clean = piece.replace('|', '');
-    replaceRange(s, e, clean, mark >= 0 ? mark : clean.length);
-    updateHint();
+    ed.replaceRange(s, area.selectionEnd, clean, mark >= 0 ? mark : clean.length);
+    ed.updateHint();
   };
-
-  area.addEventListener('input', () => { changed(); suggest(); updateHint(); });
-  area.addEventListener('scroll', () => { hl.scrollTop = area.scrollTop; });
-  area.addEventListener('blur', () => setTimeout(closePopup, 120));
-  area.addEventListener('click', () => { paint(); updateHint(); closePopup(); });
-  area.addEventListener('keyup', (e) => {
-    if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || (!popup.isConnected && ['ArrowUp', 'ArrowDown'].includes(e.key))) {
-      paint();
-      updateHint();
-    }
-  });
-  area.addEventListener('keydown', (e) => {
-    if (e.key === ' ' && e.ctrlKey) { e.preventDefault(); suggest(true); return; }
-    if (!popup.isConnected) return;
-    if (e.key === 'ArrowDown') { active = (active + 1) % items.length; drawPopup(); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { active = (active - 1 + items.length) % items.length; drawPopup(); e.preventDefault(); }
-    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); accept(items[active]); }
-    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePopup(); }
-  });
-
-  // ---- assistente de inserção
-  const keepFocus = (e) => e.preventDefault(); // clicar no assistente não tira o foco do campo
-  const columnButton = h('button', {
-    type: 'button', class: 'fx-tool', title: 'Inserir coluna da entrada', onmousedown: keepFocus,
-    onclick: (e) => {
-      const cols = columns();
-      const r = e.currentTarget.getBoundingClientRect();
-      showMenu(r.left, r.bottom + 4, cols.length
-        ? cols.map((c) => ({ label: `${c.name}`, icon: 'columns', shortcut: c.type, onSelect: () => insert(`[${c.name}]`) }))
-        : [{ label: 'Execute o fluxo para ver as colunas', icon: 'info', disabled: true, onSelect: () => {} }]);
-    },
-  }, icon('columns', 13), 'Coluna', icon('chevron-down', 12));
-  const fnButton = h('button', {
-    type: 'button', class: 'fx-tool', title: 'Inserir função (com descrição e exemplo)', onmousedown: keepFocus,
-    onclick: (e) => openCatalog(e.currentTarget, (doc) => insert(`${doc.name}(|)`)),
-  }, h('i', { class: 'fx-fx' }, 'ƒx'), 'Função', icon('chevron-down', 12));
-  // Multi-Row: as referências a outras linhas, sem precisar decorar a escrita.
-  const rowButton = (label, title, prefix, iconName) => h('button', {
-    type: 'button', class: 'fx-tool fx-row-ref', title, onmousedown: keepFocus,
-    onclick: (e) => {
-      const cols = columns();
-      const r = e.currentTarget.getBoundingClientRect();
-      showMenu(r.left, r.bottom + 4, cols.length
-        ? cols.map((c) => ({ label: c.name, icon: iconName, shortcut: c.type, onSelect: () => insert(`[${prefix}:${c.name}]`) }))
-        : [{ label: 'Execute o fluxo para ver as colunas', icon: 'info', disabled: true, onSelect: () => {} }]);
-    },
-  }, icon(iconName, 13), label, icon('chevron-down', 12));
-  const chip = ([op, title], opts) => h('button', {
-    type: 'button', class: ['fx-chip', opts.cls], title, onmousedown: (e) => e.preventDefault(),
-    onclick: () => insert(op, { spaced: true }),
-  }, op);
-  // Coluna e Função sempre visíveis; operadores aparecem enquanto o campo está em foco.
-  const toolbar = h('div', { class: 'fx-toolbar' },
-    columnButton, fnButton,
-    rowRefs ? rowButton('Linha anterior', 'Inserir o valor da linha de cima: [Row-1:coluna]', 'Row-1', 'arrow-up') : null,
-    rowRefs ? rowButton('Linha seguinte', 'Inserir o valor da linha de baixo: [Row+1:coluna]', 'Row+1', 'arrow-down') : null,
-    h('span', { class: 'fx-hint-key' }, h('kbd', {}, 'Ctrl'), '+', h('kbd', {}, 'Espaço'), ' sugere'),
-    h('div', { class: 'fx-ops' },
-      OPERATORS.map((o) => chip(o, { cls: 'fx-cmp' })),
-      h('span', { class: 'fx-sep' }),
-      LOGIC.map((o) => chip(o, { cls: 'fx-logic' })),
-      h('span', { class: 'fx-sep' }),
-      ARITHMETIC.map((o) => chip(o, { cls: 'fx-op' })),
-      h('span', { class: 'fx-sep' }),
-      h('button', {
-      type: 'button', class: 'fx-chip fx-kw', title: 'Condição: IF condição THEN valor ELSE outro ENDIF',
-      onmousedown: (e) => e.preventDefault(), onclick: () => insert('IF | THEN  ELSE  ENDIF', { spaced: false }),
-    }, 'IF…ENDIF')));
-
-  const root = h('div', { class: 'fx' }, box, hint, toolbar);
-  paint();
-  requestAnimationFrame(fit); // altura certa só depois de entrar no documento
+  bindKeys(ed, suggestPopup(ed));
+  const root = h('div', { class: 'fx' }, h('div', { class: 'fx-box' }, ed.hl, ed.mirror, area), hint, formulaToolbar({ columns, insert, rowRefs }));
+  ed.paint();
+  requestAnimationFrame(ed.fit); // altura certa só depois de entrar no documento
   return root;
-}
-
-// ------------------------------------------------------------------ catálogo de funções
-
-let catalogEl = null;
-
-function openCatalog(anchor, onPick) {
-  catalogEl?.remove();
-  const search = h('input', { class: 'input input-sm input-search', type: 'search', placeholder: 'Buscar função…', 'aria-label': 'Buscar função' });
-  const list = h('div', { class: 'fx-cat-list' });
-  const close = () => { catalogEl?.remove(); catalogEl = null; document.removeEventListener('pointerdown', outside, true); };
-  const outside = (e) => { if (!catalogEl?.contains(e.target)) close(); };
-  const draw = () => {
-    const q = search.value.trim().toLowerCase();
-    const groups = new Map();
-    for (const f of functions()) {
-      if (q && !`${f.name} ${f.description} ${f.category}`.toLowerCase().includes(q)) continue;
-      if (!groups.has(f.category)) groups.set(f.category, []);
-      groups.get(f.category).push(f);
-    }
-    list.replaceChildren(...(groups.size ? [...groups].map(([cat, fns]) => h('section', {},
-      h('div', { class: 'fx-cat-title' }, cat),
-      fns.map((f) => h('button', {
-        type: 'button', class: 'fx-cat-item', title: `Exemplo: ${f.example}`,
-        onclick: () => { close(); onPick(f); },
-      }, h('span', { class: 'fx-cat-sig' }, h('b', { class: 'fx-fn' }, f.name), f.signature.slice(f.name.length)),
-      h('span', { class: 'fx-cat-desc' }, f.description), h('code', { class: 'fx-cat-ex' }, f.example)))))
-      : [h('p', { class: 'muted pad' }, 'Nenhuma função encontrada.')]));
-  };
-  search.addEventListener('input', draw);
-  search.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } });
-  catalogEl = h('div', { class: 'fx-catalog' }, search, list);
-  document.body.append(catalogEl);
-  const r = anchor.getBoundingClientRect();
-  const w = Math.min(420, innerWidth - 16);
-  catalogEl.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
-  catalogEl.style.top = `${Math.min(r.bottom + 4, innerHeight - 420)}px`;
-  document.addEventListener('pointerdown', outside, true);
-  draw();
-  search.focus();
 }

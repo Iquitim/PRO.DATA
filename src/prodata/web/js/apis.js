@@ -3,14 +3,14 @@
 
 import { addNode } from './actions.js';
 import { api } from './api.js';
-import { DND_DATASET, viewportCenter } from './canvas.js';
+import { viewportCenter } from './canvas.js';
 import { slug } from './connections.js';
 import { previewTable } from './datasets.js';
 import { button, fmt, h } from './dom.js';
 import { openLink } from './desktop.js';
 import { arrow, linkHover, mini } from './explainers.js';
 import { icon } from './icons.js';
-import { API_PREFIX, commit, emit, on, placeholdersOf, store } from './store.js';
+import { API_PREFIX, commit, emit, placeholdersOf, store } from './store.js';
 import { confirmDialog, openDialog, toast, toastError } from './ui.js';
 
 const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i;
@@ -303,38 +303,29 @@ function answerPane(state, _redraw) {
 
 // ------------------------------------------------------------------ editor
 
-export function openApiEditor({ source = null, onSaved = null, preset = null, values = {} } = {}) {
-  const state = { ...blank(), ...(source ? structuredClone(source) : {}), ...(preset ? structuredClone(preset) : {}), secrets: {}, stored: source?.set_secrets || [], onChange: () => {} };
-  if (preset) state.id = '';
-  const samples = { ...values };
-  const meta = h('div', { class: 'preview-meta' }, h('span', { class: 'muted' }, 'Clique em Testar para ver as colunas.'));
-  const grid = h('div', { class: 'preview-grid' });
-  const flow = linkHover(h('div', { class: 'api-flow' }, howItWorks()));
-  const notices = h('div', { class: 'stack-xs api-notices' });
-  const requestBox = h('div', { class: 'api-request' });
-  const drawRequest = () => requestBox.replaceChildren(h('div', { class: 'x-title' }, 'O que será enviado'), requestPreview(state));
-  const pane = h('div', { class: 'api-pane' });
-  let tab = 'params';
+const apiDefinition = (state) => {
+  const { id, name, cache_results, hold_on_open, secrets, stored, onChange, set_secrets, missing_secrets, ...d } = state;
+  return d;
+};
+const filledSecrets = (state) => Object.fromEntries(Object.entries(state.secrets).filter(([, v]) => v));
 
-  const definition = () => {
-    const { id, name, cache_results, hold_on_open, secrets, stored, onChange, set_secrets, missing_secrets, ...d } = state;
-    return d;
-  };
+/** Avisos abaixo do endereço: variável escrita de outro jeito, http sem criptografia, POST e o tipo de chamada. */
+function apiNotices(state) {
+  const ctx = { el: h('div', { class: 'stack-xs api-notices' }), urlInput: null };
   const notVariables = new Set();
-  let urlInput = null;
   const looseHint = ({ text: found, name }) => h('div', { class: 'api-loose' },
     h('p', {}, h('code', {}, found), ' parece uma variável escrita de outro jeito. Aqui, ela é escrita entre chaves.'),
     h('div', { class: 'row' },
       button({ label: `Converter para {${name}}`, size: 'sm', onClick: () => {
         state.url = state.url.split(found).join(`{${name}}`);
-        if (urlInput) urlInput.value = state.url;
+        if (ctx.urlInput) ctx.urlInput.value = state.url;
         state.onChange();
       } }),
       button({ label: 'Não é variável', size: 'sm', variant: 'ghost', onClick: () => { notVariables.add(found); state.onChange(); } })));
-  const drawNotices = () => {
+  ctx.draw = () => {
     const url = state.url.trim();
     const needed = placeholdersOf(state);
-    notices.replaceChildren(...[
+    ctx.el.replaceChildren(...[
       ...looseVariables(url).filter((v) => !notVariables.has(v.text)).map(looseHint),
       url.toLowerCase().startsWith('http://') && !LOCAL.test(url)
         ? h('p', { class: 'api-warn' }, icon('alert', 14), ' Endereço sem criptografia (http): os dados viajam abertos na rede, e o PRO.DATA não envia credenciais por ele.') : null,
@@ -349,12 +340,12 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
           h('p', {}, 'A API devolve os dados de uma vez e vira uma tabela no Input Data. Para o endereço mudar a cada chamada, crie uma variável na aba Parâmetros.')) : null,
     ].filter(Boolean));
   };
-  const docsAction = () => (/^https?:\/\//i.test(state.docs_url.trim())
-    ? button({ icon: 'link', label: 'Abrir a documentação da API', size: 'sm', onClick: () => openLink(state.docs_url.trim()) })
-    : h('p', { class: 'field-help' }, 'Guarde o link no campo "Documentação da API", acima, para consultar depois.'));
+  return ctx;
+}
 
-  /** Na aba Parâmetros, o que muda a cada chamada aparece junto do que é fixo. */
-  const varsBox = h('div', { class: 'api-section api-vars' });
+/** Na aba Parâmetros, o que muda a cada chamada aparece junto do que é fixo, com um valor só para testar. */
+function apiVariables(state, samples) {
+  const el = h('div', { class: 'api-section api-vars' });
   const whereIs = (name) => {
     const mark = `{${name}}`;
     if (state.url.includes(mark)) return 'no endereço';
@@ -363,9 +354,9 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
     const header = state.headers.find((p) => !p.secret && p.value?.includes(mark));
     return header ? `no cabeçalho ${header.name || 'sem nome'}` : 'no corpo';
   };
-  const drawVars = () => {
+  const draw = () => {
     const needed = placeholdersOf(state);
-    varsBox.replaceChildren(
+    el.replaceChildren(
       h('div', { class: 'api-section-title' }, 'Variáveis: mudam a cada chamada'),
       needed.length
         ? h('p', { class: 'field-help' }, 'No fluxo, o valor vem de uma coluna da tabela, no API Loop. Aqui, digite um valor só para testar.')
@@ -375,113 +366,178 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
         h('span', { class: 'ellipsis muted' }, whereIs(n)),
         h('input', { class: 'input input-sm', value: samples[n] || '', placeholder: 'Valor de teste', 'aria-label': `Valor de teste para ${n}`, oninput: (e) => { samples[n] = e.target.value; } }))));
   };
-  state.onChange = () => { drawNotices(); drawRequest(); drawVars(); };
+  return { el, draw };
+}
 
-  const tabs = h('div', { class: 'segmented small' });
-  const drawTabs = () => {
+const docsAction = (state) => (/^https?:\/\//i.test(state.docs_url.trim())
+  ? button({ icon: 'link', label: 'Abrir a documentação da API', size: 'sm', onClick: () => openLink(state.docs_url.trim()) })
+  : h('p', { class: 'field-help' }, 'Guarde o link no campo "Documentação da API", acima, para consultar depois.'));
+
+/** O conteúdo de cada aba do pedido. `redraw` refaz a aba e o resumo do que será enviado. */
+function apiPane(tab, state, vars, redraw) {
+  return {
+    params: () => h('div', { class: 'stack-sm' },
+      vars.el,
+      h('div', { class: 'api-section' }, h('div', { class: 'api-section-title' }, 'Parâmetros fixos: sempre iguais'),
+        h('p', { class: 'field-help' }, 'Opções que entram no fim do endereço como ', h('code', {}, '?nome=valor'), ', em toda chamada. Cada API tem as suas, quase sempre opcionais: a lista está na documentação dela.'),
+        docsAction(state),
+        pairs(state, state.params, 'param', redraw))),
+    headers: () => h('div', { class: 'stack-sm' },
+      how('Informações que acompanham o pedido, fora do endereço. A credencial tem aba própria: use o cadeado para qualquer outro valor sigiloso.'),
+      pairs(state, state.headers, 'header', redraw)),
+    body: () => h('div', { class: 'stack-sm' },
+      field('Tipo', choice(state, 'body_type', [['json', 'JSON'], ['text', 'Texto']])),
+      field('Corpo', h('textarea', { class: 'input mono', rows: 8, spellcheck: false, oninput: (e) => { state.body = e.target.value; state.onChange(); } }, state.body),
+        'Num JSON, escreva a variável entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
+    auth: () => h('div', { class: 'stack-sm' }, authScheme(state), authPane(state, redraw)),
+    pages: () => h('div', { class: 'stack-sm' }, pagesScheme(state.pagination), pagesPane(state, redraw)),
+    answer: () => h('div', { class: 'stack-sm' },
+      how('Depois de testar, a resposta aparece ao lado: clique numa lista dela para escolher de onde vêm as linhas, sem precisar digitar o caminho.'),
+      answerPane(state, redraw)),
+  }[tab]();
+}
+
+/** Abas do pedido: parâmetros, cabeçalhos, corpo (só no POST), autenticação, páginas e resposta. */
+function apiTabs(state, vars, onRedraw) {
+  const ctx = { tab: 'params', el: h('div', { class: 'segmented small' }), pane: h('div', { class: 'api-pane' }) };
+  ctx.drawTabs = () => {
     const list = [['params', 'Parâmetros'], ['headers', 'Cabeçalhos'], state.method === 'POST' ? ['body', 'Corpo'] : null,
       ['auth', 'Autenticação'], ['pages', 'Páginas'], ['answer', 'Resposta']].filter(Boolean);
-    if (!list.some(([k]) => k === tab)) tab = 'params';
-    tabs.replaceChildren(...list.map(([k, l]) => h('button', {
-      type: 'button', class: 'segment', 'aria-selected': String(k === tab), dataset: { tab: k },
-      onclick: () => { tab = k; drawTabs(); drawPane(); },
+    if (!list.some(([k]) => k === ctx.tab)) ctx.tab = 'params';
+    ctx.el.replaceChildren(...list.map(([k, l]) => h('button', {
+      type: 'button', class: 'segment', 'aria-selected': String(k === ctx.tab), dataset: { tab: k },
+      onclick: () => ctx.show(k),
     }, l)));
   };
-  const drawPane = () => {
-    const redraw = () => { drawPane(); drawNotices(); drawRequest(); };
-    pane.replaceChildren({
-      params: () => h('div', { class: 'stack-sm' },
-        varsBox,
-        h('div', { class: 'api-section' }, h('div', { class: 'api-section-title' }, 'Parâmetros fixos: sempre iguais'),
-          h('p', { class: 'field-help' }, 'Opções que entram no fim do endereço como ', h('code', {}, '?nome=valor'), ', em toda chamada. Cada API tem as suas, quase sempre opcionais: a lista está na documentação dela.'),
-          docsAction(),
-          pairs(state, state.params, 'param', redraw))),
-      headers: () => h('div', { class: 'stack-sm' },
-        how('Informações que acompanham o pedido, fora do endereço. A credencial tem aba própria: use o cadeado para qualquer outro valor sigiloso.'),
-        pairs(state, state.headers, 'header', redraw)),
-      body: () => h('div', { class: 'stack-sm' },
-        field('Tipo', choice(state, 'body_type', [['json', 'JSON'], ['text', 'Texto']])),
-        field('Corpo', h('textarea', { class: 'input mono', rows: 8, spellcheck: false, oninput: (e) => { state.body = e.target.value; state.onChange(); } }, state.body),
-          'Num JSON, escreva a variável entre aspas: {"id": "{id}"}. O valor entra com o tipo certo.')),
-      auth: () => h('div', { class: 'stack-sm' }, authScheme(state), authPane(state, redraw)),
-      pages: () => h('div', { class: 'stack-sm' }, pagesScheme(state.pagination), pagesPane(state, redraw)),
-      answer: () => h('div', { class: 'stack-sm' },
-        how('Depois de testar, a resposta aparece ao lado: clique numa lista dela para escolher de onde vêm as linhas, sem precisar digitar o caminho.'),
-        answerPane(state, redraw)),
-    }[tab]());
-  };
+  ctx.drawPane = () => ctx.pane.replaceChildren(apiPane(ctx.tab, state, vars, () => { ctx.drawPane(); onRedraw(); }));
+  ctx.show = (tab) => { ctx.tab = tab; ctx.drawTabs(); ctx.drawPane(); };
+  return ctx;
+}
 
-  /** A resposta real ao lado da tabela que ela gerou; passar o mouse num campo acende a coluna. */
-  const drawAnswer = (res) => {
-    const retest = () => {
-      drawPane();
-      if (state.method === 'GET') test();
-      else meta.replaceChildren(h('span', { class: 'muted' }, 'Clique em Testar para ver o resultado: um POST não é repetido sozinho.'));
-    };
-    const cols = res.columns.slice(0, 5).map((c) => c.name);
-    const table = mini(`A tabela: ${res.columns.length} colunas`, cols.map((c) => ({ text: c, kind: 'to', link: `c:${c}` })),
-      res.rows.slice(0, 3).map((r) => cols.map((c) => ({ text: r[c] === null || r[c] === undefined ? '—' : String(r[c]), link: `c:${c}` }))));
-    const tree = res.sample
-      ? responseTree(res.sample, state, {
-        onPick: (path) => { state.records_path = path; state.explode_path = ''; retest(); },
-        onExplode: (path) => { state.explode_path = path; retest(); },
-      })
-      : h('p', { class: 'field-help' }, 'Resposta em CSV ou XML: cada linha ou elemento repetido vira uma linha da tabela.');
-    flow.replaceChildren(
-      h('div', { class: 'api-stage' }, h('div', { class: 'x-title' }, 'A resposta da API (amostra)'), tree),
-      arrow('vira'),
-      h('div', { class: 'api-stage' }, table));
-  };
+/** A resposta real ao lado da tabela que ela gerou; passar o mouse num campo acende a coluna. */
+function answerFlow(res, state, retest) {
+  const cols = res.columns.slice(0, 5).map((c) => c.name);
+  const table = mini(`A tabela: ${res.columns.length} colunas`, cols.map((c) => ({ text: c, kind: 'to', link: `c:${c}` })),
+    res.rows.slice(0, 3).map((r) => cols.map((c) => ({ text: r[c] === null || r[c] === undefined ? '—' : String(r[c]), link: `c:${c}` }))));
+  const tree = res.sample
+    ? responseTree(res.sample, state, {
+      onPick: (path) => { state.records_path = path; state.explode_path = ''; retest(); },
+      onExplode: (path) => { state.explode_path = path; retest(); },
+    })
+    : h('p', { class: 'field-help' }, 'Resposta em CSV ou XML: cada linha ou elemento repetido vira uma linha da tabela.');
+  return [
+    h('div', { class: 'api-stage' }, h('div', { class: 'x-title' }, 'A resposta da API (amostra)'), tree),
+    arrow('vira'),
+    h('div', { class: 'api-stage' }, table),
+  ];
+}
 
-  const test = async () => {
-    if (state.method === 'POST') {
-      const ok = await confirmDialog({ title: 'Fazer o POST de teste?', message: 'A chamada é real: se esta API grava dados, o teste grava também.', confirm: 'Chamar' });
-      if (!ok) return;
-    }
-    grid.classList.add('loading');
-    meta.replaceChildren(h('span', { class: 'muted' }, 'Chamando…'));
-    try {
-      const secrets = Object.fromEntries(Object.entries(state.secrets).filter(([, v]) => v));
-      const res = await api.previewApi({ definition: definition(), id: state.id, secrets, values: samples });
-      if (res.needs_values) {
-        meta.replaceChildren(h('span', { class: 'text-warning' }, icon('alert', 14), ` Preencha um valor de teste para ${res.needs_values.map((n) => `{${n}}`).join(', ')}, na aba Parâmetros.`));
-        tab = 'params';
-        drawTabs();
-        drawPane();
-        varsBox.querySelector('input')?.focus();
-        grid.replaceChildren();
-        return;
-      }
-      meta.replaceChildren(h('span', { class: 'badge' }, icon('check', 12), 'Respondeu'),
-        h('span', { class: 'muted' }, `${res.columns.length} colunas · ${fmt.int(res.total)} linhas nesta página${res.more_pages ? ' · há mais páginas' : ''}`));
-      drawAnswer(res);
-      grid.replaceChildren(previewTable(res.columns, res.rows));
-    } catch (err) {
-      meta.replaceChildren(h('span', { class: 'text-error' }, icon('alert', 14), ` ${err.message}`));
-      flow.replaceChildren(howItWorks());
+/** Testar: chama a API de verdade e mostra a resposta, a tabela e as colunas. */
+async function testApi(state, samples, view, again) {
+  const { meta, grid, flow, tabs, vars } = view;
+  if (state.method === 'POST') {
+    const ok = await confirmDialog({ title: 'Fazer o POST de teste?', message: 'A chamada é real: se esta API grava dados, o teste grava também.', confirm: 'Chamar' });
+    if (!ok) return;
+  }
+  const retest = () => {
+    tabs.drawPane();
+    if (state.method === 'GET') again();
+    else meta.replaceChildren(h('span', { class: 'muted' }, 'Clique em Testar para ver o resultado: um POST não é repetido sozinho.'));
+  };
+  grid.classList.add('loading');
+  meta.replaceChildren(h('span', { class: 'muted' }, 'Chamando…'));
+  try {
+    const res = await api.previewApi({ definition: apiDefinition(state), id: state.id, secrets: filledSecrets(state), values: samples });
+    if (res.needs_values) {
+      meta.replaceChildren(h('span', { class: 'text-warning' }, icon('alert', 14), ` Preencha um valor de teste para ${res.needs_values.map((n) => `{${n}}`).join(', ')}, na aba Parâmetros.`));
+      tabs.show('params');
+      vars.el.querySelector('input')?.focus();
       grid.replaceChildren();
-    } finally {
-      grid.classList.remove('loading');
+      return;
     }
-  };
+    meta.replaceChildren(h('span', { class: 'badge' }, icon('check', 12), 'Respondeu'),
+      h('span', { class: 'muted' }, `${res.columns.length} colunas · ${fmt.int(res.total)} linhas nesta página${res.more_pages ? ' · há mais páginas' : ''}`));
+    flow.replaceChildren(...answerFlow(res, state, retest));
+    grid.replaceChildren(previewTable(res.columns, res.rows));
+  } catch (err) {
+    meta.replaceChildren(h('span', { class: 'text-error' }, icon('alert', 14), ` ${err.message}`));
+    flow.replaceChildren(howItWorks());
+    grid.replaceChildren();
+  } finally {
+    grid.classList.remove('loading');
+  }
+}
 
-  const persist = async () => {
-    if (!state.url.trim()) throw new Error('Informe o endereço da API.');
-    let host = 'API';
-    try { host = new URL(state.url.replace(/\{[^}]*\}/g, 'x')).hostname; } catch { /* a validação do servidor explica */ }
-    const name = state.name.trim() || host;
-    const secrets = Object.fromEntries(Object.entries(state.secrets).filter(([, v]) => v));
-    const saved = await api.saveApi({ source: { ...definition(), name, cache_results: state.cache_results, hold_on_open: state.hold_on_open, id: state.id || slug(name) }, secrets });
-    state.id = saved.id;
-    await refreshApis();
-    const users = (store.workflow?.nodes || []).filter((n) => n.config?.dataset === `${API_PREFIX}${saved.id}` || (n.type === 'io.api_loop' && n.config?.source === saved.id));
-    if (users.length) commit({ affects: users.map((n) => n.id) });
-    return saved;
+/** Grava a API e marca como pendentes as caixas do fluxo aberto que a usam. */
+async function saveApiSource(state) {
+  if (!state.url.trim()) throw new Error('Informe o endereço da API.');
+  let hostname = 'API';
+  try { hostname = new URL(state.url.replace(/\{[^}]*\}/g, 'x')).hostname; } catch { /* a validação do servidor explica */ }
+  const name = state.name.trim() || hostname;
+  const source = { ...apiDefinition(state), name, cache_results: state.cache_results, hold_on_open: state.hold_on_open, id: state.id || slug(name) };
+  const saved = await api.saveApi({ source, secrets: filledSecrets(state) });
+  state.id = saved.id;
+  await refreshApis();
+  const users = (store.workflow?.nodes || []).filter((n) => n.config?.dataset === `${API_PREFIX}${saved.id}` || (n.type === 'io.api_loop' && n.config?.source === saved.id));
+  if (users.length) commit({ affects: users.map((n) => n.id) });
+  return saved;
+}
+
+/** Exemplos prontos, só para uma API nova: cada um reabre o formulário já preenchido. */
+function apiExamples(host, onSaved) {
+  const box = h('div', { class: 'api-examples' }, h('div', { class: 'x-title' }, 'Começar de um exemplo'));
+  api.apiExamples().then((list) => box.append(h('div', { class: 'api-example-list' }, list.map((ex) => h('button', {
+    type: 'button', class: 'api-example', title: ex.what,
+    onclick: () => host.reopen({ preset: ex.source, values: ex.values, onSaved }),
+  }, h('strong', {}, ex.title), h('span', {}, ex.source.name), h('em', { class: 'api-example-kind' }, placeholdersOf(ex.source).length ? 'com variável' : 'direta')))))).catch(() => box.remove());
+  return box;
+}
+
+function apiForm(state, view, { examples, test }) {
+  const { tabs, notices } = view;
+  const toggle = (key, label, title) => h('label', { class: 'switch', title },
+    h('input', { type: 'checkbox', checked: state[key], onchange: (e) => { state[key] = e.target.checked; } }),
+    h('span', { class: 'switch-track' }), h('span', {}, label));
+  notices.urlInput = text(state, 'url', { placeholder: 'https://api.exemplo.com/v1/clientes/{id}', 'aria-label': 'Endereço da API', class: 'input mono', oninput: () => state.onChange() });
+  return h('div', { class: 'api-form stack-sm' },
+    examples,
+    field('Nome', text(state, 'name', { placeholder: 'Ex.: Clientes do CRM' })),
+    field('Documentação da API (opcional)', h('div', { class: 'row' },
+      text(state, 'docs_url', { placeholder: 'https://… onde a API explica o que aceita', 'aria-label': 'Endereço da documentação', oninput: () => { if (tabs.tab === 'params') tabs.drawPane(); } }),
+      button({ icon: 'link', title: 'Abrir a documentação', onClick: () => openLink(state.docs_url.trim()) }))),
+    h('div', { class: 'api-url' },
+      choice(state, 'method', [['GET', 'GET'], ['POST', 'POST']], () => { tabs.drawTabs(); tabs.drawPane(); state.onChange(); }),
+      notices.urlInput,
+      button({ label: 'Testar', icon: 'play', onClick: test })),
+    view.requestBox, notices.el, tabs.el, tabs.pane,
+    toggle('hold_on_open', 'Só chamar quando eu clicar em Executar', 'Ligado: abrir um fluxo não chama esta API. Ela espera o clique em Executar.'),
+    toggle('cache_results', 'Reaproveitar resultado entre execuções', 'Desligado: a API é chamada de novo a cada execução.'));
+}
+
+/**
+ * Formulário de cadastro de API, para um diálogo ou para a vista Dados (spec 028). `host.close()` fecha ou volta;
+ * `host.reopen(opts)` abre de novo com outro ponto de partida (um exemplo pronto).
+ */
+export function apiEditor({ source = null, onSaved = null, preset = null, values = {} } = {}, host) {
+  const state = { ...blank(), ...(source ? structuredClone(source) : {}), ...(preset ? structuredClone(preset) : {}), secrets: {}, stored: source?.set_secrets || [], onChange: () => {} };
+  if (preset) state.id = '';
+  const samples = { ...values };
+  const view = {
+    meta: h('div', { class: 'preview-meta' }, h('span', { class: 'muted' }, 'Clique em Testar para ver as colunas.')),
+    grid: h('div', { class: 'preview-grid' }),
+    flow: linkHover(h('div', { class: 'api-flow' }, howItWorks())),
+    requestBox: h('div', { class: 'api-request' }),
+    notices: apiNotices(state),
+    vars: apiVariables(state, samples),
   };
+  const drawRequest = () => view.requestBox.replaceChildren(h('div', { class: 'x-title' }, 'O que será enviado'), requestPreview(state));
+  view.tabs = apiTabs(state, view.vars, () => { view.notices.draw(); drawRequest(); });
+  state.onChange = () => { view.notices.draw(); drawRequest(); view.vars.draw(); };
+  const test = () => testApi(state, samples, view, test);
   const finish = async (addToFlow) => {
     try {
-      const saved = await persist();
-      close();
+      const saved = await saveApiSource(state);
+      host.close();
       if (onSaved) onSaved(saved);
       else if (addToFlow) addApiNode(saved);
       toast(`API "${saved.name}" salva`, { kind: 'success' });
@@ -489,50 +545,30 @@ export function openApiEditor({ source = null, onSaved = null, preset = null, va
       toastError(err, 'Não foi possível salvar a API');
     }
   };
-
-  const examples = source || preset ? null : h('div', { class: 'api-examples' }, h('div', { class: 'x-title' }, 'Começar de um exemplo'));
-  if (examples) {
-    api.apiExamples().then((list) => examples.append(h('div', { class: 'api-example-list' }, list.map((ex) => h('button', {
-      type: 'button', class: 'api-example', title: ex.what,
-      onclick: () => { close(); openApiEditor({ preset: ex.source, values: ex.values, onSaved }); },
-    }, h('strong', {}, ex.title), h('span', {}, ex.source.name), h('em', { class: 'api-example-kind' }, placeholdersOf(ex.source).length ? 'com variável' : 'direta')))))).catch(() => examples.remove());
-  }
-  const form = h('div', { class: 'api-form stack-sm' },
-    examples,
-    field('Nome', text(state, 'name', { placeholder: 'Ex.: Clientes do CRM' })),
-    field('Documentação da API (opcional)', h('div', { class: 'row' },
-      text(state, 'docs_url', { placeholder: 'https://… onde a API explica o que aceita', 'aria-label': 'Endereço da documentação', oninput: () => { if (tab === 'params') drawPane(); } }),
-      button({ icon: 'link', title: 'Abrir a documentação', onClick: () => openLink(state.docs_url.trim()) }))),
-    h('div', { class: 'api-url' },
-      choice(state, 'method', [['GET', 'GET'], ['POST', 'POST']], () => { drawTabs(); drawPane(); state.onChange(); }),
-      (urlInput = text(state, 'url', { placeholder: 'https://api.exemplo.com/v1/clientes/{id}', 'aria-label': 'Endereço da API', class: 'input mono', oninput: () => state.onChange() })),
-      button({ label: 'Testar', icon: 'play', onClick: test })),
-    requestBox, notices, tabs, pane,
-    h('label', { class: 'switch', title: 'Ligado: abrir um fluxo não chama esta API. Ela espera o clique em Executar.' },
-      h('input', { type: 'checkbox', checked: state.hold_on_open, onchange: (e) => { state.hold_on_open = e.target.checked; } }),
-      h('span', { class: 'switch-track' }), h('span', {}, 'Só chamar quando eu clicar em Executar')),
-    h('label', { class: 'switch', title: 'Desligado: a API é chamada de novo a cada execução.' },
-      h('input', { type: 'checkbox', checked: state.cache_results, onchange: (e) => { state.cache_results = e.target.checked; } }),
-      h('span', { class: 'switch-track' }), h('span', {}, 'Reaproveitar resultado entre execuções')));
-
-  drawTabs();
-  drawPane();
-  drawNotices();
-  drawRequest();
-  drawVars();
-  const { close } = openDialog({
+  const form = apiForm(state, view, { examples: source || preset ? null : apiExamples(host, onSaved), test });
+  view.tabs.drawTabs();
+  view.tabs.drawPane();
+  state.onChange();
+  return {
     title: source ? `Editar API · ${source.name}` : 'Nova API',
-    size: 'xl',
-    body: h('div', { class: 'preview-layout api-layout' }, form, h('div', { class: 'preview-main api-main' }, meta, flow, grid)),
+    body: h('div', { class: 'preview-layout api-layout' }, form, h('div', { class: 'preview-main api-main' }, view.meta, view.flow, view.grid)),
     actions: [
-      button({ label: 'Cancelar', onClick: () => close() }),
+      button({ label: 'Cancelar', onClick: () => host.close() }),
       onSaved ? null : button({ label: 'Salvar', icon: 'save', onClick: () => finish(false) }),
       button({ label: onSaved ? 'Salvar' : 'Salvar e adicionar ao fluxo', icon: onSaved ? 'save' : 'plus', variant: 'primary', onClick: () => finish(true) }),
     ].filter(Boolean),
-  });
+  };
 }
 
-async function removeApi(item) {
+/** O mesmo formulário num diálogo: usado pelos atalhos do Configurar. */
+export function openApiEditor(opts = {}) {
+  const host = { close: () => {}, reopen: (next) => { host.close(); openApiEditor(next); } };
+  const editor = apiEditor(opts, host);
+  const { close } = openDialog({ title: editor.title, size: 'xl', body: editor.body, actions: editor.actions });
+  host.close = close;
+}
+
+export async function removeApi(item) {
   const used = store.workflow?.nodes.some((n) => n.config?.dataset === `${API_PREFIX}${item.id}` || n.config?.source === item.id);
   const ok = await confirmDialog({
     title: 'Excluir API',
@@ -547,48 +583,4 @@ async function removeApi(item) {
   } catch (err) {
     toastError(err, 'Não foi possível excluir');
   }
-}
-
-// ------------------------------------------------------------------ painel
-
-function apiItem(item) {
-  const wants = placeholdersOf(item);
-  const looped = wants.length > 0;
-  let host = item.url;
-  try { host = new URL(item.url.replace(/\{[^}]*\}/g, 'x')).hostname; } catch { /* mostra como está */ }
-  const missing = item.missing_secrets?.length ? ' · falta segredo' : '';
-  return h('div', {
-    class: 'dataset-item query-item', draggable: looped ? 'false' : 'true',
-    title: looped ? 'Use o botão + para criar um API Loop' : 'Arraste para o canvas para criar um Input Data',
-    ondragstart: (e) => {
-      e.dataTransfer.setData(DND_DATASET, `${API_PREFIX}${item.id}`);
-      e.dataTransfer.effectAllowed = 'copy';
-    },
-  },
-  h('span', { class: 'dataset-icon' }, icon(looped ? 'repeat' : 'globe', 16)),
-  h('button', { type: 'button', class: 'dataset-main', onclick: () => openApiEditor({ source: item }), title: 'Editar e testar' },
-    h('span', { class: 'dataset-name' }, item.name),
-    h('span', { class: 'dataset-meta' }, `${looped ? `pede ${wants.map((w) => `{${w}}`).join(', ')} · ` : ''}${host}${missing}`)),
-  h('div', { class: 'dataset-actions' },
-    button({ icon: 'plus', title: looped ? 'Adicionar API Loop ao fluxo' : 'Adicionar ao fluxo', size: 'sm', variant: 'ghost', onClick: () => addApiNode(item) }),
-    button({ icon: 'trash', title: 'Excluir API', size: 'sm', variant: 'ghost', onClick: () => removeApi(item) })));
-}
-
-export function renderApisSection(root) {
-  const list = h('div', { class: 'dataset-list' });
-  const group = (title, help, items) => (items.length ? [h('div', { class: 'api-group', title: help }, title), ...items.map(apiItem)] : []);
-  const draw = () => {
-    const direct = store.apis.filter((a) => !placeholdersOf(a).length);
-    const param = store.apis.filter((a) => placeholdersOf(a).length);
-    list.replaceChildren(...(store.apis.length
-      ? [...group('Chamada direta', 'O endereço é sempre o mesmo: viram tabela no Input Data', direct),
-        ...group('Com variável', 'O endereço muda a cada chamada: entram como API Loop, ligadas a uma tabela', param)]
-      : [h('p', { class: 'muted pad' }, 'Nenhuma API. Cadastre uma para ler dados da web.')]));
-  };
-  on('apis', draw);
-  root.append(
-    h('div', { class: 'panel-subtitle row space-between' }, 'APIs',
-      button({ icon: 'plus', label: 'Nova', size: 'sm', variant: 'ghost', onClick: () => openApiEditor() })),
-    list);
-  draw();
 }

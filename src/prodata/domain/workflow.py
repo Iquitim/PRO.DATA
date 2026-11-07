@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from prodata.domain.constants import Constant, ConstantValue
 from prodata.domain.dashboard import Dashboard
 
 ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
@@ -58,6 +59,9 @@ class Workflow(BaseModel):
     edges: list[Edge] = Field(default_factory=list)
     # Layout do dashboard (spec 014). Ausente em fluxos antigos: a interface monta um automático.
     dashboard: Dashboard | None = None
+    # Constantes do fluxo e o valor das compartilhadas que ele usa (spec 028). Ausentes em fluxos antigos.
+    constants: list[Constant] = Field(default_factory=list)
+    shared_constants: dict[str, ConstantValue] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def _check_references(self) -> Workflow:
@@ -71,6 +75,9 @@ class Workflow(BaseModel):
                 raise ValueError(f"Conexão '{e.id}' referencia nó inexistente.")
             if e.source == e.target:
                 raise ValueError(f"Conexão '{e.id}' liga um nó a ele mesmo.")
+        names = [c.name for c in self.constants]
+        if repeated := sorted({n for n in names if names.count(n) > 1}):
+            raise ValueError(f"Constantes do fluxo com o mesmo nome: {', '.join(repeated)}")
         if self.dashboard:
             self.dashboard.prune(known)
         return self

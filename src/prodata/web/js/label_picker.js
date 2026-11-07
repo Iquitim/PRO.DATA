@@ -11,13 +11,16 @@ export const passwordRequired = (level) => ['confidencial', 'restrito'].includes
 const LEVELS = {
   publico: { icon: 'globe', text: 'Pode circular fora da empresa' },
   interno: { icon: 'building', text: 'Só para quem trabalha na empresa' },
-  confidencial: { icon: 'lock', text: 'Só para quem precisa: o HTML pede senha' },
-  restrito: { icon: 'shield', text: 'Poucas pessoas autorizadas: o HTML pede senha' },
+  confidencial: { icon: 'lock', text: 'Só para quem precisa ver' },
+  restrito: { icon: 'shield', text: 'Poucas pessoas autorizadas' },
 };
 
 const COACH_MS = 7000;
 
-/** O que acontece com este rótulo, em cada saída. `place`: dash, html ou file. */
+/**
+ * O que acontece com este rótulo, só na saída de onde a dica foi aberta: o HTML só aparece no HTML.
+ * `place`: dash (rótulo da página e imagem), image, html ou file (Output Data).
+ */
 function effects(level, place) {
   const name = LABELS[level];
   const strict = passwordRequired(level);
@@ -27,11 +30,12 @@ function effects(level, place) {
         ['file', `Nos outros formatos: "${name}" entra no nome do arquivo.`]]
       : [['table', 'No Excel: vai nas propriedades, na impressão e na cor da aba.']];
   }
-  const html = strict
-    ? ['lock', 'O HTML vai pedir senha: sem ela, não dá para salvar. Os dados ficam cifrados.']
-    : ['globe', 'O HTML pode ter senha, se você quiser.'];
-  if (place === 'html') return [html];
-  return [html, strict
+  if (place === 'html') {
+    return [strict
+      ? ['lock', 'O HTML vai pedir senha: sem ela, não dá para salvar. Os dados ficam cifrados.']
+      : ['globe', 'O HTML pode ter senha, se você quiser.']];
+  }
+  return [strict
     ? ['alert', `A imagem não tem como levar senha: sai com a faixa "${name}". Cuidado com quem recebe.`]
     : ['image', 'A imagem sai com a faixa do rótulo.']];
 }

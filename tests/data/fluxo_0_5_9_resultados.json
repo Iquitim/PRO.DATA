@@ -1,0 +1,616 @@
+{
+ "n_api_chart/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos",
+   "sigla",
+   "nome",
+   "regiao.nome",
+   "municipios"
+  ],
+  "digest": "7f8f2143ae4d324668cf6aa7dbc79b6d79723b2b1806e9095f3867302f005a10",
+  "rows": 368
+ },
+ "n_api_contagem/out": {
+  "columns": [
+   "sigla",
+   "nome",
+   "regiao.nome",
+   "municipios"
+  ],
+  "digest": "7ef8497fcef4fadea0f186fdeec29c1146c1510ce876356d39788f8bc2d3eb7e",
+  "rows": 11
+ },
+ "n_api_estados/out": {
+  "columns": [
+   "id",
+   "sigla",
+   "nome",
+   "regiao.id",
+   "regiao.nome"
+  ],
+  "digest": "ed8e6af607f507cda331853b97bf43f8a2a5681a0c0dbeb4df4515f20244c1b1",
+  "rows": 11
+ },
+ "n_api_join/J": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos",
+   "sigla",
+   "nome",
+   "regiao.nome",
+   "municipios"
+  ],
+  "digest": "7f8f2143ae4d324668cf6aa7dbc79b6d79723b2b1806e9095f3867302f005a10",
+  "rows": 368
+ },
+ "n_api_join/L": {
+  "columns": 16,
+  "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "rows": 0
+ },
+ "n_api_join/R": {
+  "columns": [
+   "sigla",
+   "nome",
+   "regiao.nome",
+   "municipios"
+  ],
+  "digest": "cdf8d61c0ca085e73d2b7a8b669f06154c42aa7e0a482013eaed0665ef069669",
+  "rows": 1
+ },
+ "n_api_municipios/errors": {
+  "columns": 7,
+  "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "rows": 0
+ },
+ "n_api_municipios/out": {
+  "columns": [
+   "id",
+   "sigla",
+   "nome",
+   "regiao.id",
+   "regiao.nome",
+   "municipio-id",
+   "municipio-nome"
+  ],
+  "digest": "a321ddc537cbce5fb904f8ec038958c9ec53f7574f1e8bff6efe2e7205d7a2f0",
+  "rows": 33
+ },
+ "n_atingimento/out": {
+  "columns": [
+   "uf",
+   "total_mrr",
+   "clientes",
+   "r_uf",
+   "região",
+   "meta_mrr",
+   "margem_alvo",
+   "gerente",
+   "atingimento_pct"
+  ],
+  "digest": "95cea9ccc714ebe6f665f5f5e9a81ed5eac5a17493e0006dc512b00ef33cdc14",
+  "rows": 10
+ },
+ "n_chart_seg/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos"
+  ],
+  "digest": "f6521a2456af1c9366d1655308e75ab39d8ebaae9a821a023982bb9161607462",
+  "rows": 368
+ },
+ "n_chart_uf/out": {
+  "columns": [
+   "uf",
+   "total_mrr",
+   "clientes",
+   "r_uf",
+   "região",
+   "meta_mrr",
+   "margem_alvo",
+   "gerente",
+   "atingimento_pct"
+  ],
+  "digest": "95cea9ccc714ebe6f665f5f5e9a81ed5eac5a17493e0006dc512b00ef33cdc14",
+  "rows": 10
+ },
+ "n_cleanse/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente"
+  ],
+  "digest": "5a9d7da5570e7d7037d8803efea4bd8199ba916c551a1827745dea9c80a18950",
+  "rows": 500
+ },
+ "n_clientes/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente"
+  ],
+  "digest": "bbd11ce2598f2391f1cd78ed75ed0610456553c69ce3eeac8061f46804dac247",
+  "rows": 500
+ },
+ "n_filter/F": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier"
+  ],
+  "digest": "38e7cd1a9b6ba95a091b514f5403a21c68a87ef219555cafca6b025824bfacc0",
+  "rows": 92
+ },
+ "n_filter/T": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier"
+  ],
+  "digest": "0b4a45d74db5da99f0cb564fc7a043a117b2b53c347ecaef9a1d79797aa4fae4",
+  "rows": 408
+ },
+ "n_formula/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier"
+  ],
+  "digest": "17e426e7caa290f27fd05fa784a38fa2c4c503efe90960441f4eb1ac5672a518",
+  "rows": 500
+ },
+ "n_join/J": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos"
+  ],
+  "digest": "f6521a2456af1c9366d1655308e75ab39d8ebaae9a821a023982bb9161607462",
+  "rows": 368
+ },
+ "n_join/L": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier"
+  ],
+  "digest": "e998d772c594607ced7dd166f484014c4a1759881561415f47a77c173fd5309b",
+  "rows": 40
+ },
+ "n_join/R": {
+  "columns": [
+   "id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos"
+  ],
+  "digest": "dfde5ad39fd86b7f601377a4b05c4778e7cfeb9c8323ed94633367cea7c65c1f",
+  "rows": 136
+ },
+ "n_join_metas/J": {
+  "columns": [
+   "uf",
+   "total_mrr",
+   "clientes",
+   "r_uf",
+   "região",
+   "meta_mrr",
+   "margem_alvo",
+   "gerente"
+  ],
+  "digest": "7cc37f7662751289707fa50a24ea4963c72cdc2a520e2d6fb66d833e88291f8a",
+  "rows": 10
+ },
+ "n_join_metas/L": {
+  "columns": 3,
+  "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "rows": 0
+ },
+ "n_join_metas/R": {
+  "columns": 5,
+  "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "rows": 0
+ },
+ "n_kpi/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos"
+  ],
+  "digest": "f6521a2456af1c9366d1655308e75ab39d8ebaae9a821a023982bb9161607462",
+  "rows": 368
+ },
+ "n_kpi_mes/out": {
+  "columns": [
+   "id_transacao",
+   "id_cliente",
+   "produto",
+   "canal_venda",
+   "competencia",
+   "quantidade_licencas",
+   "valor_bruto",
+   "desconto_aplicado"
+  ],
+  "digest": "cc2ed2a6a4c3cf885a9d28e1b7a1bd57e36952c3e81ec38f9189c9551c939406",
+  "rows": 1800
+ },
+ "n_metas/out": {
+  "columns": [
+   "uf",
+   "região",
+   "meta_mrr",
+   "margem_alvo",
+   "gerente"
+  ],
+  "digest": "146f12dc63ccdf5705c2f9f23977868a1ceac1ddff9741ff69ac2b1c6815218a",
+  "rows": 10
+ },
+ "n_output/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos",
+   "risco_inadimplencia",
+   "confianca_pct"
+  ],
+  "digest": "d48b9679aa5c204500510b6536c90a68b232b54c115bfb8b5ec057bf0ebd95c7",
+  "rows": 368
+ },
+ "n_pareto/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos"
+  ],
+  "digest": "f6521a2456af1c9366d1655308e75ab39d8ebaae9a821a023982bb9161607462",
+  "rows": 368
+ },
+ "n_predictor/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "receita_anual",
+   "tier",
+   "v_id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos",
+   "risco_inadimplencia",
+   "confianca_pct"
+  ],
+  "digest": "d48b9679aa5c204500510b6536c90a68b232b54c115bfb8b5ec057bf0ebd95c7",
+  "rows": 368
+ },
+ "n_stacked/out": {
+  "columns": [
+   "id_transacao",
+   "id_cliente",
+   "produto",
+   "canal_venda",
+   "competencia",
+   "quantidade_licencas",
+   "valor_bruto",
+   "desconto_aplicado"
+  ],
+  "digest": "cc2ed2a6a4c3cf885a9d28e1b7a1bd57e36952c3e81ec38f9189c9551c939406",
+  "rows": 1800
+ },
+ "n_sum_uf/out": {
+  "columns": [
+   "uf",
+   "total_mrr",
+   "clientes"
+  ],
+  "digest": "d9e3d69a71b3579a4d96a8540ee0c878b188de39006002d80a86d45b2de3eb3c",
+  "rows": 10
+ },
+ "n_sum_vendas/out": {
+  "columns": [
+   "id_cliente",
+   "total_compras",
+   "total_licencas",
+   "qtd_pedidos"
+  ],
+  "digest": "0ed2b4979da9ca88dd1339329bced26f42423e576465d25f3110d7a817619fb2",
+  "rows": 504
+ },
+ "n_vendas/out": {
+  "columns": [
+   "id_transacao",
+   "id_cliente",
+   "produto",
+   "canal_venda",
+   "competencia",
+   "quantidade_licencas",
+   "valor_bruto",
+   "desconto_aplicado"
+  ],
+  "digest": "cc2ed2a6a4c3cf885a9d28e1b7a1bd57e36952c3e81ec38f9189c9551c939406",
+  "rows": 1800
+ },
+ "n_venn/out": {
+  "columns": [
+   "id_transacao",
+   "id_cliente",
+   "produto",
+   "canal_venda",
+   "competencia",
+   "quantidade_licencas",
+   "valor_bruto",
+   "desconto_aplicado"
+  ],
+  "digest": "cc2ed2a6a4c3cf885a9d28e1b7a1bd57e36952c3e81ec38f9189c9551c939406",
+  "rows": 1800
+ },
+ "x_for/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "c"
+  ],
+  "digest": "c67b17c90b1aeb133df29d386b2ee6fb84fc56b044563dc37afb2b88938fbb50",
+  "rows": 500
+ },
+ "x_mr1/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "ant"
+  ],
+  "digest": "30978249f09444c09f344cd505c0414a6abe7b91c83f0e50ddce8abdbe33afc0",
+  "rows": 500
+ },
+ "x_mr2/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente"
+  ],
+  "digest": "8bc9c1b80dcdf529cad8d97d46b4a7b075528394e2f995a7e33b5f64e24ae41d",
+  "rows": 500
+ },
+ "x_mr3/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente",
+   "dif"
+  ],
+  "digest": "b2cba46ad6e065347d98b00cc2dd4764ff750a0746e5a1b1ac227eec79c0e63c",
+  "rows": 500
+ },
+ "x_out/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente"
+  ],
+  "digest": "bbd11ce2598f2391f1cd78ed75ed0610456553c69ce3eeac8061f46804dac247",
+  "rows": 500
+ },
+ "x_sql/out": {
+  "columns": [
+   "uf",
+   "t"
+  ],
+  "digest": "9247be6852638bb04ec29ae5ca68106c39f674ac2bfae92d21dd9b16e99b6888",
+  "rows": 10
+ },
+ "x_srt/out": {
+  "columns": [
+   "id_cliente",
+   "nome_empresa",
+   "uf",
+   "segmento",
+   "setor",
+   "status",
+   "mrr_mensal",
+   "meses_contrato",
+   "nps",
+   "inadimplente"
+  ],
+  "digest": "3af9c43460b5fca05b86315d8f4477321701fad95e2a9f18847417e8bc7d946f",
+  "rows": 500
+ },
+ "x_sum/out": {
+  "columns": [
+   "uf",
+   "sum_mrr_mensal",
+   "median_mrr_mensal",
+   "n_unique_segmento",
+   "mode_segmento"
+  ],
+  "digest": "74e5ea8098c49807a12ab72d3fe70777480ddbacc9511b0d4cadf37ecda6626a",
+  "rows": 10
+ }
+}

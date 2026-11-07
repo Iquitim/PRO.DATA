@@ -1,6 +1,6 @@
 # PRO.DATA: contexto para assistentes de IA
 
-Versão do programa: 0.5.9. Este arquivo é gerado a partir do código.
+Versão do programa: 0.6.0. Este arquivo é gerado a partir do código.
 
 Você está ajudando alguém que usa o PRO.DATA, um programa de Windows para montar fluxos visuais de dados, parecido com o Alteryx. A pessoa pode enviar um fluxo (arquivo `.prodata.json`) e pedir para explicar, corrigir ou mudar. Use este documento para responder com um fluxo que abre e executa de primeira.
 
@@ -21,10 +21,12 @@ Peça para salvar a resposta como `nome.prodata.json` e abrir pelo botão **Abri
 ## Formato do arquivo
 
 ```text
-Workflow: id (obrigatório; letras, números, _ e -), name, description, containers[], nodes[], edges[], dashboard
+Workflow: id (obrigatório; letras, números, _ e -), name, description, containers[], nodes[], edges[], dashboard,
+          constants[], shared_constants{}
 Node:     id (mesmo formato; único), type, label, x, y, config{}, disabled, cache_point, cache_refresh (changes, daily, hourly)
 Edge:     id, source, sourceHandle (porta de saída), target, targetHandle (porta de entrada)
 Container: id, title, description, color, opacity (0 a 0,4), disabled, x, y, width, height
+Constant: name (letra ou _, depois letras, números e _), type (text, number, date), value (texto), description
 ```
 
 - O programa recusa um arquivo com `id` de caixa repetido, ligação para caixa inexistente ou caixa ligada a ela mesma.
@@ -83,6 +85,8 @@ Concat([a], ' - ', [b])                junta textos: o + só soma números
 Palavras de controle: IF, THEN, ELSEIF, ELSE, ENDIF. Operadores lógicos: AND, OR, NOT, IN, TRUE, FALSE, NULL.
 
 Na **Multi-Row Formula**, `[Row-1:coluna]` é a linha anterior e `[Row+1:coluna]` é a seguinte, até 100 de distância. A própria coluna calculada só pode olhar para trás.
+
+**Constantes:** `[#nome]` é um valor com nome, como `[#mes_referencia]`. Valem nas fórmulas, no valor do Filter básico, no nome do arquivo do Output Data e nos parâmetros fixos de uma API. As do fluxo ficam em `constants` (data em `AAAA-MM-DD`, número com ponto ou vírgula). As compartilhadas são cadastradas no computador da pessoa; `shared_constants` só guarda o valor que o fluxo usou e o programa o reescreve ao salvar. Para criar uma constante nova, ponha em `constants`; não mexa em `shared_constants`. O mesmo nome nos dois lugares dá erro.
 
 Se você escrever a fórmula da Multi-Row à mão, use `"recipe": "custom"`. Com outra receita, a tela esconde o editor e mostra a fórmula gravada em `expression`, que é o que roda de verdade.
 
@@ -487,6 +491,28 @@ Entradas: `in` (Entrada). Saídas: `out` (Saída).
 - `n` (100): N. De 0 a …. Aparece se `mode` em first, last, random
 - `percent` (10.0): Percentual. De 0 a 100. Aparece se `mode` em percent
 - `seed` (42): Semente. Aparece se `mode` em random, percent
+
+#### `prep.data_quality`: Data Quality
+
+Confere cada linha contra regras prontas: o que passa sai em [P]; o que falha sai em [F], com o motivo.
+
+Entradas: `in` (Entrada), `L` (Lista de valores, opcional, conforme a configuração). Saídas: `P` (Passou), `F` (Falhou).
+
+- `rules` ([]): Regras
+  - `kind` ("not_empty"): Regra. Opções: `not_empty`, `unique`, `cpf`, `cnpj`, `email`, `number_range`, `date`, `allowed`, `formula`
+  - `column` (""): Coluna [nome de coluna]. Aparece se `kind` em not_empty, unique, cpf, cnpj, email, number_range, date, allowed
+  - `also` ([]): Junto com [lista de colunas]. Aparece se `kind` em unique. Opcional: a repetição conta a combinação destas colunas com a coluna acima
+  - `min` (null): Mínimo. Aparece se `kind` em number_range
+  - `max` (null): Máximo. Aparece se `kind` em number_range
+  - `date_min` (""): A partir de. Aparece se `kind` em date. AAAA-MM-DD. Vazio: sem limite
+  - `date_max` (""): Até. Aparece se `kind` em date. AAAA-MM-DD. Vazio: sem limite
+  - `not_future` (false): Não pode ser no futuro. Aparece se `kind` em date
+  - `values_from` ("list"): De onde vem a lista. Opções: `list`, `table`. Aparece se `kind` em allowed
+  - `values` ([]): Valores permitidos. Aparece se `kind` em allowed; `values_from` em list
+  - `list_column` (""): Coluna da lista [L] [nome de coluna]. Aparece se `kind` em allowed; `values_from` em table. Cada valor que aparece nesta coluna vale como permitido. Vazios são ignorados
+  - `ignore_case` (true): Sem diferenciar maiúsculas. Aparece se `kind` em allowed
+  - `expression` (""): A linha passa quando [fórmula]. Aparece se `kind` em formula. Ex.: [idade] >= 18 AND [uf] != 'XX'
+  - `message` (""): Motivo quando falha. Aparece se `kind` em formula. Opcional. Vazio: mostra a fórmula
 
 #### `prep.text_to_columns`: Text To Columns
 

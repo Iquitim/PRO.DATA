@@ -23,12 +23,16 @@ def list_workflows(services: ServicesDep) -> list[WorkflowSummary]:
 @router.get("/demo")
 def get_demo(services: ServicesDep) -> Workflow:
     seed_example_apis(services.apis)  # o exemplo abre sempre pronto para executar
-    return Workflow.model_validate(demo_workflow())
+    workflow = Workflow.model_validate(demo_workflow())
+    services.trust.created(workflow)
+    return workflow
 
 
 @router.get("/{workflow_id}")
 def get_workflow(workflow_id: WorkflowId, services: ServicesDep) -> Workflow:
-    return services.workflows.get(workflow_id)
+    workflow = services.workflows.get(workflow_id)
+    services.trust.opened(workflow)  # arquivo da biblioteca mudado fora do programa volta a ser protegido
+    return workflow
 
 
 @router.put("/{workflow_id}")
@@ -36,7 +40,9 @@ def save_workflow(workflow_id: WorkflowId, workflow: Workflow, services: Service
     if workflow.id != workflow_id:
         workflow = workflow.model_copy(update={"id": workflow_id})
     graph.topological_order(workflow)  # recusa ciclos antes de salvar
-    return services.workflows.save(workflow)
+    saved = services.workflows.save(services.runner.snapshot(workflow))
+    services.trust.saved(saved)
+    return saved
 
 
 @router.delete("/{workflow_id}", status_code=204)

@@ -12,12 +12,23 @@ localmente.
   separador decimal — CSVs brasileiros (`;` e vírgula decimal) funcionam sem
   configuração. Em planilhas, a prévia mostra as **abas** como guias e permite
   **pular linhas e colunas** quando a tabela não começa em A1.
+- **Vista Dados**: a primeira tela reúne arquivos, consultas, APIs, conexões e constantes,
+  com situação, prévia, qualidade das colunas e o **mapa de onde cada fonte é usada** nos
+  fluxos da biblioteca. Antes de excluir uma fonte em uso, a tela lista o que deixa de funcionar.
+- **Constantes**: um valor com nome, escrito `[#nome]`, nas fórmulas, no Filter básico, no
+  nome do arquivo do Output Data e nos parâmetros fixos de API. Do fluxo (vão no arquivo) ou
+  compartilhadas (vista Dados). Mudar o valor refaz só as caixas que usam a constante.
+- **Data Quality**: regras prontas (não vazio, sem duplicados, CPF, CNPJ alfanumérico, e-mail,
+  faixa de número, data, lista de valores e fórmula livre), escolhidas por cartões. Saídas
+  P (passou) e F (falhou, com `regra` e `motivo`), e selo no canvas com as falhas.
+- **Abertura protegida**: um fluxo que veio de fora não executa nada até a pessoa conferir o
+  que ele lê, calcula e grava e confiar.
 - **Bancos de dados**: conexões com PostgreSQL e SQL Server (somente leitura).
-  Na aba Dados, **consultas de banco** (uma tabela ou SQL livre, com prévia)
+  Na vista Dados, **consultas de banco** (uma tabela ou SQL livre, com prévia)
   ficam ao lado dos arquivos, e o mesmo **Input Data** lê qualquer uma dessas
   fontes. A senha fica no Gerenciador de Credenciais do Windows, nunca em
   arquivos do projeto.
-- **APIs**: cadastre uma API na aba Dados (GET ou POST, JSON, CSV ou XML, com
+- **APIs**: cadastre uma API na vista Dados (GET ou POST, JSON, CSV ou XML, com
   paginação e novas tentativas) e leia no Input Data. Token, chave, senha e OAuth 2
   ficam no cofre do sistema. API de endereço fixo vira tabela direto no Input Data; com
   variável (`{sigla}`), entra como **API Loop**: você escolhe a coluna que preenche
@@ -28,8 +39,8 @@ localmente.
   consome a API pública do IBGE, só depois do clique em Executar.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo
   pode ser salvo e aberto de qualquer pasta (*Salvar como…* / *Abrir arquivo…*).
-- **30 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
-  Text To Columns, Record ID, Running Total e Multi-Row Formula), combinação e transformação (Join
+- **31 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
+  Text To Columns, Record ID, Running Total, Multi-Row Formula e Data Quality), combinação e transformação (Join
   com saídas L/J/R, Cross Tab, Transpose, Append Fields, Summarize, Union, SQL via
   DuckDB), BI (Chart, KPI Card, Venn e Table) e Machine Learning (scikit-learn).
 - **Ponto de cache** (como o "Cache and Run" do Alteryx): congela o resultado de
@@ -197,6 +208,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [025](specs/025-conectores-e-guia/spec.md) | Conectores, animações e guia reorganizado |
 | [026](specs/026-seguranca-e-rotulos/spec.md) | Ordenação, Summarize por tipo, rótulos, segurança de API e HTML; Multi-Row com receitas e clique no gráfico |
 | [027](specs/027-qualidade-do-codigo/spec.md) | Código dividido, limites verificados por teste e fórmulas sem acesso externo |
+| [028](specs/028-dados-e-confianca/spec.md) | Vista Dados com mapa de uso, abertura protegida, Data Quality e constantes |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 
@@ -260,21 +272,25 @@ Documentação interativa em http://127.0.0.1:8765/docs.
 | POST | `/api/formula/validate` | Validar expressão contra um esquema |
 | GET · PUT · DELETE | `/api/connections[/{id}]` | Conexões com bancos (a senha só entra no PUT, nunca sai) |
 | POST · GET · POST | `/api/connections/{id}/test` · `/tables` · `/preview` | Testar, listar tabelas, pré-visualizar |
-| GET · PUT · DELETE | `/api/queries[/{id}]` | Consultas de banco da aba Dados (sem senha) |
+| GET · PUT · DELETE | `/api/queries[/{id}]` | Consultas de banco da vista Dados (sem senha) |
 | POST | `/api/queries/preview` | Prévia de uma consulta ainda não salva |
-| GET · PUT · DELETE | `/api/apis[/{id}]` | Fontes de API da aba Dados (segredos entram no PUT, nunca saem) |
+| GET · PUT · DELETE | `/api/apis[/{id}]` | Fontes de API da vista Dados (segredos entram no PUT, nunca saem) |
 | POST | `/api/apis/preview` | Chamada de teste de uma API, só a primeira página, com amostra da resposta |
 | GET | `/api/apis/examples` | APIs públicas de exemplo para começar um cadastro (nada é chamado) |
 | POST | `/api/dashboard/filter-options` · `/filtered` | Valores dos filtros · visuais recalculados, sem executar o fluxo |
 | POST · GET | `/api/dashboard/export-data` · `/viewer.js` | Dados e script do dashboard em HTML |
 | POST | `/api/dashboard/export-log` | Registra uma exportação feita na tela (sem os dados) |
 | POST | `/api/files/workflow/save` · `/open` | Salvar / abrir fluxo num caminho escolhido (`.prodata.json`) |
+| GET | `/api/usage` | Onde cada fonte e cada constante é usada nos fluxos da biblioteca |
+| GET · POST · DELETE | `/api/constants[/{nome}]` | Constantes compartilhadas (`previous` no POST renomeia) |
+| POST | `/api/trust/state` · `/confirm` | Abertura protegida: situação do fluxo e confirmação de confiança |
 
 Fluxos são salvos na biblioteca `storage/workflows/<id>.prodata.json` ou, com
 *Salvar como…*, em qualquer pasta (JSON legível, versionável em Git). O Input
-Data aponta para um arquivo da aba Dados pelo nome, para uma consulta como
+Data aponta para um arquivo da vista Dados pelo nome, para uma consulta como
 `sql:<id>` ou para uma API como `api:<id>`; as consultas ficam em
-`storage/queries.json` e as APIs, sem segredos, em `storage/apis.json`.
+`storage/queries.json` e as APIs, sem segredos, em `storage/apis.json`. As constantes compartilhadas ficam em
+`storage/constantes.json` e os fluxos confirmados na abertura protegida, em `storage/confianca.json`.
 
 ## Desempenho
 

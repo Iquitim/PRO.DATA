@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from prodata.api.deps import ServicesDep
 from prodata.domain.workflow import Workflow
 from prodata.engine import graph
 from prodata.services.workflows import load_from_file, save_to_file
@@ -27,13 +28,16 @@ class FileResponse(BaseModel):
 
 
 @router.post("/workflow/save")
-def save_workflow_file(req: SaveFileRequest) -> FileResponse:
+def save_workflow_file(req: SaveFileRequest, services: ServicesDep) -> FileResponse:
     graph.topological_order(req.workflow)  # recusa ciclos antes de salvar
-    path = save_to_file(req.workflow, req.path)
-    return FileResponse(path=str(path), workflow=req.workflow)
+    workflow = services.runner.snapshot(req.workflow)
+    path = save_to_file(workflow, req.path)
+    services.trust.saved(workflow)
+    return FileResponse(path=str(path), workflow=workflow)
 
 
 @router.post("/workflow/open")
-def open_workflow_file(req: OpenFileRequest) -> FileResponse:
+def open_workflow_file(req: OpenFileRequest, services: ServicesDep) -> FileResponse:
     workflow, path = load_from_file(req.path)
+    services.trust.opened(workflow)  # de fora e ainda não confirmado: modo protegido (RF-2821)
     return FileResponse(path=str(path), workflow=workflow)
