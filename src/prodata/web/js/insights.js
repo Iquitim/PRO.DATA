@@ -1,6 +1,7 @@
 // Painel de insights (abaixo do canvas): KPIs e gráficos dos nós de BI e um
 // gráfico automático para cada Summarize executado.
 
+import { chartSkeleton } from './skeleton.js';
 import { api } from './api.js';
 import { AGG_LABELS, goToNode, kpiTile, visualCard } from './dashboard.js';
 import { button, debounce, fmt, h } from './dom.js';
@@ -29,6 +30,7 @@ export function initInsights(el, opts) {
         panelControls('insights'))),
     body);
   on('execution', render);
+  on('running', render); // os esqueletos aparecem assim que a execução começa
   // Caixa de BI excluída ou desativada: o visual some na hora (spec 010, RF-1005).
   on('workflow:changed', ({ structural }) => structural && render());
   on('workflow:loaded', render);
@@ -105,9 +107,10 @@ export async function render() {
 
   count.hidden = !cards.length;
   count.textContent = cards.length;
-  body.replaceChildren(cards.length
-    ? h('div', { class: 'insights-strip' }, cards)
+  const waiting = !cards.length && store.running;
+  body.replaceChildren(cards.length || waiting
+    ? h('div', { class: 'insights-strip' }, waiting ? [chartSkeleton(), chartSkeleton(), chartSkeleton()] : cards)
     : h('div', { class: 'empty' }, icon('chart', 20),
       h('strong', {}, store.execution ? 'Nenhum gráfico ou resumo' : 'Execute o fluxo'),
-      h('span', {}, 'Nós Chart, KPI Card e Summarize aparecem aqui após a execução.')));
+      h('span', {}, 'Caixas Chart, KPI Card e Summarize aparecem aqui depois de executar.')));
 }

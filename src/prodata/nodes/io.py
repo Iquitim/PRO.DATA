@@ -42,7 +42,7 @@ class InputDataConfig(ReadOptions, ToolConfig):
     dataset: str = Field(
         "",
         title="Fonte",
-        description="Arquivo, consulta de banco ou API cadastrados na aba Dados. APIs com variável, como {sigla}, ficam no API Loop.",
+        description="Arquivo, consulta de banco ou API cadastrados na vista Dados. APIs com variável, como {sigla}, ficam no API Loop.",
         json_schema_extra=ui(widget="dataset"),
     )
     limit: int = Field(0, ge=0, title="Limite de linhas", description="0 = todas as linhas.")
@@ -92,7 +92,7 @@ def _source_on_request(ctx: NodeContext, cfg: InputDataConfig) -> str | None:
     name="Input Data",
     category="inout",
     icon="database",
-    description="Lê qualquer fonte da aba Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), consultas de banco ou APIs.",
+    description="Lê qualquer fonte cadastrada na vista Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), consultas de banco ou APIs.",
     config=InputDataConfig,
     inputs=[],
     outputs=[Port("out", "O", "Dados")],
@@ -112,7 +112,7 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
         extra: dict[str, Any] = {"source": api.name, "source_read_at": _now(), "api_pages": result.pages}
         if result.truncated:
             extra["warnings"] = [
-                f"Parou no limite de {result.pages} páginas e ainda havia mais: aumente o limite na aba Dados."
+                f"Parou no limite de {result.pages} páginas e ainda havia mais: aumente o limite na vista Dados."
             ]
         return NodeOutput(tables={"out": frame.head(cfg.limit) if cfg.limit else frame}, extra=extra)
     query_id = source_query_id(cfg.dataset)
@@ -556,7 +556,7 @@ def _database_annotation(cfg: DatabaseInputConfig) -> str:
     name="Database Input",
     category="inout",
     icon="server",
-    description="(Antiga) Lê uma tabela ou consulta SQL. Use o Input Data com uma consulta da aba Dados.",
+    description="(Antiga) Lê uma tabela ou consulta SQL. Use o Input Data com uma consulta da vista Dados.",
     config=DatabaseInputConfig,
     inputs=[],
     outputs=[Port("out", "O", "Dados")],

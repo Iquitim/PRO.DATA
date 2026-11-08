@@ -148,6 +148,7 @@
   .anatomy .v { padding: 0 2pt; font-weight: 700; background: #e6d9b8; border-radius: 3pt; }
   .anatomy .f { color: #5b3fb5; font-weight: 700; }
   .anatomy small { display: block; margin-top: 5pt; font: 8.5pt 'Open Sans', sans-serif; color: var(--ink-2); }
+  .manual-only { display: none; } /* só no Manual do programa: no PDF não aparece */
 </style>
 </head>
 <body>
@@ -163,8 +164,8 @@
     <h1>Do dado bruto à decisão.</h1>
     <div class="rule"></div>
     <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
-    <div class="shot"><img src="img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.6 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="shot"><img src="../../src/prodata/web/manual/img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
+    <div class="meta"><span>Versão 0.6.1 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -240,10 +241,11 @@
 <section class="chapter">
   <div class="eyebrow">2 · Primeiros passos</div>
   <h2>Conhecendo a tela</h2>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="executar">Mostrar o Executar</button><button type="button" class="manual-only m-act" data-show="tema">Mostrar o botão de tema</button></div>
   <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 12).</p>
   <figure>
     <div class="frame">
-      <img src="img/overview.png" alt="Tela principal do PRO.DATA">
+      <img src="../../src/prodata/web/manual/img/overview.png" alt="Tela principal do PRO.DATA">
       <span class="marker" style="left:15%;top:2.4%">1</span>
       <span class="marker" style="left:10%;top:9.6%">2</span>
       <span class="marker" style="left:47%;top:38%">3</span>
@@ -254,31 +256,43 @@
     <figcaption>Tela principal com o fluxo de demonstração "Pipeline 360° de clientes".</figcaption>
   </figure>
   <div class="legend">
-    <div><b>1</b><span><strong>Barra superior</strong> — nome do fluxo, as telas Dados, Designer, Dashboard e SQL, abrir, salvar e tema.</span></div>
-    <div><b>2</b><span><strong>Ferramentas · Dados · Configurar</strong> — a paleta de ferramentas; suas fontes, para buscar e arrastar para o canvas; e a configuração da caixa selecionada.</span></div>
+    <div><b>1</b><span><strong>Barra superior</strong> — nome do fluxo, as telas Dados, Designer, Dashboard e SQL, os menus Arquivo e Exibir, o tema claro ou escuro e o Manual (<strong>?</strong>).</span></div>
+    <div><b>2</b><span><strong>Ferramentas · Fontes · Configurar</strong> — a paleta de ferramentas; suas fontes, para buscar e arrastar para o canvas; e a configuração da caixa selecionada.</span></div>
     <div><b>3</b><span><strong>Canvas</strong> — onde o fluxo é montado. Arraste caixas, ligue saídas a entradas, agrupe em etapas.</span></div>
-    <div><b>4</b><span><strong>Resultados</strong> — a tabela da caixa selecionada, com perfil de qualidade, filtros e log de execução.</span></div>
+    <div><b>4</b><span><strong>Resultado · Perfil · Log</strong> — a tabela da caixa selecionada, com perfil de qualidade, filtros e log de execução.</span></div>
     <div><b>5</b><span><strong>Gráficos e resumos</strong> — indicadores e gráficos produzidos pelo fluxo, atualizados a cada execução.</span></div>
     <div><b>6</b><span><strong>Executar</strong> — roda o fluxo (atalho <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). Só o que mudou é recalculado.</span></div>
   </div>
   <h3>As cores das caixas</h3>
   <p>Cada família de ferramentas tem uma cor, e os fios levam a cor de uma caixa até a outra. Dá para ler um fluxo de longe: verde lê e grava dados, azul prepara, roxo combina, laranja vira indicador e ciano é Machine Learning. A seta mostra o sentido em que o dado anda e, durante a execução, ele corre pelo fio até a caixa da vez.</p>
+  <h3>Os nomes que o programa usa</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_fontes">Mostrar onde fica</button></div>
+  <p>Cada ferramenta colocada no canvas é uma <strong>caixa</strong>. Um grupo de caixas com título e cor é uma <strong>etapa</strong>. O desenho inteiro, salvo num arquivo, é um <strong>fluxo</strong>. Arquivos, bancos, APIs e constantes cadastrados na vista Dados são <strong>fontes</strong>.</p>
+  <p>A tela fala português. Os nomes das ferramentas (Filter, Join, Summarize…) e das funções de fórmula (<code>IIF</code>, <code>Trim</code>, <code>Today</code>…) ficam em inglês, como no Alteryx: quem vem de lá se acha, e as fórmulas escritas continuam valendo. A explicação de cada uma é sempre em português.</p>
+  <h3>Ajuda sem sair do programa</h3>
+  <p>O botão <strong>?</strong> ou a tecla <kbd>F1</kbd> abre este guia ao lado do trabalho, já sugerindo o capítulo do que você está fazendo. Para ler com mais espaço, expanda o Manual pelo botão ao lado do X ou arraste a borda esquerda. Nele, <strong>Mostrar onde fica</strong> acende na tela o botão citado, e <strong>Experimentar</strong> abre um exemplo numa aba nova, sem mexer no seu fluxo.</p>
+  <p><kbd>Ctrl</kbd>+<kbd>K</kbd> abre a busca: digite o que quer fazer, como <em>juntar</em> ou <em>ordenar</em>, e ela acha a ferramenta, a ação, a caixa do fluxo, a fonte ou o capítulo. Enter escolhe.</p>
+  <figure>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/manual.png" alt="O Manual aberto ao lado do fluxo, com o botão Constantes aceso na tela"></div>
+    <figcaption>O Manual ao lado do fluxo. Aqui, Mostrar onde fica acendeu o botão Constantes.</figcaption>
+  </figure>
 </section>
 
 <!-- ================================================================ 3. PRIMEIRO FLUXO -->
 <section class="chapter">
   <div class="eyebrow">3 · Mão na massa</div>
   <h2>Seu primeiro fluxo</h2>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-try="primeiro">Abrir este fluxo pronto</button></div>
   <p class="intro">Uma pergunta real: <strong>quanto cada estado representa no faturamento mensal?</strong> Em cinco passos, com os arquivos de exemplo que já vêm no programa.</p>
   <div class="steps">
     <div class="step"><div><h4>Comece um fluxo novo</h4><p>Clique em <strong>+</strong> ao lado das abas. O canvas abre vazio.</p></div></div>
-    <div class="step"><div><h4>Traga os dados</h4><p>Na aba <strong>Dados</strong>, arraste <code>clientes_enterprise.csv</code> para o canvas. Nasce uma caixa <em>Input Data</em>, e o PRO.DATA já reconheceu separador e acentos.</p></div></div>
+    <div class="step"><div><h4>Traga os dados</h4><p>Na aba <strong>Fontes</strong>, à esquerda, arraste <code>clientes_enterprise.csv</code> para o canvas. Nasce uma caixa <em>Input Data</em>, e o PRO.DATA já reconheceu separador e acentos.</p></div></div>
     <div class="step"><div><h4>Resuma por estado</h4><p>Em <strong>Ferramentas</strong>, arraste <em>Summarize</em> e ligue a saída da primeira caixa à entrada dela. Em <strong>Agrupar por</strong>, escolha <code>uf</code>; em <strong>Agregações</strong>, some <code>mrr_mensal</code>. O esquema <strong>Como funciona</strong> já mostra o que vai acontecer.</p></div></div>
     <div class="step"><div><h4>Peça o gráfico</h4><p>Arraste <em>Chart</em>, ligue ao Summarize e escolha <code>uf</code> como categoria e a coluna da soma como valor.</p></div></div>
     <div class="step"><div><h4>Execute</h4><p>Clique em <strong>Executar</strong>. O dado corre pelos fios, cada caixa confirma com um pulso verde, e o gráfico aparece no <strong>Dashboard</strong>. Clique em qualquer caixa para ver a tabela daquela etapa.</p></div></div>
   </div>
   <figure class="m60">
-    <div class="frame"><img src="img/primeiro-fluxo.png" alt="Primeiro fluxo com três caixas, a tabela e o gráfico"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/primeiro-fluxo.png" alt="Primeiro fluxo com três caixas, a tabela e o gráfico"></div>
     <figcaption>O resultado: três caixas, a tabela de cada etapa à direita e o gráfico logo abaixo.</figcaption>
   </figure>
   <div class="callout ok"><strong>No mês seguinte</strong>Se o arquivo mudar, é só clicar em Executar. Nada precisa ser refeito: é essa a diferença para a planilha.</div>
@@ -291,21 +305,23 @@
   <h2>Trazendo dados</h2>
   <div class="goal"><b>Ao final:</b> <span>você sabe onde ficam as suas fontes, onde cada uma é usada, como ler arquivos e bancos, e como trocar um valor em vários fluxos de uma vez.</span></div>
   <h3>A vista Dados</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="vista_dados">Mostrar onde fica</button></div>
   <p>A primeira tela da barra superior reúne tudo o que os fluxos leem: <strong>arquivos, consultas de banco, APIs, conexões e constantes</strong>. Você cadastra uma vez e usa em quantos fluxos quiser. Cada cartão mostra a situação da fonte (ok, vinculado, falta senha, não encontrado) e em quantos fluxos ela é usada. O botão <strong>Adicionar</strong> cria qualquer uma delas.</p>
   <figure>
-    <div class="frame"><img src="img/dados-vista.png" alt="Vista Dados com um arquivo aberto"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-vista.png" alt="Vista Dados com um arquivo aberto"></div>
     <figcaption>Um arquivo aberto na vista Dados: números, prévia das primeiras linhas e a qualidade de cada coluna.</figcaption>
   </figure>
   <p><strong>Onde é usada.</strong> A aba <em>Onde é usada</em> desenha a fonte ligada a cada fluxo da biblioteca, com as caixas na ordem em que o dado anda e as cores do Designer. Ela responde à pergunta que vem antes de mudar ou excluir uma fonte: <em>o que deixa de funcionar?</em> Clique numa caixa para abri-la no Designer. Ao excluir uma fonte em uso, o PRO.DATA lista os fluxos afetados antes. A conta inclui os fluxos da biblioteca; os salvos em outras pastas não entram.</p>
   <figure class="m80">
-    <div class="frame"><img src="img/dados-mapa.png" alt="Mapa de uso de um arquivo"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-mapa.png" alt="Mapa de uso de um arquivo"></div>
     <figcaption>O arquivo de clientes alimenta 17 caixas e 5 visuais do exemplo. Mudar o arquivo muda tudo isso.</figcaption>
   </figure>
   <h3>Arquivos</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="adicionar_fonte">Mostrar onde fica</button></div>
   <p>Envie arquivos pela vista <strong>Dados</strong>, em <strong>Adicionar</strong>, ou solte-os direto no canvas. Antes de usar, a <strong>prévia</strong> mostra o que foi detectado e as primeiras linhas — e qualquer ajuste aparece na hora.</p>
   <p><strong>Enviar ou vincular?</strong> Enviar faz uma <em>cópia</em> do arquivo. Para uma planilha que é atualizada todo dia numa pasta da rede ou no OneDrive, use <strong>Vincular arquivo</strong>: o PRO.DATA lê o original onde ele está, sem copiar. A cada execução, se o arquivo mudou, ele é relido e só o que depende dele roda de novo; a vista Dados e o Configurar mostram quando o arquivo foi modificado e avisam se ele foi movido ou renomeado. O PRO.DATA nunca grava no arquivo vinculado.</p>
   <figure class="m80">
-    <div class="frame"><img src="img/preview-crop.png" alt="Prévia de arquivo com detecção automática"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/preview-crop.png" alt="Prévia de arquivo com detecção automática"></div>
     <figcaption>Um CSV no padrão brasileiro (ponto e vírgula, vírgula decimal, Windows-1252) reconhecido sem nenhuma configuração.</figcaption>
   </figure>
   <table>
@@ -320,26 +336,28 @@
   <h3>Bancos de dados</h3>
   <p>Cadastre conexões com <strong>PostgreSQL</strong> e <strong>SQL Server</strong> e teste com um clique. Depois, na própria vista <strong>Dados</strong>, crie <strong>consultas de banco</strong>: escolha uma tabela da lista ou escreva o SQL, veja a prévia e dê um nome. A consulta fica ao lado dos arquivos e é usada exatamente como eles: arraste para o canvas ou escolha no <em>Input Data</em>, a mesma ferramenta que lê arquivos.</p>
   <figure class="m50">
-    <div class="frame"><img src="img/connection-crop.png" alt="Cadastro de conexão com banco de dados"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/connection-crop.png" alt="Cadastro de conexão com banco de dados"></div>
     <figcaption>A senha vai para o Gerenciador de Credenciais do Windows — nunca para arquivos do projeto.</figcaption>
   </figure>
   <div class="callout ok"><strong>Seguro por padrão</strong>As conexões são somente leitura: apenas consultas de leitura (<code>SELECT</code>/<code>WITH</code>) são aceitas, e comandos que alteram dados são recusados antes de chegar ao banco. Por padrão, cada execução consulta o banco de novo; a opção "Reaproveitar resultado" evita consultas repetidas quando os dados não mudam.</div>
 
   <h3>Constantes: um valor com nome</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="constantes">Mostrar onde fica</button><button type="button" class="manual-only m-act" data-try="constantes">Experimentar num exemplo</button></div>
   <p>O mês de referência, a meta do trimestre, a taxa de câmbio do fechamento: valores que aparecem em várias fórmulas e mudam de tempos em tempos. Em vez de procurar cada fórmula, cadastre uma <strong>constante</strong> e escreva <code>[#mes_referencia]</code> onde precisar. Para trocar, mude num lugar só.</p>
   <div class="two-col side-figure">
     <div>
       <p><strong>Compartilhadas</strong> ficam na vista Dados e valem para todos os fluxos deste computador. Ao mudar uma que outros fluxos usam, o PRO.DATA mostra o valor de antes e o novo, e lista as caixas que passam a calcular diferente.</p>
       <p><strong>Do fluxo</strong> ficam no arquivo do fluxo e viajam com ele. O botão <strong>Constantes</strong>, na barra do canvas, mostra as do fluxo e as compartilhadas que ele usa.</p>
       <p>Cada constante tem um tipo: <strong>texto</strong>, <strong>número</strong> ou <strong>data</strong>. No editor de fórmula, o botão <strong>Constante</strong> insere a referência, que tem cor própria. Ela também vale no valor do Filter básico, no nome do arquivo do Output Data e nos parâmetros fixos de uma API.</p>
+      <p><code>[#hoje]</code> já vem pronta: vale a data do dia, sem cadastro, e a caixa que a usa refaz quando o dia muda. Serve, por exemplo, para o nome do arquivo: <code>posicao_[#hoje]</code>.</p>
     </div>
     <figure>
-      <div class="frame"><img src="img/constante-formula.png" alt="Botão Constante no editor de fórmula"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/constante-formula.png" alt="Botão Constante no editor de fórmula"></div>
       <figcaption>Na fórmula, a constante aparece em âmbar e nunca se confunde com uma coluna.</figcaption>
     </figure>
   </div>
-  <figure class="m80">
-    <div class="frame"><img src="img/constante.png" alt="Cadastro de uma constante compartilhada"></div>
+  <figure class="m50">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/constante.png" alt="Cadastro de uma constante compartilhada"></div>
     <figcaption>Uma constante compartilhada: nome, tipo, valor, descrição e um exemplo de como usar.</figcaption>
   </figure>
   <div class="callout ok"><strong>Só refaz o que usa a constante</strong>Ao mudar o valor, só as caixas que usam a constante (e as que vêm depois delas) são executadas de novo. O fluxo guarda o valor de cada compartilhada que usa: enviado a outra pessoa, ele roda com esse valor e avisa que a constante não está cadastrada no computador dela.</div>
@@ -369,8 +387,8 @@
     <div class="step"><div><h4>Ajuste o que precisar</h4><p>A aba <strong>Parâmetros</strong> separa variáveis de parâmetros fixos. <strong>Autenticação</strong> aceita token, chave, usuário e senha ou OAuth 2. <strong>Páginas</strong> lê respostas divididas em partes.</p></div></div>
     <div class="step"><div><h4>Clique em Testar</h4><p>A resposta real aparece ao lado da tabela que ela gerou.</p></div></div>
   </div>
-  <figure class="m80">
-    <div class="frame"><img src="img/api-editor.png" alt="Resposta da API ao lado da tabela"></div>
+  <figure class="m50" style="max-width:44%">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/api-editor.png" alt="Resposta da API ao lado da tabela"></div>
     <figcaption>A resposta real do IBGE e a tabela que sai dela. Passar o mouse num campo acende a coluna; <strong>Usar como linhas</strong> escolhe de onde vêm as linhas, sem digitar caminho.</figcaption>
   </figure>
   <div class="side">
@@ -383,14 +401,14 @@
         <li>Teste primeiro só com o endereço e acrescente o que precisar.</li>
       </ul>
     </div>
-    <figure><div class="frame"><img src="img/api-vars.png" alt="Cadastro com a variável sigla e o parâmetro fixo view"></div><figcaption>A variável e o parâmetro fixo, separados, com o link da documentação.</figcaption></figure>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/api-vars.png" alt="Cadastro com a variável sigla e o parâmetro fixo view"></div><figcaption>A variável e o parâmetro fixo, separados, com o link da documentação.</figcaption></figure>
   </div>
   <h3>Uma chamada por linha: API Loop</h3>
   <div class="side">
     <div>
       <p>Com uma API que tem variável, a caixa <strong>API Loop</strong> faz uma chamada para cada linha da tabela de entrada e junta as respostas numa tabela só. A entrada pode vir de outra API: a lista de estados alimenta os municípios de cada um.</p>
       <p>Ligue a tabela e, em <strong>De onde vem cada variável</strong>, escolha a coluna:</p>
-      <figure class="small"><div class="frame"><img src="img/api-params.png" alt="Escolha da coluna que preenche a variável"></div></figure>
+      <figure class="small"><div class="frame"><img src="../../src/prodata/web/manual/img/api-params.png" alt="Escolha da coluna que preenche a variável"></div></figure>
       <ul style="margin-top:8pt">
         <li>A saída <strong>R</strong> traz as respostas ao lado da linha que as pediu; a <strong>E</strong>, o que falhou e o motivo.</li>
         <li>Valores iguais são chamados uma vez só.</li>
@@ -398,7 +416,7 @@
         <li>O Loop não roda ao abrir um fluxo: espera o clique em <strong>Executar</strong>.</li>
       </ul>
     </div>
-    <figure class="tall"><div class="frame"><img src="img/api-loop.png" alt="Esquema do API Loop"></div><figcaption>O esquema, com os seus dados: entrada, chamadas e saída.</figcaption></figure>
+    <figure class="tall"><div class="frame"><img src="../../src/prodata/web/manual/img/api-loop.png" alt="Esquema do API Loop"></div><figcaption>O esquema, com os seus dados: entrada, chamadas e saída.</figcaption></figure>
   </div>
   <div class="try"><strong>Experimente</strong><ol><li>No exemplo, clique em <strong>Executar</strong>: a etapa <em>5 · API pública do IBGE</em> busca os estados e os municípios de cada um. Abrir o fluxo não chama a internet; sem rede, só essa etapa dá erro.</li><li>Clique na caixa <em>Municípios por estado</em> e passe o mouse num valor do esquema para ver o caminho dele.</li></ol></div>
 </section>
@@ -407,6 +425,7 @@
 <section class="chapter">
   <div class="eyebrow">6 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_ferramentas">Mostrar onde fica</button></div>
   <p class="intro">31 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
@@ -444,28 +463,30 @@
   </table>
 
   <h3>Configurando uma caixa</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_configurar">Mostrar onde fica</button></div>
   <p>Clique na caixa e a aba <strong>Configurar</strong> abre ao lado, com um formulário só dela. Na direita, a tabela já mostra o resultado — no exemplo, as três saídas do Join com a contagem de cada uma.</p>
   <figure class="m50">
-    <div class="frame"><img src="img/join.png" alt="Configuração do Join"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/join.png" alt="Configuração do Join"></div>
     <figcaption>As chaves de junção são escolhidas em listas que já conhecem as colunas de cada lado.</figcaption>
   </figure>
   <h3>Entendendo o que a caixa faz</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-try="juntar">Experimentar num exemplo</button></div>
   <p>Cross Tab, Transpose, Join e Summarize são conceitos que confundem quem não trabalha com dados todo dia. No Configurar, essas caixas mostram um <strong>esquema</strong> do que acontece com a tabela, montado com as colunas escolhidas e uma amostra dos seus dados. Passar o mouse num valor destaca para onde ele vai; no Join, clicar em L, J ou R abre aquelas linhas.</p>
   <div class="grid-2 tight">
     <figure>
-      <div class="frame"><img src="img/explain-crosstab.png" alt="Esquema do Cross Tab"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/explain-crosstab.png" alt="Esquema do Cross Tab"></div>
       <figcaption>Cross Tab: cada segmento vira uma coluna. O valor destacado mostra onde cai na tabela nova.</figcaption>
     </figure>
     <figure>
-      <div class="frame"><img src="img/explain-join.png" alt="Esquema do Join"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/explain-join.png" alt="Esquema do Join"></div>
       <figcaption>Join: quantas linhas casaram e quais chaves ficaram sem par de cada lado.</figcaption>
     </figure>
     <figure>
-      <div class="frame"><img src="img/explain-summarize.png" alt="Esquema do Summarize"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/explain-summarize.png" alt="Esquema do Summarize"></div>
       <figcaption>Summarize: as linhas de cada grupo (cores) viram uma só, com a soma e a contagem calculadas.</figcaption>
     </figure>
     <figure>
-      <div class="frame"><img src="img/join-select.png" alt="Colunas do J no Join"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/join-select.png" alt="Colunas do J no Join"></div>
       <figcaption>Join: as colunas do J com a origem (L ou R) para manter, renomear, converter e arrastar para mudar a ordem.</figcaption>
     </figure>
   </div>
@@ -474,7 +495,7 @@
   <h3>Escrevendo fórmulas</h3>
   <div style="display:grid; grid-template-columns: 1fr 44%; gap: 14pt; align-items: start">
     <div>
-      <p>As caixas <em>Formula</em> e <em>Filter</em> têm um editor feito para quem não programa:</p>
+      <p>As caixas <em>Formula</em> e <em>Filter</em> têm um editor feito para quem não programa. Para fórmulas longas, <strong>Abrir grande</strong> abre o mesmo editor numa janela larga, com colunas, funções e constantes ao lado:</p>
       <ul>
         <li><strong>Cores</strong> separam colunas, funções, IF/THEN/ELSE, operadores lógicos (AND, OR, NOT), comparações, textos e números. Coluna inexistente e parêntese sem par ficam sublinhados em vermelho.</li>
         <li><strong>Autocompletar</strong>: comece a digitar e o PRO.DATA sugere funções; digite <code>[</code> e ele lista as colunas. <kbd>Enter</kbd> aceita; <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> mostra tudo.</li>
@@ -483,7 +504,7 @@
         <li><strong>Pensadas para o Brasil</strong>: <code>ToNumberBR('1.234,56')</code>, <code>FormatNumber([valor], 2)</code> → 1.234,56, <code>DigitsOnly</code> para CPF e CNPJ, <code>RemoveAccents</code>, e datas em português: <code>DateAdd([data], 1, 'mês')</code>, <code>MonthName</code>, <code>WeekdayName</code>.</li>
       </ul>
     </div>
-    <figure style="margin:0"><div class="frame"><img src="img/formula-crop.png" alt="Editor de fórmulas com sugestões"></div><figcaption>Sugestão de função enquanto se digita, com descrição e exemplo.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/formula-crop.png" alt="Editor de fórmulas com sugestões"></div><figcaption>Sugestão de função enquanto se digita, com descrição e exemplo.</figcaption></figure>
   </div>
 
   <h3>Editando com agilidade</h3>
@@ -492,10 +513,10 @@
       <li><strong>Lixeira na caixa</strong>: passe o mouse sobre uma caixa e clique no ícone de lixeira (ou use <kbd>Delete</kbd>).</li>
       <li><strong>Copiar e colar</strong>: <kbd>Ctrl</kbd>+<kbd>C</kbd> e <kbd>Ctrl</kbd>+<kbd>V</kbd> copiam uma caixa — ou uma etapa inteira, com as ligações internas. Dá para colar em outro fluxo.</li>
       <li><strong>Botão direito</strong>: configurar, executar até ali, copiar, recortar, colar, duplicar, renomear, desativar e excluir. Num fio, insere uma ferramenta no meio; no espaço vazio, cola ou cria caixas.</li>
-      <li><strong>Várias caixas</strong>: <kbd>Shift</kbd> + clique (ou <kbd>Shift</kbd> + arrastar no vazio) seleciona várias; arraste para mover todas, alinhe, distribua, agrupe numa caixa de organização ou tire delas.</li>
+      <li><strong>Várias caixas</strong>: <kbd>Shift</kbd> + clique (ou <kbd>Shift</kbd> + arrastar no vazio) seleciona várias; arraste para mover todas, alinhe, distribua, agrupe numa etapa ou tire delas.</li>
       <li><strong>Ver o que entra</strong>: clique numa porta de entrada para ver, na tabela, os dados que chegam por ela.</li>
     </ul>
-    <figure style="margin:0"><div class="frame"><img src="img/menu-crop.png" alt="Menu do botão direito numa caixa"></div><figcaption>Menu do botão direito numa caixa.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/menu-crop.png" alt="Menu do botão direito numa caixa"></div><figcaption>Menu do botão direito numa caixa.</figcaption></figure>
   </div>
 
   <h3>Fórmula que olha outras linhas</h3>
@@ -506,8 +527,8 @@
     <li><strong>Escrever a minha</strong> abre a fórmula livre, com botões para inserir <code>[Row-1:coluna]</code> e <code>[Row+1:coluna]</code>.</li>
   </ul>
   <div class="grid-2 tight" style="max-width:78%">
-    <figure style="margin:0"><div class="frame"><img src="img/multirow.png" alt="Receitas da Multi-Row Formula"></div><figcaption>As receitas: a pergunta vem antes da fórmula.</figcaption></figure>
-    <figure style="margin:0"><div class="frame"><img src="img/explain-multirow.png" alt="Esquema da Multi-Row Formula"></div><figcaption>O esquema, como no Join: passe o mouse no resultado para ver as células que ele usou.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/multirow.png" alt="Receitas da Multi-Row Formula"></div><figcaption>As receitas: a pergunta vem antes da fórmula.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/explain-multirow.png" alt="Esquema da Multi-Row Formula"></div><figcaption>O esquema, como no Join: passe o mouse no resultado para ver as células que ele usou.</figcaption></figure>
   </div>
   <h3>Várias planilhas no mesmo Excel</h3>
   <div class="side">
@@ -515,7 +536,7 @@
       <p>Com o formato Excel, o <strong>Output Data</strong> oferece uma entrada nova sempre que a anterior é ligada, até 8. Cada tabela vira uma planilha do mesmo arquivo, e o Configurar dá o nome de cada uma.</p>
       <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes × vendas</em> e veja o esquema do Join: quantas linhas casaram e o que ficou sem par.</li><li>Clique em <strong>L</strong>, <strong>J</strong> ou <strong>R</strong> para abrir aquelas linhas.</li></ol></div>
     </div>
-    <figure><div class="frame"><img src="img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
   </div>
 </section>
 
@@ -528,6 +549,7 @@
   <div class="two-col side-figure">
     <div>
       <h3>Escolha as regras pelos cartões</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-try="qualidade">Experimentar num exemplo</button></div>
       <p>Cada cartão mostra um exemplo do que passa (✓) e do que falha (✗). Clique para adicionar a regra e escolha a coluna. O número no cartão diz quantas vezes ela já está na caixa. Só aparecem as colunas que servem: a faixa de número oferece só números.</p>
       <table>
         <tr><th>Regra</th><th>Confere</th></tr>
@@ -542,7 +564,7 @@
       </table>
     </div>
     <figure>
-      <div class="frame"><img src="img/dq-regras.png" alt="Cartões de regra do Data Quality"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dq-regras.png" alt="Cartões de regra do Data Quality"></div>
       <figcaption>Os cartões de regra, com o que passa e o que falha em cada um.</figcaption>
     </figure>
   </div>
@@ -555,12 +577,12 @@
         <li><strong>De outra tabela, pela entrada L</strong>: a caixa ganha a entrada <strong>L</strong>. Ligue nela um Text Input, um arquivo ou uma consulta com a lista, como o cadastro de estados atendidos, e escolha a coluna. Quando o cadastro muda, a regra acompanha sem editar a caixa. Vazios na lista são ignorados.</li>
       </ul>
       <figure>
-        <div class="frame"><img src="img/dq-lista-tabela.png" alt="Lista de valores permitidos vinda da coluna sigla da entrada L"></div>
+        <div class="frame"><img src="../../src/prodata/web/manual/img/dq-lista-tabela.png" alt="Lista de valores permitidos vinda da coluna sigla da entrada L"></div>
         <figcaption>Com a lista em outra tabela, basta escolher a coluna da entrada L.</figcaption>
       </figure>
     </div>
     <figure>
-      <div class="frame"><img src="img/dq-lista.png" alt="Lista de valores permitidos digitada, com as etiquetas"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dq-lista.png" alt="Lista de valores permitidos digitada, com as etiquetas"></div>
       <figcaption>Um valor por linha. As etiquetas mostram como a lista foi entendida.</figcaption>
     </figure>
   </div>
@@ -572,7 +594,7 @@
       <p>Para as regras de formato (CPF, e-mail, data…), o vazio passa: use <strong>Não vazio</strong> para cobrar o preenchimento. Assim cada falha tem um motivo só.</p>
     </div>
     <figure>
-      <div class="frame"><img src="img/dq-resultado.png" alt="Esquema do Data Quality depois de executar"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dq-resultado.png" alt="Esquema do Data Quality depois de executar"></div>
       <figcaption>Quantas linhas passaram e quantas falharam, e em qual regra.</figcaption>
     </figure>
   </div>
@@ -583,6 +605,7 @@
 <section class="chapter">
   <div class="eyebrow">8 · Análise</div>
   <h2>Explorando os resultados</h2>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="aba_resultado">Mostrar a tabela</button><button type="button" class="manual-only m-act" data-show="filtros_resultado">Mostrar os filtros</button></div>
   <p class="intro">Cada caixa guarda o resultado da última execução. Clique nela — ou em uma de suas saídas — e a tabela mostra os dados correspondentes.</p>
   <div class="grid-2">
     <div>
@@ -595,12 +618,12 @@
       <p>A aba <strong>Perfil</strong> descreve cada coluna: percentual preenchido, vazio e nulo, valores distintos, mais frequentes e estatísticas (mínimo, média, mediana, máximo).</p>
       <p>Espaços invisíveis aparecem: células só com espaços mostram <em>vazio (espaços)</em>, espaço sobrando no início ou no fim aparece como ␣ e o cabeçalho da coluna traz um aviso com as contagens — "SP " não casa com "SP" num Join.</p>
     </div>
-    <figure class="m60" style="margin-top:0"><div class="frame"><img src="img/filters-crop.png" alt="Filtros exploratórios"></div>
+    <figure class="m60" style="margin-top:0"><div class="frame"><img src="../../src/prodata/web/manual/img/filters-crop.png" alt="Filtros exploratórios"></div>
       <figcaption>"uf = SP" e "mrr_mensal ≥ 3000": 105 de 500 clientes.</figcaption></figure>
-    <figure class="m60" style="margin-top:0"><div class="frame"><img src="img/profile-crop.png" alt="Perfil das colunas"></div>
+    <figure class="m60" style="margin-top:0"><div class="frame"><img src="../../src/prodata/web/manual/img/profile-crop.png" alt="Perfil das colunas"></div>
       <figcaption>Perfil da saída combinada do Join.</figcaption></figure>
   </div>
-  <div class="callout ok"><strong>Da exploração para o processo</strong>Quando a investigação vira regra, o botão <strong>Criar nó Filter</strong> transforma os filtros em uma caixa Filter já conectada ao fluxo.</div>
+  <div class="callout ok"><strong>Da exploração para o processo</strong>Quando a investigação vira regra, o botão <strong>Criar caixa Filter</strong> transforma os filtros em uma caixa Filter já conectada ao fluxo.</div>
   <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes</em> e, na tabela, em <strong>Filtros</strong>: filtre <code>uf</code> por SP.</li><li>Repare que o cabeçalho das colunas passa a mostrar a soma e a contagem só das linhas filtradas.</li></ol></div>
 </section>
 
@@ -618,19 +641,19 @@
   </table>
   <div class="grid-2">
     <figure>
-      <div class="frame"><img src="img/dash-kpi.png" alt="Big number com variação e tendência"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dash-kpi.png" alt="Big number com variação e tendência"></div>
       <figcaption>Faturamento do mês contra o mês anterior, com a tendência dos últimos meses.</figcaption>
     </figure>
     <figure>
-      <div class="frame"><img src="img/dash-venn.png" alt="Diagrama de Venn"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dash-venn.png" alt="Diagrama de Venn"></div>
       <figcaption>Venn: 69 clientes contrataram os três produtos; 126 só o Cloud.</figcaption>
     </figure>
     <figure>
-      <div class="frame"><img src="img/dash-pareto.png" alt="Gráfico de Pareto"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dash-pareto.png" alt="Gráfico de Pareto"></div>
       <figcaption>Pareto: cada coluna é a participação no total e a linha, o acumulado. As UFs destacadas somam 80%.</figcaption>
     </figure>
     <figure>
-      <div class="frame"><img src="img/dash-stacked.png" alt="Colunas empilhadas"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dash-stacked.png" alt="Colunas empilhadas"></div>
       <figcaption>Colunas empilhadas: faturamento por mês, dividido por produto.</figcaption>
     </figure>
   </div>
@@ -640,7 +663,7 @@
     <li>Cada <strong>Summarize</strong> do fluxo também vira, automaticamente, um gráfico no painel <strong>Gráficos e resumos</strong>, abaixo do canvas.</li>
   </ul>
   <figure class="m50">
-    <div class="frame"><img src="img/dash-export.png" alt="Imagem PNG do dashboard"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dash-export.png" alt="Imagem PNG do dashboard"></div>
     <figcaption>A imagem que sai do botão <strong>Baixar imagem</strong> no dashboard da demonstração, pronta para o e-mail ou a apresentação.</figcaption>
   </figure>
 </section>
@@ -652,15 +675,16 @@
   <p class="intro">O fluxo define <strong>o que</strong> mostrar; o dashboard define <strong>onde e como</strong>. Mudar cores ou posições não executa nada de novo.</p>
   <div class="goal"><b>Ao final:</b> <span>você monta a página, filtra e entrega em imagem ou em um arquivo que abre em qualquer navegador.</span></div>
   <figure class="m80">
-    <div class="frame"><img src="img/dash-guides.png" alt="Dashboard no modo Editar, com guias de alinhamento"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dash-guides.png" alt="Dashboard no modo Editar, com guias de alinhamento"></div>
     <figcaption>O dashboard da demonstração no modo Editar: ao arrastar um gráfico, as guias douradas mostram o alinhamento com os vizinhos.</figcaption>
   </figure>
   <h3>Editar o layout</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="editar_layout">Mostrar onde fica</button></div>
   <p>Clique em <strong>Editar layout</strong>. A página vira um canvas: arraste os visuais, redimensione pelas alças e eles se encaixam numa grade, com guias quando se alinham a outro item ou ao centro da página (segure <kbd>Alt</kbd> para posicionar livremente). <kbd>Shift</kbd>+arrastar seleciona vários; o botão direito alinha, distribui e muda a camada; <kbd>Delete</kbd> tira o visual da página sem apagar a caixa do fluxo — ele fica em <strong>Fora da página</strong> e volta com um clique.</p>
   <div class="grid-3">
     <div class="card"><h4>Inserir</h4><p>Título (empurra o conteúdo para baixo), texto, imagem PNG/JPG/SVG até 1 MB, o logo do Grupo Protege, retângulos de fundo e linhas divisórias.</p></div>
     <div class="card"><h4>Página</h4><p>16:9, A4 paisagem, A4 retrato ou altura livre, com cor de fundo. Se os visuais não couberem, a página cresce e o PRO.DATA avisa.</p></div>
-    <div class="card"><h4>Baixar imagem</h4><p>Gera um PNG em alta resolução da página — ou de um visual só, pelo botão do cartão — no tema claro ou escuro que estiver na tela.</p></div>
+    <div class="card"><h4>Baixar imagem</h4><p>No botão <strong>Baixar</strong>, gera um PNG em alta resolução da página — ou de um visual só, pelo botão do cartão — no tema claro ou escuro que estiver na tela.</p></div>
   </div>
   <div class="two-col side-figure">
     <div>
@@ -669,31 +693,33 @@
       <p>Textos, imagens e o que não estiver selecionado ficam onde estão; um <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz.</p>
     </div>
     <figure>
-      <div class="frame"><img src="img/dash-organize.png" alt="Galeria de layouts"></div>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/dash-organize.png" alt="Galeria de layouts"></div>
       <figcaption>Cada opção é desenhada com os visuais do próprio dashboard.</figcaption>
     </figure>
   </div>
   <h3>Formatar cada visual</h3>
   <p>Com um item selecionado, o painel <strong>Formato</strong> ajusta título, subtítulo, fundo, borda, cantos e sombra; os <strong>nomes na legenda e nas categorias</strong> (ex.: SP → São Paulo) e a posição da legenda; cores (paleta da marca, paleta alternativa, uma cor ou uma cor por categoria — com aviso quando a cor some no fundo); rótulos de dados, formato dos números, legenda e eixos; e, em tabelas e KPIs, <strong>cores por faixa</strong> (bom, atenção, crítico, sempre com ícone).</p>
   <figure class="m80">
-    <div class="frame"><img src="img/dash-edit.png" alt="Modo Editar com o painel Formato"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dash-edit.png" alt="Modo Editar com o painel Formato"></div>
     <figcaption>O Pareto selecionado e o painel Formato à direita.</figcaption>
   </figure>
 
   <h3>Filtros na página</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="filtros_dash">Mostrar onde fica</button></div>
   <p>Em <strong>Adicionar filtro</strong>, escolha uma coluna: a faixa no topo mostra seus valores como botões ou, em número e data, um controle deslizante. Ou clique direto numa <strong>barra ou fatia</strong> de um gráfico: a página filtra por aquele valor, <kbd>Ctrl</kbd>+clique soma outros, e clicar de novo tira. O gráfico clicado mantém as demais categorias apagadas, para dar para trocar. O filtro vale para todos os visuais cuja tabela tem aquela coluna, sem executar o fluxo de novo. Quem não tem a coluna não muda e mostra um aviso discreto, <strong>Sem filtro</strong>. A escolha fica salva no fluxo e aparece no alto da imagem PNG.</p>
-  <figure class="m80">
-    <div class="frame"><img src="img/dash-filters.png" alt="Barra de filtros do dashboard"></div>
+  <figure class="m60">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dash-filters.png" alt="Barra de filtros do dashboard"></div>
     <figcaption>Filtro por UF: os visuais com a coluna mudam na hora, e o aviso marca o que ficou de fora.</figcaption>
   </figure>
   <h3>O dashboard em um arquivo HTML</h3>
-  <p><strong>Baixar HTML</strong> gera um arquivo só, que abre em qualquer navegador, sem o PRO.DATA e sem internet, com os detalhes ao passar o mouse e os <strong>filtros funcionando</strong>. Para isso, o arquivo leva as colunas que os visuais e os filtros usam, e nada além delas. Antes de salvar, a tela mostra quanto dado vai dentro. Com <strong>senha</strong>, obrigatória nos rótulos Confidencial e Restrito, os dados ficam cifrados até alguém digitá-la.</p>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="baixar">Mostrar onde fica</button></div>
+  <p>No botão <strong>Baixar</strong>, <strong>Baixar HTML</strong> gera um arquivo só, que abre em qualquer navegador, sem o PRO.DATA e sem internet, com os detalhes ao passar o mouse e os <strong>filtros funcionando</strong>. Para isso, o arquivo leva as colunas que os visuais e os filtros usam, e nada além delas. Antes de salvar, a tela mostra quanto dado vai dentro. Com <strong>senha</strong>, obrigatória nos rótulos Confidencial e Restrito, os dados ficam cifrados até alguém digitá-la.</p>
   <div class="callout warn"><strong>Cuidado ao compartilhar</strong>Quem abre o arquivo pode ver e copiar todos os dados que ele leva, mesmo o que estiver filtrado fora. Envie a senha por outro canal; quem a perder não recupera o arquivo, mas pode gerar outro no PRO.DATA.</div>
-  <figure class="m50" style="max-width:40%">
-    <div class="frame"><img src="img/dash-html.png" alt="Aviso antes de salvar o HTML"></div>
+  <figure class="m50" style="max-width:30%">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dash-html.png" alt="Aviso antes de salvar o HTML"></div>
     <figcaption>O aviso lista as colunas e o tamanho antes de gerar o arquivo.</figcaption>
   </figure>
-  <div class="try"><strong>Experimente</strong><ol><li>Abra o <strong>Dashboard</strong>, clique em <strong>Adicionar filtro</strong> e escolha <code>uf</code>.</li><li>Marque SP: os visuais com a coluna mudam na hora, sem executar o fluxo.</li><li>Clique em <strong>Baixar HTML</strong> e abra o arquivo: o filtro continua funcionando.</li></ol></div>
+  <div class="try"><strong>Experimente</strong><ol><li>Abra o <strong>Dashboard</strong>, clique em <strong>Adicionar filtro</strong> e escolha <code>uf</code>.</li><li>Marque SP: os visuais com a coluna mudam na hora, sem executar o fluxo.</li><li>Clique em <strong>Baixar</strong>, depois em <strong>Baixar HTML</strong>, e abra o arquivo: o filtro continua funcionando.</li></ol></div>
 </section>
 
 <!-- ================================================================ 10. SQL -->
@@ -702,10 +728,11 @@
   <h2>Levando a lógica para o banco</h2>
   <p class="intro">O PRO.DATA é onde você constrói rápido e experimenta. A aba <strong>SQL</strong>, ao lado de Designer e Dashboard, mostra o que foi construído escrito em SQL e confere se o código dá o mesmo resultado, para que levar a lógica ao lake seja uma revisão, não uma reescrita.</p>
   <figure class="m80">
-    <div class="frame"><img src="img/sql.png" alt="Aba SQL"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/sql.png" alt="Aba SQL"></div>
     <figcaption>À esquerda, as saídas e o caminho no fluxo; à direita, o código daquela saída.</figcaption>
   </figure>
   <h3>Uma saída, um código</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="vista_sql">Mostrar onde fica</button></div>
   <p>Cada saída do fluxo tem o próprio código, só com o que existe entre as entradas e ela: se a saída usa apenas o J de um Join, as saídas L e R nem aparecem. Clique numa saída para ver o caminho aceso na trilha. Marque outras saídas para juntar tudo num código só, em que as etapas comuns aparecem uma vez, com a marca "usada por 2".</p>
   <div class="grid-2">
     <div>
@@ -719,7 +746,7 @@
       </ul>
       <p>Caixas sem tradução, como as de Machine Learning, ficam em vermelho, com a etiqueta "sem SQL".</p>
     </div>
-    <figure style="margin-top:0"><div class="frame"><img src="img/sql-parcial.png" alt="Saída parcial"></div>
+    <figure style="margin-top:0"><div class="frame"><img src="../../src/prodata/web/manual/img/sql-parcial.png" alt="Saída parcial"></div>
       <figcaption>A saída depende do modelo: o caminho para no Treino.</figcaption></figure>
   </div>
   <div class="grid-2">
@@ -729,7 +756,7 @@
       <p>O arquivo leva só a lógica. Dados, senhas e caminhos de pastas ficam de fora; a exceção é o <em>Text Input</em>, cujos valores digitados fazem parte do código, e o cabeçalho avisa. As constantes também entram já com o valor, e o cabeçalho lista as usadas: para mudar uma, gere o código de novo.</p>
       <p>O botão <strong>Fluxo completo</strong> mostra o seu desenho inteiro com o caminho aceso. No Designer, o botão direito numa caixa traz <strong>Ver SQL</strong>.</p>
     </div>
-    <figure style="margin-top:0"><div class="frame"><img src="img/sql-fluxo.png" alt="Fluxo completo"></div>
+    <figure style="margin-top:0"><div class="frame"><img src="../../src/prodata/web/manual/img/sql-fluxo.png" alt="Fluxo completo"></div>
       <figcaption>Fluxo completo: o caminho da saída aceso, as caixas sem SQL em vermelho.</figcaption></figure>
   </div>
   <div class="try"><strong>Experimente</strong><ol><li>Abra a aba <strong>SQL</strong> e clique na saída <em>Exportar</em>: o caminho para em vermelho, na caixa do modelo.</li><li>Clique em <strong>Mostrar visuais</strong> e escolha <em>Gráfico por UF</em>: esse caminho não passa pelo modelo, e o estado mostra <strong>Conferido, com ressalvas</strong>.</li></ol></div>
@@ -739,26 +766,29 @@
 <section class="chapter">
   <div class="eyebrow">12 · Organização</div>
   <h2>Organização e personalização</h2>
-  <h3>Caixas de organização</h3>
-  <p>Agrupe as etapas do fluxo em caixas com nome, descrição e cor (paleta <em>Organização</em>, botão <strong>Etapa</strong> ou tecla <kbd>G</kbd>). Arrastar o título move a caixa junto com tudo o que está dentro. Cada caixa tem um <strong>interruptor</strong>: desligada, as caixas de dentro deixam de executar — útil para pausar uma parte do processo sem apagar nada.</p>
+  <h3>Etapas</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="etapa">Mostrar onde fica</button></div>
+  <p>Agrupe partes do fluxo em etapas com nome, descrição e cor (paleta <em>Organização</em>, botão <strong>Etapa</strong> ou tecla <kbd>G</kbd>). Arrastar o título move a etapa junto com tudo o que está dentro. Cada etapa tem um <strong>interruptor</strong>: desligada, as caixas de dentro deixam de executar — útil para pausar uma parte do processo sem apagar nada.</p>
   <div style="display:grid; grid-template-columns: 30% 1fr; gap: 12pt; align-items: start">
-    <figure style="margin:0"><div class="frame"><img src="img/container-crop.png" alt="Configuração da caixa de organização"></div><figcaption>Configurações da caixa.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/container-crop.png" alt="Configuração da etapa"></div><figcaption>Configurações da etapa.</figcaption></figure>
     <div>
       <ul>
         <li><strong>Interruptor</strong> liga/desliga a etapa inteira.</li>
         <li><strong>Descrição</strong> aparece no canvas, abaixo do título.</li>
         <li><strong>Cor</strong> e intensidade do fundo, para diferenciar etapas.</li>
-        <li>Lista dos <strong>nós de dentro</strong> — clique para ir até eles.</li>
-        <li><strong>Ajustar aos nós de dentro</strong> redimensiona a caixa automaticamente.</li>
+        <li>Lista das <strong>caixas de dentro</strong> — clique para ir até elas.</li>
+        <li><strong>Ajustar às caixas de dentro</strong> muda o tamanho da etapa sozinho.</li>
       </ul>
-      <figure style="margin-top:6pt"><div class="frame"><img src="img/containerOff-crop.png" alt="Caixa desligada"></div><figcaption>Uma etapa desligada: tracejada, esmaecida e sem executar.</figcaption></figure>
+      <figure style="margin-top:6pt"><div class="frame"><img src="../../src/prodata/web/manual/img/containerOff-crop.png" alt="Etapa desligada"></div><figcaption>Uma etapa desligada: tracejada, esmaecida e sem executar.</figcaption></figure>
     </div>
   </div>
   <h3>Painéis do seu jeito</h3>
-  <p>Os três painéis — ferramentas/configuração, resultados e gráficos — podem ser arrastados pela alça <span class="muted">⠿</span> para a esquerda, a direita ou embaixo, ou ocultados. O botão <strong>Painéis</strong>, na barra superior, reexibe e restaura o padrão. O arranjo é lembrado.</p>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="exibir">Mostrar o menu Exibir</button><button type="button" class="manual-only m-act" data-show="foco">Mostrar o botão Foco</button></div>
+  <p>Os três painéis — ferramentas/configuração, resultados e gráficos — podem ser arrastados pela alça <span class="muted">⠿</span> para a esquerda, a direita ou embaixo, ou ocultados. O menu <strong>Exibir</strong>, na barra superior, reexibe e restaura o padrão. Pelo menu de cada painel, <strong>Recolher em faixa</strong> o deixa fino, a um clique de voltar; em janelas pequenas, o resultado e os gráficos já começam assim. O arranjo é lembrado.</p>
+  <p><strong>Modo foco</strong> (<kbd>F11</kbd> ou o botão <strong>Foco</strong>, na barra do canvas) esconde os painéis e mostra o fluxo inteiro. <kbd>F11</kbd> ou <kbd>Esc</kbd> devolvem tudo como estava.</p>
   <p><strong>Telas menores</strong>: a interface fica <strong>compacta</strong> sozinha em monitores menores, e no menu Painéis dá para fixar a densidade.</p>
   <figure class="m50">
-    <div class="frame"><img src="img/layoutAlt.png" alt="Arranjo alternativo dos painéis"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/layoutAlt.png" alt="Arranjo alternativo dos painéis"></div>
     <figcaption>Um arranjo alternativo: resultados embaixo e gráficos empilhados à direita.</figcaption>
   </figure>
   <h3>Vários fluxos em abas</h3>
@@ -768,7 +798,7 @@
   <h3>Ponto de cache</h3>
   <p>Consultas a banco e arquivos grandes não precisam ser lidos a cada ajuste. Clique com o botão direito numa caixa e escolha <strong>Cachear até aqui e executar</strong>: só o resultado dela fica guardado (inclusive depois de fechar o programa), e por isso as caixas anteriores deixam de executar — aparecem douradas e tracejadas, com "Pulada pelo cache", e a barra de status conta quantas foram puladas. O aviso da caixa lista as puladas e tem o botão <strong>Mostrar as puladas</strong>. Mudou algo antes do ponto, ou um arquivo de origem foi atualizado? O cache se refaz sozinho. Para fontes de banco, que só mudam por dentro, escolha em <strong>Renovar</strong> "também todo dia" ou "a cada hora". Para forçar uma nova leitura, use <strong>Atualizar cache</strong>.</p>
   <figure class="m50">
-    <div class="frame"><img src="img/cache-crop.png" alt="Ponto de cache no Join"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/cache-crop.png" alt="Ponto de cache no Join"></div>
     <figcaption>Ponto de cache no Join: as caixas anteriores aparecem "em cache" e a tabela mostra o que chega pela entrada [R].</figcaption>
   </figure>
   <p class="muted">Também disponíveis: tema claro e escuro, desfazer/refazer, zoom e "ajustar à tela".</p>
@@ -792,7 +822,7 @@
   <h3>Abertura protegida</h3>
   <p>Ao abrir um fluxo que não foi criado nem salvo neste computador (recebido por e-mail, baixado ou mudado por fora), o PRO.DATA não executa nada. Uma faixa mostra o que o fluxo <strong>lê</strong>, <strong>calcula</strong> e <strong>grava</strong>; clique num item para ver a caixa. Dá para olhar e editar à vontade. Executar só depois de <strong>Confiar e executar</strong>, e o PRO.DATA lembra da escolha enquanto o arquivo não mudar.</p>
   <figure class="m80">
-    <div class="frame"><img src="img/abertura-protegida.png" alt="Faixa de abertura protegida"></div>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/abertura-protegida.png" alt="Faixa de abertura protegida"></div>
     <figcaption>Um fluxo recebido: antes de executar, o que ele lê, calcula e grava.</figcaption>
   </figure>
   <h3>Para a TI: liberar APIs internas</h3>
@@ -807,8 +837,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.6.0-setup.exe</code> (142 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.6.0-portable.zip</code> (225 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.6.1-setup.exe</code> (162 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.6.1-portable.zip</code> (245 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -888,7 +918,8 @@
     <tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd> · <kbd>Ctrl</kbd>+<kbd>X</kbd> · <kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Copiar · recortar · colar caixa ou etapa</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td>Desfazer · refazer</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd> · <kbd>Delete</kbd></td><td>Duplicar · excluir a seleção</td></tr>
-    <tr><td><kbd>G</kbd> · <kbd>F</kbd></td><td>Nova caixa de organização · ajustar à tela</td></tr>
+    <tr><td><kbd>G</kbd> · <kbd>F</kbd></td><td>Nova etapa · ajustar à tela</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>K</kbd> · <kbd>F1</kbd> · <kbd>F11</kbd></td><td>Buscar · abrir o Manual · modo foco</td></tr>
     <tr><td><kbd>Shift</kbd>+clique · <kbd>Ctrl</kbd>+<kbd>A</kbd> · <kbd>?</kbd></td><td>Selecionar várias caixas · todas · lista de atalhos</td></tr>
     <tr><td><kbd>Ctrl</kbd>+<kbd>Espaço</kbd></td><td>Sugestões no editor de fórmulas</td></tr>
     <tr><td>Duplo clique no canvas</td><td>Adicionar ferramenta no ponto clicado</td></tr>

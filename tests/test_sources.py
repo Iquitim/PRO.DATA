@@ -97,7 +97,7 @@ def test_query_fingerprint_follows_definition_and_cache_flag(tmp_path: Path, que
 
 def test_missing_query_is_explicit(tmp_path: Path, connections: ConnectionStore, queries: QueryStore) -> None:
     spec = REGISTRY["io.input_data"]
-    with pytest.raises(NotFoundError, match="aba Dados"):
+    with pytest.raises(NotFoundError, match="vista Dados"):
         spec.run(_ctx(tmp_path, connections, queries), spec.config.model_validate({"dataset": "sql:nada"}))
 
 

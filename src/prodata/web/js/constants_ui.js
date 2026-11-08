@@ -3,7 +3,7 @@
 
 import { api } from './api.js';
 import {
-  flowRefs, knownConstants, markChanged, NAME_RE, refreshConstants, renameRefs, showValue, TYPES, valueProblem,
+  flowRefs, knownConstants, markChanged, NAME_RE, refreshConstants, renameRefs, showValue, SYSTEM_CONSTANTS, TYPES, valueProblem,
 } from './constants.js';
 import { button, h } from './dom.js';
 import { icon } from './icons.js';
@@ -55,6 +55,7 @@ export function confirmChange(name, before, after, uses) {
 /** O que impede salvar, em português; vazio quando está tudo certo. */
 function constantProblem(c, existing, scope) {
   if (!NAME_RE.test(c.name)) return 'O nome começa com letra e usa só letras, números e _ (sem espaço nem acento).';
+  if (SYSTEM_CONSTANTS[c.name] && c.name !== existing?.name) return `[#${c.name}] é uma constante do sistema: escolha outro nome.`;
   const known = knownConstants().get(c.name);
   if (known && c.name !== existing?.name && (scope === 'flow' || known.scope !== 'flow')) {
     return known.scope === 'shared' && scope === 'flow'
@@ -216,6 +217,9 @@ export function openFlowConstants({ create = false, openData = () => {} } = {}) 
   ], store.constants.some((s) => s.name === c.name) ? 'err' : ''));
   const sharedRows = sharedNames.map((n) => {
     const reg = store.constants.find((s) => s.name === n);
+    if (!reg && SYSTEM_CONSTANTS[n]) {
+      return row(SYSTEM_CONSTANTS[n](), refs.get(n) || [], [h('span', { class: 'cst-flag' }, icon('clock', 12), ' do sistema, sem cadastro')], '');
+    }
     const c = reg || (saved[n] ? { name: n, ...saved[n] } : { name: n });
     const tone = reg ? '' : saved[n] ? 'warn' : 'err';
     return row(c, refs.get(n) || [], [

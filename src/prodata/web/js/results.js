@@ -9,6 +9,8 @@ import { describe, openFilterEditor, toExpression } from './explore.js';
 import { icon } from './icons.js';
 import { panelControls } from './layout.js';
 import { inspect, node, nodeResult, on, select, store, toolOf } from './store.js';
+import { tableSkeleton } from './skeleton.js';
+import { typeLabel, typeName } from './types.js';
 import { showMenu, toast } from './ui.js';
 
 const PAGE = 100;
@@ -56,7 +58,7 @@ function createFilterNode() {
   const { x, y } = freeSpotNear(source);
   const created = addNode('prep.filter', x, y, { mode: 'expression', expression, __label: 'Filtro explorado' });
   if (created && connect(source.id, anchor, created.id, 'in')) {
-    toast('Nó Filter criado e conectado', { kind: 'success', detail: expression });
+    toast('Caixa Filter criada e ligada', { kind: 'success', detail: expression });
   }
 }
 
@@ -80,7 +82,7 @@ function drawFilterBar() {
       h('button', { type: 'button', class: 'chip-x', 'aria-label': 'Remover condição', onclick: () => setFilters(filters.filter((_, j) => j !== i)) }, icon('x', 12)))),
     button({ icon: 'plus', label: 'Condição', size: 'sm', variant: 'ghost', onClick: (e) => filterAt(e.currentTarget) }),
     h('div', { class: 'grow' }),
-    button({ icon: 'workflow', label: 'Criar nó Filter', size: 'sm', variant: 'ghost', title: 'Levar estes filtros para o fluxo como um nó Filter', onClick: createFilterNode }),
+    button({ icon: 'workflow', label: 'Criar caixa Filter', size: 'sm', variant: 'ghost', title: 'Levar estes filtros para o fluxo como uma caixa Filter', onClick: createFilterNode }),
     button({ icon: 'x', label: 'Limpar', size: 'sm', variant: 'ghost', onClick: () => setFilters([]) }),
   );
 }
@@ -98,7 +100,7 @@ export function initResults(root) {
     ['data', 'profile', 'log'].map((t) => h('button', {
       type: 'button', role: 'tab', class: 'tab', dataset: { tab: t },
       onclick: () => { state.tab = t; persist('prodata.results.tab', t); draw(); },
-    }, { data: 'Dados', profile: 'Perfil', log: 'Log' }[t])));
+    }, { data: 'Resultado', profile: 'Perfil', log: 'Log' }[t])));
   els.body = h('div', { class: 'results-body' });
   els.filterBtn = button({
     icon: 'filter', label: 'Filtros', size: 'sm', variant: 'ghost',
@@ -169,7 +171,7 @@ function drawHeader() {
       `Entrada [${port?.label || via.port}] de ${target.label || tSpec?.name}`,
       h('span', { class: 'muted' }, ` ← ${n?.label || spec?.name || ''}`)));
   } else {
-    els.title.replaceChildren(n ? h('span', {}, icon(spec.icon, 14), n.label || spec.name) : h('span', { class: 'muted' }, 'Nenhum nó selecionado'));
+    els.title.replaceChildren(n ? h('span', {}, icon(spec.icon, 14), n.label || spec.name) : h('span', { class: 'muted' }, 'Nenhuma caixa selecionada'));
   }
   els.anchors.replaceChildren(...(!target && (spec?.outputs.length > 1 || spec?.outputs[0]?.kind === 'model') ? spec.outputs : []).map((o) => {
     const count = res?.anchors?.[o.id];
@@ -201,15 +203,15 @@ function empty(iconName, title, detail) {
 
 function guard() {
   const { nodeId, anchor } = store.inspect;
-  if (!nodeId) return empty('table', 'Selecione um nó', 'Clique em um nó ou em uma de suas saídas para ver os dados.');
+  if (!nodeId) return empty('table', 'Selecione uma caixa', 'Clique numa caixa ou numa das saídas dela para ver os dados.');
   const res = nodeResult(nodeId);
-  if (!res) return empty('play', 'Nó ainda não executado', 'Execute o fluxo (Ctrl+Enter) para ver os dados.');
-  if (res.status === 'error') return empty('alert', 'Este nó falhou', res.error);
+  if (!res) return empty('play', 'Caixa ainda não executada', 'Execute o fluxo (Ctrl+Enter) para ver os dados.');
+  if (res.status === 'error') return empty('alert', 'Esta caixa falhou', res.error);
   if (res.status === 'skipped' || res.status === 'disabled') return empty('skip', STATUS_LABELS[res.status], res.error);
   const port = res.anchors?.[anchor];
   if (port?.kind === 'model') return modelCard(port.metrics);
   if (state.data?.error) return empty('alert', 'Não foi possível carregar', state.data.error);
-  if (!state.data) return h('div', { class: 'empty' }, 'Carregando…');
+  if (!state.data) return tableSkeleton();
   return null;
 }
 
@@ -222,7 +224,7 @@ function modelCard(m) {
       h('span', { class: 'badge' }, m.algorithm), h('span', { class: 'badge' }, m.task === 'classification' ? 'Classificação' : 'Regressão')),
     h('dl', { class: 'stats' }, rows.map(([k, v]) => h('div', { class: 'stat' }, h('dt', {}, k), h('dd', {}, v))),
       h('div', { class: 'stat' }, h('dt', {}, 'Treino / validação'), h('dd', {}, `${fmt.int(m.train_rows)} / ${fmt.int(m.validation_rows)}`))),
-    h('p', { class: 'muted' }, 'Conecte a saída [M] a um nó Predictor para aplicar o modelo. A saída [I] mostra a importância das variáveis.'));
+    h('p', { class: 'muted' }, 'Conecte a saída [M] a uma caixa Predictor para aplicar o modelo. A saída [I] mostra a importância das variáveis.'));
 }
 
 function qualityBar(c) {
@@ -232,7 +234,19 @@ function qualityBar(c) {
   h('span', { class: 'q-null', style: { width: `${c.null_pct}%` } }));
 }
 
+/** Quantos valores diferentes há entre os preenchidos: o nulo também conta como um valor em `unique_count`. */
+function identifierNote(c) {
+  const filled = (c.total ?? 0) - (c.null_count ?? 0);
+  const distinct = (c.unique_count ?? 0) - (c.null_count ? 1 : 0);
+  if (filled < 2) return '';
+  if (distinct === filled && ['String', 'Int64'].includes(c.type)) return 'todos diferentes';
+  return c.type === 'String' && distinct / filled >= 0.95 ? 'quase todos diferentes' : '';
+}
+
+/** A distribuição só aparece quando informa: em coluna de identificador, as barras saem todas iguais (RF-2922). */
 function sparkline(c) {
+  const note = identifierNote(c);
+  if (note) return h('div', { class: 'th-note', title: `${fmt.int(c.unique_count)} valores diferentes` }, note);
   return h('div', { class: 'spark' }, c.histogram.map((b) => h('span', {
     style: { height: `${Math.max(6, b.pct)}%` }, title: `${b.label}: ${fmt.int(b.count)}`,
   })));
@@ -270,7 +284,7 @@ function dataView() {
       type: 'button', class: 'th-filter', title: `Filtrar ${c.name}`, 'aria-label': `Filtrar ${c.name}`,
       onclick: (e) => { e.stopPropagation(); filterAt(e.currentTarget, null, { column: c.name }); },
     }, icon('filter', 12)),
-    h('span', { class: 'th-type' }, c.type)),
+    h('span', { class: 'th-type', title: typeName(c.type) }, typeLabel(c.type))),
   columnTotal(c), qualityBar(c), sparkline(c))));
   const body = rows.length
     ? rows.map((r, i) => h('tr', {}, h('td', { class: 'rownum' }, state.data.offset + i + 1), cols.map((c, ci) => {
@@ -308,8 +322,10 @@ function columnTotal(c) {
   if (typeof sum === 'number') {
     return h('div', { class: 'th-total', title: `Soma: ${fmt.number(sum)}` }, `Σ ${fmt.compact(sum)}`);
   }
-  const filled = Math.max(0, (c.total ?? 0) - (c.null_count ?? 0));
-  return h('div', { class: 'th-total', title: `${fmt.int(filled)} linhas não nulas` }, `n ${fmt.int(filled)}`);
+  const empty = (c.null_count ?? 0) + (c.empty_count ?? 0);
+  const filled = Math.max(0, (c.total ?? 0) - empty);
+  return h('div', { class: ['th-total', empty && 'has-empty'], title: `${fmt.int(filled)} linhas preenchidas · ${fmt.int(empty)} vazias` },
+    empty ? `${fmt.int(empty)} ${empty === 1 ? 'vazio' : 'vazios'}` : 'sem vazios');
 }
 
 function profileView() {
@@ -326,7 +342,7 @@ function profileView() {
       ? [['Mín', s.min], ['Média', s.mean], ['Mediana', s.median], ['Máx', s.max], ['Desvio', s.std], ['Soma', s.sum]]
       : [['Distintos', c.unique_count], ['Mais comum', s.top ?? '—'], ['Ocorrências', s.top_count ?? 0]];
     return h('section', { class: 'profile-card' },
-      h('header', {}, h('strong', { class: 'mono ellipsis' }, c.name), h('span', { class: 'th-type' }, c.raw_type)),
+      h('header', {}, h('strong', { class: 'mono ellipsis' }, c.name), h('span', { class: 'th-type', title: `${typeName(c.type)} (${c.raw_type})` }, typeLabel(c.type))),
       qualityBar(c),
       h('div', { class: 'q-legend' }, h('span', {}, h('i', { class: 'q-ok' }), `${c.ok_pct}% ok`),
         h('span', {}, h('i', { class: 'q-empty' }), `${c.empty_pct}% vazio`), h('span', {}, h('i', { class: 'q-null' }), `${c.null_pct}% nulo`),
@@ -343,7 +359,7 @@ function logView() {
   const logs = store.execution?.logs || [];
   if (!logs.length) return empty('list', 'Sem execuções', 'O log da última execução aparece aqui.');
   return h('div', { class: 'table-wrap' }, h('table', { class: 'data-table log-table' },
-    h('thead', {}, h('tr', {}, h('th', {}, 'Status'), h('th', {}, 'Nó'), h('th', {}, 'Mensagem'), h('th', { class: 'num' }, 'Tempo'))),
+    h('thead', {}, h('tr', {}, h('th', {}, 'Status'), h('th', {}, 'Caixa'), h('th', {}, 'Mensagem'), h('th', { class: 'num' }, 'Tempo'))),
     h('tbody', {}, logs.map((l) => h('tr', {
       class: ['clickable', `log-${l.status}`],
       onclick: () => { select(l.node_id); inspect(l.node_id); state.tab = 'data'; draw(); },

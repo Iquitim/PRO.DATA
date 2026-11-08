@@ -23,7 +23,11 @@ import { $, button, debounce, fmt, h, isTyping, persist, storage } from './dom.j
 import { icon } from './icons.js';
 import { initInsights } from './insights.js';
 import { initInspector } from './inspector.js';
-import { initLayout, openPanelsMenu, panelControls } from './layout.js';
+import { initCommandPalette, togglePalette } from './command_palette.js';
+import { initManual, manualEntries, toggleManual } from './manual.js';
+import { initSelectPicker } from './select_picker.js';
+import { commandList, topMenus } from './top_menus.js';
+import { enterFocus, inFocus, initLayout, leaveFocus, panelControls } from './layout.js';
 import { renderPalette } from './palette.js';
 import { initResults, showLog } from './results.js';
 import { handleSqlKey, initSqlView, renderSqlView } from './sql_view.js';
@@ -31,7 +35,7 @@ import { blockedByTrust, initTrustBanner, refreshTrust, resetTrustBanner } from 
 import {
   canRedo, canUndo, emit, inspect, markSaved, mutate, on, redo, select, selectedIds, selectMany, setExecution, store, undo,
 } from './store.js';
-import { confirmDialog, openDialog, showMenu, toast, toastError } from './ui.js';
+import { confirmDialog, openDialog, toast, toastError } from './ui.js';
 
 const LAST_WORKFLOW = 'prodata.lastWorkflow'; // versões anteriores (antes das abas)
 const RECENT_FILES = 'prodata.recentFiles';
@@ -85,7 +89,7 @@ async function run(targetNodeId = null, { auto = false } = {}) {
     setExecution(report, Object.keys(report.node_results));
     const errors = Object.values(report.node_results).filter((r) => r.status === 'error').length;
     if (errors) {
-      toast(`${errors} nó(s) com erro`, { kind: 'error', detail: 'Veja os detalhes no nó ou no Log.' });
+      toast(`${errors} caixa(s) com erro`, { kind: 'error', detail: 'Veja os detalhes na caixa ou no Log.' });
       showLog();
     }
     const focus = targetNodeId || store.inspect.nodeId || store.selection.nodeId;
@@ -323,7 +327,7 @@ async function openDialogList() {
         dlg.close();
         try { await open(await api.workflow(w.id)); } catch (err) { toastError(err, 'Não foi possível abrir'); }
       },
-    }, icon('workflow', 16), h('span', { class: 'grow' }, h('strong', {}, w.name), h('small', { class: 'muted' }, ` · ${w.node_count} nós · ${fmt.date(w.modified_at)}`),
+    }, icon('workflow', 16), h('span', { class: 'grow' }, h('strong', {}, w.name), h('small', { class: 'muted' }, ` · ${w.node_count} caixas · ${fmt.date(w.modified_at)}`),
       w.description ? h('span', { class: 'wf-desc' }, w.description) : null)),
     button({
       icon: 'trash', title: 'Excluir fluxo', size: 'sm', variant: 'ghost',
@@ -364,11 +368,11 @@ async function openDialogList() {
 }
 
 const SHORTCUTS = [
-  ['Ctrl + Enter', 'Executar o fluxo'], ['Ctrl + Shift + Enter', 'Executar até o nó selecionado'],
+  ['Ctrl + Enter', 'Executar o fluxo'], ['Ctrl + Shift + Enter', 'Executar até a caixa selecionada'],
   ['Ctrl + S', 'Salvar'], ['Ctrl + Shift + S', 'Salvar como (escolher pasta)'], ['Ctrl + O', 'Abrir fluxo'],
   ['Ctrl + Z / Ctrl + Shift + Z', 'Desfazer / refazer'],
   ['Ctrl + C / Ctrl + X / Ctrl + V', 'Copiar / recortar / colar caixa ou etapa'],
-  ['Ctrl + D', 'Duplicar nó'], ['Delete', 'Excluir nó, conexão ou etapa selecionada'], ['G', 'Nova etapa (contêiner)'], ['F', 'Ajustar à tela'],
+  ['Ctrl + D', 'Duplicar caixa'], ['Delete', 'Excluir caixa, ligação ou etapa selecionada'], ['G', 'Nova etapa'], ['Ctrl + K', 'Buscar ferramenta, ação, caixa, fonte ou capítulo'], ['F1', 'Abrir e fechar o Manual'], ['F', 'Ajustar à tela'], ['F11 / Esc', 'Modo foco: só o fluxo na tela / voltar os painéis'],
   ['Shift + clique / Ctrl + clique', 'Adicionar ou tirar caixa da seleção'],
   ['Shift + arrastar no vazio', 'Selecionar várias caixas com um retângulo'], ['Ctrl + A', 'Selecionar todas'],
   ['+ / −', 'Zoom'], ['Duplo clique no canvas', 'Adicionar ferramenta'],
@@ -427,35 +431,27 @@ function buildTopbar() {
   });
 
   const runBtn = button({ icon: 'play', label: 'Executar', variant: 'primary', title: 'Executar fluxo (Ctrl+Enter)', onClick: () => run() });
-  const themeBtn = button({ icon: resolvedTheme() === 'dark' ? 'sun' : 'moon', title: 'Alternar tema', variant: 'ghost', onClick: () => {
+  const themeBtn = button({ icon: resolvedTheme() === 'dark' ? 'sun' : 'moon', title: 'Alternar tema claro e escuro', variant: 'ghost', onClick: () => toggleTheme() });
+  function toggleTheme() {
     const next = resolvedTheme() === 'dark' ? 'light' : 'dark';
     applyTheme(next);
     persist('prodata.theme', next);
     themeBtn.replaceChildren(icon(next === 'dark' ? 'sun' : 'moon', 16));
     if (store.view === 'dashboard') renderDashboard();
-  } });
-  $('#topActions').replaceChildren(
-    button({ icon: 'file-plus', title: 'Novo fluxo', variant: 'ghost', onClick: newWorkflow }),
-    button({ icon: 'folder', title: 'Abrir fluxo (Ctrl+O)', variant: 'ghost', onClick: openDialogList }),
-    button({ icon: 'save', title: 'Salvar (Ctrl+S)', variant: 'ghost', onClick: save }),
-    button({
-      icon: 'chevron-down', title: 'Mais opções de salvar e abrir', variant: 'ghost', class: 'btn btn-ghost btn-icon btn-caret',
-      onClick: (e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        showMenu(r.left, r.bottom + 4, [
-          { label: 'Salvar', icon: 'save', shortcut: 'Ctrl+S', onSelect: save },
-          { label: 'Salvar como…', icon: 'directory', shortcut: 'Ctrl+Shift+S', onSelect: saveAs },
-          'separator',
-          { label: 'Abrir da biblioteca…', icon: 'folder', shortcut: 'Ctrl+O', onSelect: openDialogList },
-          { label: 'Abrir arquivo…', icon: 'file', onSelect: () => openFile() },
-        ]);
-      },
-    }),
-    button({ icon: 'panel', title: 'Painéis: mostrar, ocultar e restaurar', variant: 'ghost', onClick: (e) => openPanelsMenu(e.currentTarget) }),
-    button({ icon: 'keyboard', title: 'Atalhos (?)', variant: 'ghost', onClick: shortcutsDialog }),
-    themeBtn,
-    runBtn,
-  );
+  }
+  const actions = {
+    newWorkflow, openLibrary: openDialogList, openFile, save, saveAs, setView, inFocus, toggleFocus, toggleTheme,
+    run: () => run(),
+    shortcuts: shortcutsDialog,
+    manual: toggleManual,
+    newStage: () => { setView('designer'); addContainerAtCenter(); },
+    focusFromAnywhere: () => { setView('designer'); if (!inFocus()) toggleFocus(); },
+  };
+  initCommandPalette({ setView, commands: () => commandList(actions), manualEntries });
+  initManual({ setView, openExample: async (workflow) => { setView('designer'); await open(workflow, { saved: false }); } });
+  const helpBtn = button({ label: '?', title: 'Manual (F1)', variant: 'ghost', onClick: toggleManual });
+  helpBtn.classList.add('top-help');
+  $('#topActions').replaceChildren(...topMenus(actions), themeBtn, helpBtn, runBtn);
   on('running', () => {
     runBtn.disabled = store.running;
     runBtn.classList.toggle('busy', store.running);
@@ -479,7 +475,7 @@ function buildStatusbar() {
       store.running ? (store.progress?.order?.length
         ? `Executando… ${Object.keys(store.progress.done).length}/${store.progress.order.length}${store.progress.detail ? ` · ${store.progress.detail}` : ''}`
         : 'Executando…')
-        : ex ? `${results.length} nós · ${fmt.ms(ex.total_elapsed_ms)}${errors ? ` · ${errors} com erro` : ''}` : 'Pronto',
+        : ex ? `${results.length} caixas · ${fmt.ms(ex.total_elapsed_ms)}${errors ? ` · ${errors} com erro` : ''}` : 'Pronto',
       stale ? h('span', { class: 'muted' }, `· ${store.pending.size} alterado(s) desde a execução`) : null,
       skipped && !store.running ? h('span', { class: 'status-held', title: 'Caixas antes de um ponto de cache: não precisaram executar' },
         `· ${skipped} pulada(s) pelo cache`) : null,
@@ -501,18 +497,58 @@ function buildCanvasToolbar() {
   on('workflow:changed', sync);
   on('workflow:loaded', sync);
   sync();
+  const zoomButton = h('button', {
+    type: 'button', class: 'btn btn-ghost btn-sm canvas-zoom', title: 'Voltar a 100%', onclick: () => zoomBy(1 / currentZoom()),
+  }, `${Math.round(currentZoom() * 100)}%`);
+  on('zoom', (z) => { zoomButton.textContent = `${Math.round(z * 100)}%`; });
+  const focusButton = h('button', { type: 'button', class: 'btn btn-ghost canvas-focus', onclick: toggleFocus });
+  const drawFocus = () => {
+    const active = inFocus();
+    focusButton.title = active ? 'Voltar os painéis (F11 ou Esc)' : 'Esconder os painéis e deixar só o fluxo (F11)';
+    focusButton.setAttribute('aria-pressed', String(active));
+    focusButton.replaceChildren(icon(active ? 'minimize' : 'maximize', 16), h('span', {}, active ? 'Sair do foco' : 'Foco'), h('kbd', {}, 'F11'));
+  };
+  on('focus', (active) => { placeCanvasToolbar(active); drawFocus(); showFocusHint(active); });
+  drawFocus();
   $('#canvasToolbar').replaceChildren(
     undoBtn, redoBtn, h('div', { class: 'divider-v' }),
     button({ icon: 'zoom-out', title: 'Diminuir zoom (−)', variant: 'ghost', onClick: () => zoomBy(1 / 1.2) }),
     button({ icon: 'zoom-in', title: 'Aumentar zoom (+)', variant: 'ghost', onClick: () => zoomBy(1.2) }),
     button({ icon: 'fit', title: 'Ajustar à tela (F)', variant: 'ghost', onClick: fitView }),
     h('div', { class: 'divider-v' }),
-    button({ icon: 'group', label: 'Etapa', title: 'Nova etapa / contêiner (G)', variant: 'ghost', onClick: addContainerAtCenter }),
+    button({ icon: 'group', label: 'Etapa', title: 'Nova etapa (G)', variant: 'ghost', onClick: addContainerAtCenter }),
     button({
       icon: 'hash', label: 'Constantes', title: 'Constantes do fluxo: valores com nome, como o mês de referência', variant: 'ghost',
       onClick: () => openFlowConstants({ openData: (key) => { if (key) openInData(key); setView('data'); } }),
     }),
+    h('div', { class: 'canvas-toolbar-end' }, zoomButton, focusButton),
   );
+}
+
+/** A barra flutua sobre o canvas; no modo foco fica fixa acima dele, sem cobrir nenhuma caixa (RF-2903). */
+function placeCanvasToolbar(docked) {
+  const bar = $('#canvasToolbar');
+  document.body.classList.toggle('focus-mode', docked);
+  bar.classList.toggle('floating', !docked);
+  bar.classList.toggle('docked', docked);
+  if (docked) $('.center').prepend(bar);
+  else $('#canvas').append(bar);
+}
+
+/** Modo foco (spec 029, RF-2901): só o canvas, com o fluxo inteiro à vista. */
+function toggleFocus() {
+  if (leaveFocus()) return;
+  enterFocus();
+  requestAnimationFrame(() => fitView());
+}
+
+function showFocusHint(active) {
+  $('#canvas').querySelector('.focus-hint')?.remove();
+  if (!active) return;
+  const hint = h('div', { class: 'focus-hint', role: 'status' }, h('b', {}, 'Modo foco'), ' · ', h('kbd', {}, 'F11'), ' ou ', h('kbd', {}, 'Esc'), ' volta os painéis');
+  $('#canvas').append(hint);
+  setTimeout(() => hint.classList.add('leaving'), 4000);
+  setTimeout(() => hint.remove(), 4400);
 }
 
 /** Painel esquerdo: Ferramentas, Dados e Configurar (abre sozinho ao selecionar um nó). */
@@ -527,12 +563,13 @@ function buildLeftPanel() {
     for (const [key, pane] of Object.entries(panes)) pane.hidden = key !== id;
   };
   const tabs = h('div', { class: 'tabs full', role: 'tablist' },
-    [['tools', 'Ferramentas'], ['data', 'Dados'], ['config', 'Configurar']].map(([id, label]) => h('button', {
+    [['tools', 'Ferramentas'], ['data', 'Fontes'], ['config', 'Configurar']].map(([id, label]) => h('button', {
       type: 'button', role: 'tab', class: 'tab', dataset: { tab: id }, 'aria-selected': String(id === 'tools'),
       onclick: () => show(id),
     }, label)));
   tabs.append(panelControls('explorer'));
   $('#leftPanel').replaceChildren(tabs, ...Object.values(panes));
+  initSelectPicker($('#leftPanel'));
   renderPalette(panes.tools);
   renderSourcesPanel(panes.data, { openInData: (key) => { if (key) openInData(key); setView('data'); } });
   initInspector(panes.config, { runTo: (id) => run(id), run: () => run(), refreshCache });
@@ -595,6 +632,9 @@ function setupShortcuts() {
     if (mod && key === 'enter') { e.preventDefault(); run(e.shiftKey ? store.selection.nodeId : null); return; }
     if (mod && key === 's') { e.preventDefault(); if (e.shiftKey) saveAs(); else save(); return; }
     if (mod && key === 'o') { e.preventDefault(); openDialogList(); return; }
+    if (mod && key === 'k') { e.preventDefault(); togglePalette(); return; }
+    if (key === 'f1') { e.preventDefault(); if (!document.querySelector('dialog[open]')) toggleManual(); return; }
+    if (key === 'f11') { e.preventDefault(); if (store.view === 'designer' && !document.querySelector('dialog[open]')) toggleFocus(); return; }
     // Na aba SQL, nada altera o fluxo: Delete, Ctrl+D e Ctrl+Z não mexem nas caixas (spec 020).
     if (store.view === 'sql') {
       if (handleSqlKey(e)) e.stopPropagation();
@@ -627,7 +667,7 @@ function setupShortcuts() {
     else if (key === '+' || key === '=') zoomBy(1.2);
     else if (key === '-') zoomBy(1 / 1.2);
     else if (key === '?') shortcutsDialog();
-    else if (key === 'escape') select(null);
+    else if (key === 'escape') { if (!leaveFocus()) select(null); }
   });
   window.addEventListener('beforeunload', (e) => {
     if (anyDirty()) e.preventDefault();
@@ -686,11 +726,25 @@ async function boot() {
     refreshConstants().catch((err) => toastError(err, 'Não foi possível listar as constantes')),
   ]);
 
+  const returning = Boolean(savedTabs());
   await restoreTabs();
   buildTabs();
   emit('tabs');
+  announceRenamedTabs(returning);
   if (store.workflow.nodes.length) await run(null, { auto: true });
   if (!store.inspect.nodeId && store.workflow.nodes.length) inspect(store.workflow.nodes[0].id);
+}
+
+/** Uma vez só, para quem já usava o programa: as abas "Dados" ganharam nomes próprios (spec 029, RF-2913). */
+function announceRenamedTabs(returning) {
+  const key = 'prodata.tips.abas_061';
+  if (storage(key, false)) return;
+  persist(key, true);
+  if (!returning) return;
+  toast('Duas abas mudaram de nome', {
+    detail: 'À esquerda, "Dados" agora é Fontes. À direita, a tabela da caixa agora é Resultado. O cadastro de fontes continua na vista Dados, no topo.',
+    timeout: 12000,
+  });
 }
 
 /** Reabre as abas da sessão anterior (RF-1004); sem nenhuma, o último fluxo ou a demonstração. */

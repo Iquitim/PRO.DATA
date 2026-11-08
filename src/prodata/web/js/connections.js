@@ -148,7 +148,7 @@ export async function removeConnection(c) {
   const used = store.workflow?.nodes.some((n) => n.config?.connection === c.id);
   const dependents = store.queries.filter((q) => q.connection === c.id).length;
   const warnings = [
-    dependents ? ` ${dependents} consulta(s) da aba Dados usam esta conexão e deixarão de funcionar.` : '',
+    dependents ? ` ${dependents} consulta(s) da vista Dados usam esta conexão e deixarão de funcionar.` : '',
     used ? ' Este fluxo usa a conexão e deixará de funcionar.' : '',
   ].join('');
   const ok = await confirmDialog({

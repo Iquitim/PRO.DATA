@@ -1,5 +1,6 @@
 // Arquivos: envio, vínculo, exclusão e o diálogo de pré-visualização com opções de leitura. A lista fica na vista Dados.
 
+import { typeLabel, typeName } from './types.js';
 import { addNode } from './actions.js';
 import { api, ApiError } from './api.js';
 import { DND_DATASET, toWorld, viewportCenter } from './canvas.js';
@@ -174,7 +175,7 @@ export function previewTable(columns, rows) {
   };
   return h('div', { class: 'table-wrap' }, h('table', { class: 'data-table compact' },
     h('thead', {}, h('tr', {}, columns.map((c) => h('th', {},
-      h('div', { class: 'th-name' }, c.name, spacesBadge(...spaces(c.name))), h('div', { class: 'th-type' }, c.type))))),
+      h('div', { class: 'th-name' }, c.name, spacesBadge(...spaces(c.name))), h('div', { class: 'th-type', title: typeName(c.type) }, typeLabel(c.type)))))),
     h('tbody', {}, rows.map((r) => h('tr', {}, columns.map((c) => cell(r[c.name], c.type)))))));
 }
 
@@ -207,7 +208,7 @@ export function spacesBadge(blank, padded) {
  * Abre o diálogo de preview. Com `onApply`, o botão principal devolve as opções
  * escolhidas (usado pelo Inspector); sem ele, cria um nó Input Data.
  */
-export function openPreview(name, { options = {}, onApply, applyLabel = 'Aplicar ao nó' } = {}) {
+export function openPreview(name, { options = {}, onApply, applyLabel = 'Aplicar à caixa' } = {}) {
   const defaults = Object.fromEntries(readOptionFields().map((f) => [f.name, f.default]));
   const chosen = { ...defaults, ...options };
   let preview = null;

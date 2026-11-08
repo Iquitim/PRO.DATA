@@ -1,5 +1,6 @@
 """Constantes (spec 028, RF-2841..2850): um valor com nome, trocado num lugar só e refeito só onde é usado."""
 
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -248,3 +249,115 @@ def test_api_address_takes_the_constant(runner: WorkflowRunner) -> None:
     assert other.node_results["i"].status == "executed"
     table = runner.cache.table(wf.id, "i", "out")
     assert table is not None and table["municipio-id"].to_list()[0].startswith("RJ")
+
+
+# ---------------------------------------------------------------- [#hoje], constante do sistema (spec 029)
+
+
+@pytest.fixture
+def day(monkeypatch: pytest.MonkeyPatch) -> list[date]:
+    """A data do dia, trocável no teste: o resultado não depende de quando o teste roda."""
+    current = [date(2026, 11, 7)]
+    real = ce.system_values
+    monkeypatch.setattr(ce, "system_values", lambda today=None: real(today or current[0]))
+    return current
+
+
+def test_hoje_needs_no_registration_and_becomes_today_in_formulas(
+    runner: WorkflowRunner, day: list[date]
+) -> None:
+    wf = flow("Date_Diff('dia', ToDate('2026-11-01'), [#hoje])")
+    result = runner.run(wf).node_results["f"]
+    assert result.status == "executed", result.error
+    assert ce.fill_expression("[#hoje] > [data]", ce.system_values()) == "Today() > [data]"
+    assert ce.resolve(wf, {}).workflow.node("f").config["__constants"] == {"hoje": "sistema:2026-11-07"}
+
+
+def test_hoje_in_filter_value_and_file_name(runner: WorkflowRunner, day: list[date]) -> None:
+    wf = Workflow.model_validate(
+        {
+            "id": "hoje_raw",
+            "name": "hoje",
+            "nodes": [
+                {
+                    "id": "t",
+                    "type": "io.text_input",
+                    "config": {
+                        "table": {"columns": ["d"], "rows": [["2026-11-06"], ["2026-11-07"], ["2026-11-08"]]}
+                    },
+                },
+                {
+                    "id": "fl",
+                    "type": "prep.filter",
+                    "config": {"mode": "simple", "column": "d", "operator": "==", "value": "[#hoje]"},
+                },
+                {
+                    "id": "o",
+                    "type": "io.output_data",
+                    "config": {"filename": "posicao_[#hoje]", "format": "csv"},
+                },
+            ],
+            "edges": [
+                {"id": "e1", "source": "t", "target": "fl"},
+                {"id": "e2", "source": "fl", "target": "o", "sourceHandle": "T"},
+            ],
+        }
+    )
+    results = runner.run(wf).node_results
+    assert results["o"].status == "executed", results["o"].error
+    assert (runner.exports_dir / "posicao_2026-11-07.csv").read_text(encoding="utf-8").count(
+        "2026-11-07"
+    ) == 1
+
+
+def test_hoje_redoes_only_what_uses_it_when_the_day_changes(runner: WorkflowRunner, day: list[date]) -> None:
+    wf = flow("IF [#hoje] > ToDate('2026-11-07') THEN [v] ELSE 0 ENDIF")
+    runner.run(wf)
+    assert runner.is_fresh(wf, "f")
+    day[0] = date(2026, 11, 8)
+    assert runner.is_fresh(wf, "t") and not runner.is_fresh(wf, "f")
+    statuses = {k: v.status for k, v in runner.run(wf).node_results.items()}
+    assert statuses["t"] == "cached" and statuses["f"] == "executed"
+
+
+def test_hoje_is_reserved_but_an_old_flow_constant_keeps_working(
+    runner: WorkflowRunner, shared: ConstantStore
+) -> None:
+    with pytest.raises(InvalidInputError, match="constante do sistema"):
+        shared.save(Constant(name="hoje", type="date", value="2026-01-01"))
+    wf = flow("[v] * [#hoje]", constants=[const("hoje", "3")])
+    result = runner.run(wf).node_results["f"]
+    assert result.status == "executed" and column(runner, wf) == [3, 6, 9]
+    assert any("constante do sistema" in w for w in result.extra.get("warnings", []))
+    assert "hoje" not in runner.snapshot(flow("[#hoje]")).shared_constants
+
+
+def test_validate_and_sql_know_hoje(client: TestClient) -> None:
+    cols = [{"name": "v", "type": "Int64"}]
+    ok = client.post(
+        "/api/formula/validate", json={"expression": "Date_Diff('dia', [#hoje], [#hoje])", "columns": cols}
+    )
+    assert ok.json()["valid"], ok.json()
+    wf = flow("Date_Diff('dia', [#hoje], ToDate('2026-01-01'))").model_dump(mode="json")
+    text = str(client.post("/api/sql/generate", json={"workflow": wf}).json())
+    assert "hoje = data do dia" in text and "Today()" in text
+
+
+def test_today_written_by_hand_also_redoes_on_a_new_day(
+    runner: WorkflowRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import prodata.engine.runner as runner_module
+
+    class Day(date):
+        current = date(2026, 11, 7)
+
+        @classmethod
+        def today(cls) -> date:
+            return cls.current
+
+    monkeypatch.setattr(runner_module, "date", Day)
+    wf = flow("IF Today() > ToDate('2000-01-01') THEN [v] ELSE 0 ENDIF")
+    runner.run(wf)
+    assert runner.run(wf).node_results["f"].status == "cached"
+    Day.current = date(2026, 11, 8)
+    assert runner.run(wf).node_results["f"].status == "executed"

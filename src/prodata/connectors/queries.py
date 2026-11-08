@@ -85,7 +85,7 @@ class QueryStore:
     def get(self, query_id: str) -> SavedQuery:
         query = self._read().get(query_id)
         if query is None:
-            raise NotFoundError(f"Consulta não encontrada: {query_id}. Ela foi excluída da aba Dados?")
+            raise NotFoundError(f"Consulta não encontrada: {query_id}. Ela foi excluída da vista Dados?")
         return query
 
     def save(self, query: SavedQuery) -> SavedQuery:

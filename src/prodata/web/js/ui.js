@@ -93,8 +93,8 @@ export function closeMenu() {
 export function showMenu(x, y, items) {
   closeMenu();
   const menu = h('div', { class: 'menu', role: 'menu' },
-    items.map((item) => (item === 'separator'
-      ? h('div', { class: 'menu-sep', role: 'separator' })
+    items.map((item) => (item === 'separator' || item.heading
+      ? h('div', item.heading ? { class: 'menu-heading' } : { class: 'menu-sep', role: 'separator' }, item.heading || null)
       : h('button', {
         type: 'button',
         role: 'menuitem',
@@ -105,7 +105,7 @@ export function showMenu(x, y, items) {
       item.icon ? icon(item.icon, 15) : h('span', { class: 'icon' }),
       h('span', {}, item.label),
       item.shortcut ? h('kbd', {}, item.shortcut) : null))));
-  document.body.append(menu);
+  (document.querySelector('dialog[open]') || document.body).append(menu); // numa janela, fora dela ficaria por baixo
   const { innerWidth, innerHeight } = window;
   const rect = menu.getBoundingClientRect();
   menu.style.left = `${Math.min(x, innerWidth - rect.width - 8)}px`;

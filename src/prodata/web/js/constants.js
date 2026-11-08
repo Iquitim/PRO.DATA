@@ -18,10 +18,22 @@ export async function refreshConstants() {
 }
 
 /** Constantes que este fluxo enxerga: as compartilhadas e as dele (as dele aparecem com `scope: 'flow'`). */
+/** Constantes do sistema (spec 029, RF-2995): sempre disponíveis, sem cadastro; o nome é reservado. */
+const localDay = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+export const SYSTEM_CONSTANTS = {
+  hoje: () => ({ name: 'hoje', type: 'date', value: localDay(), scope: 'system', description: 'A data de hoje. Muda sozinha a cada dia.' }),
+};
+
 export function knownConstants() {
-  const out = new Map();
+  const out = new Map(Object.entries(SYSTEM_CONSTANTS).map(([name, make]) => [name, make()]));
+  // Um fluxo antigo com uma constante própria chamada "hoje" continua usando a dele (o motor avisa).
   for (const c of store.constants || []) out.set(c.name, { ...c, scope: 'shared' });
-  for (const c of store.workflow?.constants || []) out.set(c.name, { ...c, scope: out.has(c.name) ? 'conflict' : 'flow' });
+  for (const c of store.workflow?.constants || []) {
+    out.set(c.name, { ...c, scope: out.get(c.name)?.scope === 'shared' ? 'conflict' : 'flow' });
+  }
   return out;
 }
 

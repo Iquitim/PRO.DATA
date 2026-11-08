@@ -6,6 +6,9 @@ usa é refeito, e o cache continua valendo para o resto.
 
 Duas origens: as do fluxo (``Workflow.constants``) e as compartilhadas, cadastradas na vista Dados. O fluxo guarda o
 valor de cada compartilhada que usa (``Workflow.shared_constants``), para rodar num computador sem o cadastro.
+
+E as do sistema (spec 029, RF-2995): ``[#hoje]`` vale a data do dia, sem cadastro. Numa fórmula vira ``Today()``;
+nos demais campos, a data em AAAA-MM-DD. O valor entra na assinatura da caixa: ela refaz quando o dia muda.
 """
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 from prodata.domain.constants import Constant, ConstantValue
@@ -22,10 +26,26 @@ _STRING_LITERAL = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"")
 USED_KEY = "__constants"
 # Campos de texto que aceitam constante além das fórmulas: o valor entra como está.
 RAW_FIELDS = {("prep.filter", "value"), ("io.output_data", "filename")}
+# Constantes do sistema: nomes reservados, com o que a fórmula escreve no lugar (RF-2995, RF-2997).
+SYSTEM_FORMULA = {"hoje": "Today()"}
+SYSTEM_DESCRIPTION = {"hoje": "A data de hoje, no formato AAAA-MM-DD. Muda sozinha a cada dia."}
+
+
+class SystemValue(ConstantValue):
+    """Valor de uma constante do sistema: a fórmula usa a função, o resto usa o valor."""
+
+    formula: str = ""
+
+
+def system_values(today: date | None = None) -> dict[str, SystemValue]:
+    day = (today or date.today()).isoformat()
+    return {"hoje": SystemValue(type="date", value=day, formula=SYSTEM_FORMULA["hoje"])}
 
 
 def formula_literal(c: ConstantValue) -> str:
     """O valor escrito na linguagem de fórmula: número como número, data como data, texto entre aspas."""
+    if isinstance(c, SystemValue):
+        return c.formula
     if c.type == "number":
         return c.value.replace(",", ".")
     if c.type == "date":
@@ -128,11 +148,15 @@ class Resolution:
 
 
 def resolve(
-    workflow: Any, shared: dict[str, Constant], api_texts: Callable[[Any], list[str]] | None = None
+    workflow: Any,
+    shared: dict[str, Constant],
+    api_texts: Callable[[Any], list[str]] | None = None,
+    today: date | None = None,
 ) -> Resolution:
     """Troca as constantes em cada caixa. Constante que falta ou que tem dois donos vira erro da caixa que a usa."""
     own = {c.name: c for c in workflow.constants}
     saved = workflow.shared_constants
+    system = system_values(today)
     out = Resolution(workflow)
     nodes = []
     for node in workflow.nodes:
@@ -142,7 +166,15 @@ def resolve(
             continue
         values: dict[str, ConstantValue] = {}
         for name in sorted(refs):
-            if name in own and name in shared:
+            if name in system and (name in own or name in shared):
+                # Fluxo de antes da 0.6.1 com uma constante própria de nome reservado: continua valendo.
+                values[name] = own.get(name) or shared[name]
+                out.warnings.setdefault(node.id, []).append(
+                    f"[#{name}] agora é uma constante do sistema: renomeie a sua para não confundir."
+                )
+            elif name in system:
+                values[name] = system[name]
+            elif name in own and name in shared:
                 out.problems[node.id] = (
                     f"A constante [#{name}] existe no fluxo e também é compartilhada: renomeie uma das duas."
                 )
@@ -161,7 +193,9 @@ def resolve(
                 )
         out.values[node.id] = values
         config = _fill_config(node.type, node.config, values)
-        config[USED_KEY] = {k: f"{v.type}:{v.value}" for k, v in values.items()}
+        config[USED_KEY] = {
+            k: f"{'sistema' if isinstance(v, SystemValue) else v.type}:{v.value}" for k, v in values.items()
+        }
         nodes.append(node.model_copy(update={"config": config}))
     out.workflow = workflow.model_copy(update={"nodes": nodes})
     return out
@@ -174,6 +208,7 @@ def snapshot(
     used: set[str] = set()
     for node in workflow.nodes:
         used |= node_refs(node.type, node.config, api_texts(node) if api_texts else None)
+    used -= set(SYSTEM_FORMULA)  # a data de hoje não vai no arquivo: é sempre a do dia
     kept = {name: ConstantValue(type=c.type, value=c.value) for name, c in shared.items() if name in used}
     # O que já estava salvo e não está cadastrado aqui continua no arquivo, para não se perder.
     return {**{k: v for k, v in workflow.shared_constants.items() if k in used and k not in shared}, **kept}

@@ -8,6 +8,15 @@ import { els, nodeEls, state } from './canvas_state.js';
 import { NODE_W, nodeHeight } from './canvas_geometry.js';
 import { MAX_ANIMATED_NEW, setFlowTarget } from './canvas_edges.js';
 
+const ANNOT_CHARS = 19; // o que cabe na caixa, em letras: não depende de a fonte já ter carregado
+const ANNOT_TAIL = 8;
+
+/** Nome de arquivo longo corta no meio e guarda o fim, que é o que identifica (RF-2931). Frases seguem cortando no fim. */
+export function fitAnnotation(text) {
+  if (!text || text.length <= ANNOT_CHARS || /\s/.test(text) || !/\.[a-z0-9]{2,5}$/i.test(text)) return text;
+  return `${text.slice(0, ANNOT_CHARS - ANNOT_TAIL - 2)}…${text.slice(-ANNOT_TAIL)}`;
+}
+
 function statusOf(n) {
   if (n.disabled) return 'disabled';
   const res = nodeResult(n.id);
@@ -86,7 +95,7 @@ function buildNode(n) {
   h('span', { class: 'node-icon' }, icon(spec?.icon || 'info', 16)),
   h('span', { class: 'node-text' },
     h('span', { class: 'node-label' }, n.label || spec?.name || n.type),
-    h('span', { class: 'node-annot' }, annotation)),
+    h('span', { class: 'node-annot' }, fitAnnotation(annotation))),
   h('span', { class: 'node-status', title: STATUS_TITLES[status] })),
   res?.extra?.dq_failed ? h('span', { class: 'node-alert', title: 'Linhas que falharam nas regras: saem por [F]' },
     `${res.extra.dq_failed} falharam`) : null,

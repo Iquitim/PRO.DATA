@@ -1,5 +1,6 @@
 // Detalhe de uma fonte na vista Dados (spec 028, RF-2803..2804, RF-2810): visão geral, cadastro, uso e explicação.
 
+import { tableSkeleton } from './skeleton.js';
 import { api } from './api.js';
 import { addApiNode, apiEditor, removeApi } from './apis.js';
 import { addQueryNode, connectionEditor, queryEditor, removeConnection, removeQuery } from './connections.js';
@@ -65,7 +66,7 @@ function columnQuality(preview) {
 }
 
 function fileOverview(source) {
-  const box = h('div', { class: 'stack-md' }, h('p', { class: 'muted' }, 'Lendo o arquivo…'));
+  const box = h('div', { class: 'stack-md' }, tableSkeleton(8));
   if (source.raw.missing) {
     box.replaceChildren(h('p', { class: 'api-warn' }, icon('alert', 14), ` O arquivo vinculado não foi encontrado em ${source.raw.linked_path}.`));
     return box;

@@ -6,6 +6,7 @@ import { openFlowConstants } from './constants_ui.js';
 import { h } from './dom.js';
 import { icon } from './icons.js';
 import { store } from './store.js';
+import { typeLabel } from './types.js';
 import { showMenu } from './ui.js';
 
 const OPERATORS = [
@@ -29,11 +30,17 @@ function menuButton({ cls = '', title, iconName, label, items }) {
   }, icon(iconName, 13), label, icon('chevron-down', 12));
 }
 
+export const SCOPE_LABEL = { system: 'do sistema', shared: 'compartilhada', flow: 'do fluxo', conflict: 'do fluxo' };
+
+/** As do sistema primeiro, depois as do fluxo e as compartilhadas em ordem de nome. */
+export const sortedConstants = () => [...knownConstants().values()]
+  .sort((a, b) => (b.scope === 'system') - (a.scope === 'system') || a.name.localeCompare(b.name));
+
 function constantItems(insert) {
-  const list = [...knownConstants().values()].sort((a, b) => a.name.localeCompare(b.name));
+  const list = sortedConstants();
   return [
     ...list.map((c) => ({
-      label: `[#${c.name}]`, icon: 'hash', shortcut: `${showValue(c)} · ${c.scope === 'shared' ? 'compartilhada' : 'do fluxo'}`,
+      label: `[#${c.name}]`, icon: 'hash', shortcut: `${showValue(c)} · ${SCOPE_LABEL[c.scope]}`,
       onSelect: () => insert(`[#${c.name}]`),
     })),
     ...(list.length ? ['separator'] : []),
@@ -42,11 +49,11 @@ function constantItems(insert) {
 }
 
 /** `insert(texto, { spaced })` escreve no cursor; `|` no texto marca onde o cursor fica. */
-export function formulaToolbar({ columns, insert, rowRefs = false }) {
+export function formulaToolbar({ columns, insert, rowRefs = false, onExpand = null }) {
   const columnItems = (prefix, iconName) => {
     const cols = columns();
     return cols.length
-      ? cols.map((c) => ({ label: c.name, icon: iconName, shortcut: c.type, onSelect: () => insert(prefix ? `[${prefix}:${c.name}]` : `[${c.name}]`) }))
+      ? cols.map((c) => ({ label: c.name, icon: iconName, shortcut: typeLabel(c.type), onSelect: () => insert(prefix ? `[${prefix}:${c.name}]` : `[${c.name}]`) }))
       : NO_COLUMNS;
   };
   const fnButton = h('button', {
@@ -65,6 +72,8 @@ export function formulaToolbar({ columns, insert, rowRefs = false }) {
     menuButton({ cls: 'fx-cst-tool', title: 'Inserir constante: um valor com nome, como o mês de referência', iconName: 'hash', label: 'Constante', items: () => constantItems(insert) }),
     rowRefs ? rowButton('Linha anterior', 'Inserir o valor da linha de cima: [Row-1:coluna]', 'Row-1', 'arrow-up') : null,
     rowRefs ? rowButton('Linha seguinte', 'Inserir o valor da linha de baixo: [Row+1:coluna]', 'Row+1', 'arrow-down') : null,
+    onExpand ? h('button', { type: 'button', class: 'fx-tool fx-expand', title: 'Editar numa janela larga, com colunas e funções ao lado', onclick: onExpand },
+      icon('maximize', 13), 'Abrir grande') : null,
     h('span', { class: 'fx-hint-key' }, h('kbd', {}, 'Ctrl'), '+', h('kbd', {}, 'Espaço'), ' sugere'),
     h('div', { class: 'fx-ops' },
       OPERATORS.map((o) => chip(o, 'fx-cmp')),

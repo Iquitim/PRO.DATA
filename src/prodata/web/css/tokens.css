@@ -14,17 +14,21 @@
 
   --text: #1b1b19;
   --text-2: #57574f;
-  --text-3: #8b8b83;
+  --text-3: #67675f;
 
   --accent: #2a63d6;
   --accent-hover: #2254bb;
   --accent-weak: #e9effb;
   --accent-text: #ffffff;
+  /* Ação principal (spec 029, RF-2963): no claro, a cor da marca; no escuro, o laranja do Executar. */
+  --action: var(--accent);
+  --action-hover: var(--accent-hover);
+  --action-text: var(--accent-text);
   --focus: #2a63d6;
 
-  --ok: #1a7f4f;
+  --ok: #17744a;
   --ok-weak: #e6f4ec;
-  --warn: #a3620a;
+  --warn: #935808;
   --warn-weak: #fbf0de;
   --err: #c8302f;
   --err-weak: #fbeaea;
@@ -60,6 +64,14 @@
   --radius: 6px;
   --radius-lg: 10px;
 
+  /* Escala de letra (spec 029, RF-2971): 11 px só em selos; texto a partir de 12 px. */
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --fs-2xl: 20px;
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
 
@@ -96,6 +108,9 @@
     --accent-hover: #cfaefb;
     --accent-weak: #403a5e;
     --accent-text: #21222c;
+    --action: #ffb86c;
+    --action-hover: #ffc98e;
+    --action-text: #21222c;
     --focus: #ff79c6;
     --ok: #50fa7b;
     --ok-weak: #24392f;
@@ -159,6 +174,9 @@
   --accent-hover: #cfaefb;
   --accent-weak: #403a5e;
   --accent-text: #21222c;
+  --action: #ffb86c;
+  --action-hover: #ffc98e;
+  --action-text: #21222c;
   --focus: #ff79c6;
   --ok: #50fa7b;
   --ok-weak: #24392f;

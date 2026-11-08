@@ -41,7 +41,7 @@ class WorkflowRepository:
             try:
                 wf = Workflow.model_validate_json(path.read_text(encoding="utf-8"))
             except (ValidationError, OSError) as exc:
-                log.warning("Workflow inválido ignorado: %s (%s)", path.name, exc)
+                log.warning("Fluxo inválido ignorado: %s (%s)", path.name, exc)
                 continue
             items.append(
                 WorkflowSummary(
@@ -57,7 +57,7 @@ class WorkflowRepository:
     def get(self, workflow_id: str) -> Workflow:
         path = self._path(workflow_id)
         if not path.is_file():
-            raise NotFoundError(f"Workflow não encontrado: {workflow_id}")
+            raise NotFoundError(f"Fluxo não encontrado: {workflow_id}")
         return Workflow.model_validate_json(path.read_text(encoding="utf-8"))
 
     def exists(self, workflow_id: str) -> bool:
@@ -75,7 +75,7 @@ class WorkflowRepository:
     def delete(self, workflow_id: str) -> None:
         path = self._path(workflow_id)
         if not path.is_file():
-            raise NotFoundError(f"Workflow não encontrado: {workflow_id}")
+            raise NotFoundError(f"Fluxo não encontrado: {workflow_id}")
         path.unlink()
 
 

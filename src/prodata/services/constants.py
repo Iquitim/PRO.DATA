@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic import TypeAdapter, ValidationError
 
 from prodata.domain.constants import Constant
+from prodata.engine.constants import SYSTEM_FORMULA
 from prodata.errors import InvalidInputError, NotFoundError
 
 _LIST = TypeAdapter(list[Constant])
@@ -48,6 +49,8 @@ class ConstantStore:
         """Cria ou altera. ``previous``: nome antigo, quando a constante é renomeada."""
         with self._lock:
             items = self._read()
+            if constant.name in SYSTEM_FORMULA:
+                raise InvalidInputError(f"[#{constant.name}] é uma constante do sistema: escolha outro nome.")
             if constant.name in items and constant.name != previous:
                 raise InvalidInputError(f"Já existe uma constante compartilhada chamada {constant.name}.")
             if previous and previous != constant.name:

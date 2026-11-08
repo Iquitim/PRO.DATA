@@ -33,10 +33,10 @@ def test_ancestors() -> None:
 
 
 def test_edges_must_reference_existing_nodes() -> None:
-    with pytest.raises(ValidationError, match="inexistente"):
+    with pytest.raises(ValidationError, match="caixa que não existe"):
         _wf([("a", "z")])
 
 
 def test_duplicated_node_ids_are_rejected() -> None:
-    with pytest.raises(ValidationError, match="duplicados"):
+    with pytest.raises(ValidationError, match="mesmo ID"):
         _wf([], nodes="aa")

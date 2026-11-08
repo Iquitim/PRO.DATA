@@ -9,11 +9,11 @@
 .mr-card.active { background: color-mix(in srgb, var(--cat, var(--accent)) 12%, var(--surface)); border-color: var(--cat, var(--accent)); box-shadow: inset 0 0 0 1px var(--cat, var(--accent)); }
 .explainer .x-table th { overflow-wrap: anywhere; }
 .mr-card-icon { display: inline-flex; color: var(--cat, var(--accent)); }
-.mr-card b { font-size: 12.5px; line-height: 1.2; }
-.mr-card small { grid-column: 1 / -1; margin-top: 3px; font-size: 11px; line-height: 1.25; color: var(--text-2); }
+.mr-card b { font-size: var(--fs-sm); line-height: 1.2; }
+.mr-card small { grid-column: 1 / -1; margin-top: 3px; font-size: var(--fs-xs); line-height: 1.25; color: var(--text-2); }
 .mr-formula { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 0 14px 10px; padding: 8px 10px; background: var(--surface-2, var(--bg)); border: 1px solid var(--border); border-radius: 8px; }
 .mr-formula[hidden] { display: none; }
-.mr-formula code { font-size: 11.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.mr-formula code { font-size: var(--fs-xs); overflow-wrap: anywhere; white-space: pre-wrap; }
 .fx-row-ref { color: var(--accent); }
 
 /* Data Quality: cartões de regra e esquema (spec 028). */
@@ -22,17 +22,17 @@
 .dq-card:hover { border-color: var(--cat-prep); }
 .dq-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .dq-card.active { background: color-mix(in srgb, var(--cat-prep) 10%, var(--surface)); border-color: var(--cat-prep); }
-.dq-card-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--cat-prep); }
+.dq-card-head { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--cat-prep); }
 .dq-card-head b { color: var(--text); }
-.dq-card-count { margin-left: auto; padding: 0 6px; font-size: 11px; font-weight: 700; color: #fff; background: var(--cat-prep); border-radius: 999px; }
-.dq-pass { font-size: 11px; color: var(--ok); }
-.dq-fail { font-size: 11px; color: var(--err); }
-.dq-rule-name { display: inline-flex; align-items: center; gap: 5px; margin-right: auto; font-size: 12.5px; }
+.dq-card-count { margin-left: auto; padding: 0 6px; font-size: var(--fs-2xs); font-weight: 700; color: #fff; background: var(--cat-prep); border-radius: 999px; }
+.dq-pass { font-size: var(--fs-xs); color: var(--ok); }
+.dq-fail { font-size: var(--fs-xs); color: var(--err); }
+.dq-rule-name { display: inline-flex; align-items: center; gap: 5px; margin-right: auto; font-size: var(--fs-sm); }
 .dq-outputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .dq-out { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; }
-.dq-out strong { font-size: 12px; }
-.dq-out b { font-size: 18px; }
-.dq-out small { font-size: 11px; }
+.dq-out strong { font-size: var(--fs-xs); }
+.dq-out b { font-size: var(--fs-xl); }
+.dq-out small { font-size: var(--fs-xs); }
 .dq-out.pass { color: var(--ok); background: var(--ok-weak); }
 .dq-out.fail { color: var(--err); background: var(--err-weak); }
 .x-table .x-bad { color: var(--err); background: var(--err-weak); }
@@ -41,5 +41,42 @@
 /* Data Quality, valor permitido (RF-2840): a lista digitada e as etiquetas de como foi entendida */
 .dq-values-input { min-height: 96px; resize: vertical; }
 .dq-values-summary { display: flex; flex-direction: column; gap: 6px; }
-.dq-values-count { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.dq-values-count { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); }
 .dq-values .chips { max-height: 132px; overflow: auto; }
+
+/* Menus do topo (spec 029, RF-2981) */
+.top-menu { gap: 4px; padding: 0 9px; }
+.top-help { width: 30px; padding: 0; justify-content: center; font-weight: 700; }
+.menu-heading { padding: 6px 10px 2px; color: var(--text-3); font-size: var(--fs-xs); font-weight: 600; }
+
+/* Busca de comandos (RF-2982) */
+.cmd-dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 140px); margin: 90px auto auto; padding: 0; overflow: hidden; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+.cmd-dialog[open] { display: flex; flex-direction: column; }
+.cmd-dialog::backdrop { background: rgb(10 10 8 / 0.42); }
+.cmd-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-3); }
+.cmd-input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-lg); }
+.cmd-list { flex: 1; min-height: 0; overflow: auto; padding: 6px; }
+.cmd-group { padding: 7px 10px 3px; color: var(--text-3); font-size: var(--fs-xs); font-weight: 600; }
+.cmd-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border: 0; border-radius: var(--radius); background: none; color: var(--text); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.cmd-row.active { background: var(--accent-weak); }
+.cmd-icon { display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; border-radius: var(--radius); background: var(--surface-3); color: var(--text-2); }
+.cmd-text { display: flex; align-items: baseline; gap: 6px; flex: 1; min-width: 0; }
+.cmd-text b { flex-shrink: 0; font-weight: 500; }
+.cmd-text small { overflow: hidden; color: var(--text-3); font-size: var(--fs-xs); text-overflow: ellipsis; white-space: nowrap; }
+.cmd-end { flex-shrink: 0; color: var(--text-3); font-size: var(--fs-xs); }
+.cmd-none { margin: 0; padding: 18px; color: var(--text-3); text-align: center; }
+.cmd-foot { display: flex; gap: 14px; padding: 8px 16px; border-top: 1px solid var(--border); color: var(--text-3); font-size: var(--fs-xs); }
+
+/* Carregando (RF-2991) e troca de vista (RF-2992) */
+@keyframes sk-shine { to { background-position: -200% 0; } }
+@keyframes view-in { from { opacity: 0; } }
+.sk { flex-shrink: 0; border-radius: 4px; background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 50%, var(--surface-3) 75%); background-size: 200% 100%; animation: sk-shine 1.4s linear infinite; }
+.sk-table { flex: 1; min-width: 0; overflow: hidden; }
+.sk-line { display: flex; gap: 18px; border-bottom: 1px solid var(--border); }
+.sk-chart { flex-shrink: 0; width: 360px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.sk-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.sk-bar .sk:last-child { flex-shrink: 1; }
+body[data-view="designer"] .center, body[data-view="data"] .data-view, body[data-view="dashboard"] .dashboard, body[data-view="sql"] .sql-view, .slot > .panel { animation: view-in .12s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .sk, body[data-view="designer"] .center, body[data-view="data"] .data-view, body[data-view="dashboard"] .dashboard, body[data-view="sql"] .sql-view, .slot > .panel { animation: none; }
+}

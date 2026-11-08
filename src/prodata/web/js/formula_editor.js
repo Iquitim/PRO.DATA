@@ -182,7 +182,7 @@ function suggestPopup(ed) {
       items[active]?.doc ? h('div', { class: 'fx-item-doc' }, items[active].doc.description, h('code', {}, items[active].doc.example)) : null,
     );
     if (!el.isConnected) {
-      document.body.append(el);
+      (ed.area.closest('dialog') || document.body).append(el); // numa janela, fora dela ficaria por baixo
       const p = caretPoint(ed);
       const w = Math.min(380, innerWidth - 16);
       el.style.left = `${Math.max(8, Math.min(p.x, innerWidth - w - 8))}px`;
@@ -268,7 +268,7 @@ function bindKeys(ed, pop) {
  * Cria o editor. `columns()` devolve as colunas da entrada; `onChange(texto)` a cada alteração.
  * Devolve o elemento raiz.
  */
-export function formulaEditor({ id, value = '', placeholder = '', rows = 3, columns = () => [], onChange = () => {}, rowRefs = false }) {
+export function formulaEditor({ id, value = '', placeholder = '', rows = 3, maxHeight = 300, columns = () => [], onChange = () => {}, rowRefs = false, onExpand = null }) {
   const area = h('textarea', {
     id, class: 'fx-input', rows, spellcheck: false, autocomplete: 'off', placeholder,
     'aria-autocomplete': 'list', 'aria-label': 'Expressão',
@@ -278,7 +278,7 @@ export function formulaEditor({ id, value = '', placeholder = '', rows = 3, colu
   // O campo cresce com o conteúdo (até ~12 linhas), sem esconder o fim da fórmula.
   ed.fit = () => {
     area.style.height = 'auto';
-    area.style.height = `${Math.min(area.scrollHeight + 2, 300)}px`;
+    area.style.height = `${Math.min(area.scrollHeight + 2, maxHeight)}px`;
   };
   ed.paint = () => {
     ed.hl.innerHTML = highlight(area.value, columns(), area.selectionStart === area.selectionEnd ? area.selectionStart : -1);
@@ -303,7 +303,14 @@ export function formulaEditor({ id, value = '', placeholder = '', rows = 3, colu
     ed.updateHint();
   };
   bindKeys(ed, suggestPopup(ed));
-  const root = h('div', { class: 'fx' }, h('div', { class: 'fx-box' }, ed.hl, ed.mirror, area), hint, formulaToolbar({ columns, insert, rowRefs }));
+  const root = h('div', { class: 'fx' }, h('div', { class: 'fx-box' }, ed.hl, ed.mirror, area), hint, formulaToolbar({ columns, insert, rowRefs, onExpand }));
+  // Para o editor grande: ler, trocar o texto, inserir no cursor e pôr o foco.
+  root.fx = {
+    value: () => area.value,
+    set: (text) => { area.value = text; ed.changed(); },
+    insert,
+    focus: () => { area.focus(); area.selectionStart = area.selectionEnd = area.value.length; },
+  };
   ed.paint();
   requestAnimationFrame(ed.fit); // altura certa só depois de entrar no documento
   return root;

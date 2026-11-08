@@ -48,7 +48,7 @@ class ApiStore:
     def get(self, api_id: str) -> SavedApi:
         api = self._read().get(api_id)
         if api is None:
-            raise NotFoundError(f"API não encontrada: {api_id}. Ela foi excluída da aba Dados?")
+            raise NotFoundError(f"API não encontrada: {api_id}. Ela foi excluída da vista Dados?")
         return api
 
     def secret_reader(self, api_id: str, typed: dict[str, str] | None = None) -> Callable[[str], str | None]:

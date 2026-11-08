@@ -68,13 +68,13 @@ class Workflow(BaseModel):
         ids = [n.id for n in self.nodes]
         duplicated = {i for i in ids if ids.count(i) > 1}
         if duplicated:
-            raise ValueError(f"IDs de nó duplicados: {', '.join(sorted(duplicated))}")
+            raise ValueError(f"Caixas com o mesmo ID: {', '.join(sorted(duplicated))}")
         known = set(ids)
         for e in self.edges:
             if e.source not in known or e.target not in known:
-                raise ValueError(f"Conexão '{e.id}' referencia nó inexistente.")
+                raise ValueError(f"Conexão '{e.id}' liga uma caixa que não existe.")
             if e.source == e.target:
-                raise ValueError(f"Conexão '{e.id}' liga um nó a ele mesmo.")
+                raise ValueError(f"Conexão '{e.id}' liga uma caixa a ela mesma.")
         names = [c.name for c in self.constants]
         if repeated := sorted({n for n in names if names.count(n) > 1}):
             raise ValueError(f"Constantes do fluxo com o mesmo nome: {', '.join(repeated)}")

@@ -1,0 +1,72 @@
+{
+ "id": "exemplo_constantes",
+ "description": "Exemplo do Manual. Mexa à vontade: nada aqui altera os seus fluxos.",
+ "containers": [],
+ "name": "Exemplo: constantes",
+ "constants": [
+  {
+   "name": "meta_minima",
+   "type": "number",
+   "value": "3000",
+   "description": "MRR mínimo para entrar na lista."
+  }
+ ],
+ "nodes": [
+  {
+   "id": "a",
+   "type": "io.input_data",
+   "label": "Clientes",
+   "x": 60,
+   "y": 120,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   }
+  },
+  {
+   "id": "f",
+   "type": "prep.filter",
+   "label": "MRR acima da meta",
+   "x": 340,
+   "y": 120,
+   "config": {
+    "mode": "simple",
+    "column": "mrr_mensal",
+    "operator": ">=",
+    "value": "[#meta_minima]"
+   }
+  },
+  {
+   "id": "h",
+   "type": "prep.formula",
+   "label": "Tempo até hoje",
+   "x": 620,
+   "y": 120,
+   "config": {
+    "formulas": [
+     {
+      "target": "new",
+      "column": "ano_consulta",
+      "type": "Auto",
+      "expression": "Year([#hoje])"
+     }
+    ]
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "a",
+   "sourceHandle": "out",
+   "target": "f",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "f",
+   "sourceHandle": "T",
+   "target": "h",
+   "targetHandle": "in"
+  }
+ ]
+}

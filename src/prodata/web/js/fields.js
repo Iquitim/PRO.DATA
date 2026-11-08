@@ -12,9 +12,10 @@ import { RECIPES } from './multirow_recipes.js';
 import { qualityRulesField } from './quality_ui.js';
 import { allowedValuesField } from './quality_values.js';
 import { formulaEditor } from './formula_editor.js';
+import { openLargeFormula } from './formula_large.js';
 import { API_PREFIX, QUERY_PREFIX, store } from './store.js';
+import { typeLabel, typeName } from './types.js';
 
-const TYPE_LABEL = { Int64: '123', Float64: '1.2', String: 'abc', Boolean: 'v/f', Date: 'data' };
 
 function visible(field, values, ctx, fields) {
   // Fonte que não é arquivo (consulta de banco): opções de leitura de arquivo não se aplicam.
@@ -130,7 +131,7 @@ function columnOptions(cols, value, emptyLabel) {
   const names = cols.map((c) => c.name);
   const options = [h('option', { value: '' }, emptyLabel)];
   for (const c of cols) {
-    options.push(h('option', { value: c.name, selected: c.name === value }, `${c.name}  ·  ${TYPE_LABEL[c.type] || c.type}`));
+    options.push(h('option', { value: c.name, selected: c.name === value }, `${c.name}  ·  ${typeLabel(c.type)}`));
   }
   if (value && !names.includes(value)) {
     options.push(h('option', { value, selected: true }, `${value}  (não encontrada)`));
@@ -201,13 +202,9 @@ function columnInserter(area, cols, wrap) {
   }, h('option', { value: '' }, 'Inserir coluna…'), cols.map((c) => h('option', { value: c.name }, c.name)));
 }
 
-function expression(field, value, set, ctx, id) {
-  const status = h('div', { class: 'expr-status muted' }, ' ');
-  const inputs = ctx.columns?.(field.port) || [];
-  // A própria coluna nova pode ser citada em [Row-1:...]: para a validação, ela já existe.
-  const self = field.multirow ? ctx.selfColumn?.() : null;
-  const cols = self && !inputs.some((c) => c.name === self) ? [...inputs, { name: self, type: 'String' }] : inputs;
-  const validate = debounce(async (expr) => {
+/** Confere a fórmula no servidor e escreve o resultado em `status`. */
+function formulaValidator(field, cols, status) {
+  return debounce(async (expr) => {
     if (!expr.trim()) {
       status.className = 'expr-status muted';
       status.textContent = ' ';
@@ -222,12 +219,31 @@ function expression(field, value, set, ctx, id) {
       status.textContent = '';
     }
   }, 250);
+}
+
+function expression(field, value, set, ctx, id, values) {
+  const status = h('div', { class: 'expr-status muted' }, ' ');
+  const inputs = ctx.columns?.(field.port) || [];
+  // A própria coluna nova pode ser citada em [Row-1:...]: para a validação, ela já existe.
+  const self = field.multirow ? ctx.selfColumn?.() : null;
+  const cols = self && !inputs.some((c) => c.name === self) ? [...inputs, { name: self, type: 'String' }] : inputs;
+  const validate = formulaValidator(field, cols, status);
+  const expand = () => {
+    const box = store.workflow?.nodes.find((n) => n.id === store.selection.nodeId);
+    openLargeFormula({
+      subtitle: [box?.label, values?.column].filter(Boolean).join(' · '),
+      value: editor.fx.value(), columns: inputs, rowRefs: Boolean(field.multirow),
+      makeValidate: (el) => formulaValidator(field, cols, el),
+      onChange: editor.fx.set,
+    });
+  };
   // Editor com cores, autocompletar e assistente (spec 010).
   const editor = formulaEditor({
     id, value: value ?? '', rows: 3, placeholder: field.placeholder || '[coluna] * 2  ·  Ctrl+Espaço sugere',
     columns: () => inputs,
     rowRefs: Boolean(field.multirow),
     onChange: (text) => { set(text); validate(text); },
+    onExpand: expand,
   });
   if (value) validate(value);
   return h('div', { class: 'stack-xs' }, editor, status);
@@ -271,7 +287,7 @@ function dataset(field, value, set, ctx, id) {
     || apis.some((a) => `${API_PREFIX}${a.id}` === value);
   return h('div', { class: 'row' },
     h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
-      h('option', { value: '' }, files.length || queries.length || apis.length ? 'Escolha uma fonte…' : 'Nenhuma fonte na aba Dados'),
+      h('option', { value: '' }, files.length || queries.length || apis.length ? 'Escolha uma fonte…' : 'Nenhuma fonte cadastrada na vista Dados'),
       files.length ? h('optgroup', { label: 'Arquivos' },
         files.map((d) => h('option', { value: d.name, selected: d.name === value }, d.name))) : null,
       queries.length ? h('optgroup', { label: 'Consultas de banco' },
@@ -293,7 +309,7 @@ function apiSource(field, value, set, ctx, id) {
   return h('div', { class: 'stack-xs' },
     h('div', { class: 'row' },
       h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
-        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com variável na aba Dados'),
+        h('option', { value: '' }, usable.length ? 'Escolha uma API…' : 'Cadastre uma API com variável na vista Dados'),
         usable.map((a) => h('option', { value: a.id, selected: a.id === value }, a.name)),
         value && !known ? h('option', { value, selected: true }, `${value} (não serve aqui ou foi excluída)`) : null),
       button({ icon: 'edit', title: 'Editar a API', disabled: !current, onClick: () => current && ctx.onEditApi?.(current) }),
@@ -487,7 +503,7 @@ function selectColumns(field, value, set, ctx, _id, values) {
   if (!cols.length) {
     return h('p', { class: 'field-help' }, fromJoin
       ? 'Execute o fluxo até as entradas [L] e [R] para listar as colunas do J.'
-      : 'Execute o fluxo até o nó anterior para listar as colunas de entrada.');
+      : 'Execute o fluxo até a caixa anterior para listar as colunas de entrada.');
   }
   const rules = new Map((value || []).map((r) => [r.name, r]));
   const current = (name) => ({ name, keep: true, rename: '', cast: '', ...rules.get(name) });
@@ -532,8 +548,8 @@ function selectColumns(field, value, set, ctx, _id, values) {
           },
         }, icon('grip', 12)),
         h('input', { type: 'checkbox', checked: r.keep, 'aria-label': `Manter ${c.name}`, onchange: (e) => save(c.name, { keep: e.target.checked }) }),
-        h('span', { class: 'mono ellipsis', title: `${c.name} (${c.type})${c.side ? ` · vem de [${c.side}]` : ''}` },
-          c.side ? h('b', { class: `side-tag side-${c.side}` }, c.side) : null, c.name, h('small', { class: 'type-tag' }, TYPE_LABEL[c.type] || c.type)),
+        h('span', { class: 'mono ellipsis', title: `${c.name} (${typeName(c.type)})${c.side ? ` · vem de [${c.side}]` : ''}` },
+          c.side ? h('b', { class: `side-tag side-${c.side}` }, c.side) : null, c.name, h('small', { class: 'type-tag' }, typeLabel(c.type))),
         h('input', { class: 'input input-sm mono', value: r.rename, placeholder: '—', onchange: (e) => save(c.name, { rename: e.target.value.trim() }) }),
         h('select', { class: 'input input-sm', onchange: (e) => save(c.name, { cast: e.target.value }) },
           CASTS.map(([v, l]) => h('option', { value: v, selected: v === r.cast }, l))));

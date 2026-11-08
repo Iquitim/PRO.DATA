@@ -1,0 +1,66 @@
+{
+ "id": "exemplo_qualidade",
+ "description": "Exemplo do Manual. Mexa à vontade: nada aqui altera os seus fluxos.",
+ "containers": [],
+ "name": "Exemplo: conferir a qualidade",
+ "nodes": [
+  {
+   "id": "a",
+   "type": "io.input_data",
+   "label": "Clientes",
+   "x": 60,
+   "y": 120,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   }
+  },
+  {
+   "id": "d",
+   "type": "prep.data_quality",
+   "label": "Clientes válidos",
+   "x": 340,
+   "y": 120,
+   "config": {
+    "rules": [
+     {
+      "kind": "not_empty",
+      "column": "setor"
+     },
+     {
+      "kind": "unique",
+      "column": "id_cliente"
+     },
+     {
+      "kind": "number_range",
+      "column": "nps",
+      "min": 3,
+      "max": 10
+     },
+     {
+      "kind": "allowed",
+      "column": "uf",
+      "values": [
+       "SP",
+       "RJ",
+       "MG",
+       "PR",
+       "RS",
+       "SC",
+       "BA",
+       "DF"
+      ]
+     }
+    ]
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "a",
+   "sourceHandle": "out",
+   "target": "d",
+   "targetHandle": "in"
+  }
+ ]
+}

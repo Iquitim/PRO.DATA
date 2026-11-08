@@ -66,15 +66,15 @@ function workflowPanel() {
         h('textarea', { id: 'wf-desc', class: 'input', rows: 3,
           oninput: (e) => mutate((w) => { w.description = e.target.value; }, { key: 'wf:desc' }) }, wf.description || '')),
       h('dl', { class: 'stats' },
-        stat('Nós', wf.nodes.length), stat('Conexões', wf.edges.length),
+        stat('Caixas', wf.nodes.length), stat('Ligações', wf.edges.length),
         store.execution ? stat('Última execução', fmt.ms(store.execution.total_elapsed_ms)) : null,
         store.execution ? stat('Com erro', count('error')) : null),
       h('div', { class: 'hint-box' },
         h('strong', {}, 'Como montar um fluxo'),
         h('ul', {},
-          h('li', {}, 'Envie arquivos na aba ', h('b', {}, 'Dados'), ' e arraste-os para o canvas.'),
+          h('li', {}, 'Cadastre arquivos na vista ', h('b', {}, 'Dados'), ' e arraste-os da aba ', h('b', {}, 'Fontes'), ' para o canvas.'),
           h('li', {}, 'Arraste ferramentas da paleta; solte sobre um fio para inserir no meio.'),
-          h('li', {}, 'Puxe de uma saída para uma entrada para conectar, ou para o vazio para criar um nó.'),
+          h('li', {}, 'Puxe de uma saída para uma entrada para ligar, ou para o vazio para criar uma caixa.'),
           h('li', {}, 'Clique em uma saída (T/F, L/J/R…) para ver os dados dela.'),
           h('li', {}, h('kbd', {}, 'Ctrl'), '+', h('kbd', {}, 'Enter'), ' executa · ', h('kbd', {}, '?'), ' mostra os atalhos.')))));
 }
@@ -86,7 +86,7 @@ const stat = (label, value) => h('div', { class: 'stat' }, h('dt', {}, label), h
 function statusBanner(n) {
   const res = nodeResult(n.id);
   const pending = store.pending.has(n.id);
-  if (n.disabled) return banner('muted', 'power', 'Nó desabilitado: não é executado e seus dependentes ficam sem entrada.');
+  if (n.disabled) return banner('muted', 'power', 'Caixa desabilitada: não é executada, e as caixas depois dela ficam sem entrada.');
   if (res?.status === 'error') {
     return banner('error', 'alert', res.error, res.error_field ? `Campo: ${res.error_field}` : null);
   }
@@ -170,7 +170,7 @@ function sourceBanner(n) {
   }
   if (extra.source_modified) {
     return banner('muted', 'clock', `Cópia enviada em ${when(extra.source_modified)}`,
-      'Este arquivo é uma cópia: atualizar o original não muda o fluxo. Para acompanhar uma planilha atualizada todo dia, use "Vincular arquivo" na aba Dados.');
+      'Este arquivo é uma cópia: atualizar o original não muda o fluxo. Para acompanhar uma planilha atualizada todo dia, use "Vincular arquivo" na vista Dados.');
   }
   if (extra.source_read_at) {
     return banner('muted', 'database', `Consulta feita em ${when(extra.source_read_at)}`,
@@ -324,7 +324,7 @@ async function convertLegacy(n, saved = null) {
       x.config = { ...structuredClone(store.tools['io.input_data'].default_config), dataset: `${QUERY_PREFIX}${saved.id}`, limit: cfg.limit || 0 };
       x.label = saved.name;
     }, { affects: [n.id], structural: true });
-    toast('Convertido para Input Data', { kind: 'success', detail: `A consulta "${saved.name}" está na aba Dados.` });
+    toast('Convertido para Input Data', { kind: 'success', detail: `A consulta "${saved.name}" está na vista Dados.` });
   } catch (err) {
     toastError(err, 'Não foi possível converter');
   }
@@ -444,14 +444,14 @@ function nodePanel(n) {
     h('header', { class: 'inspector-header' },
       h('span', { class: 'inspector-icon' }, icon(spec.icon, 18)),
       h('div', { class: 'grow' },
-        h('input', { class: 'inspector-title-input', value: n.label || spec.name, 'aria-label': 'Nome do nó',
+        h('input', { class: 'inspector-title-input', value: n.label || spec.name, 'aria-label': 'Nome da caixa',
           oninput: (e) => renameNode(n.id, e.target.value) }),
         h('div', { class: 'inspector-sub' }, spec.name, h('span', { class: 'mono' }, ` · ${n.id}`))),
       button({ icon: 'target', title: 'Executar até aqui', variant: 'ghost', onClick: () => handlers.runTo(n.id) }),
       more),
     h('p', { class: 'inspector-desc' }, spec.description),
     spec.hidden ? banner('muted', 'info', 'Ferramenta antiga, fora da paleta.',
-      'O Input Data agora lê consultas de banco cadastradas na aba Dados.',
+      'O Input Data agora lê consultas de banco cadastradas na vista Dados.',
       button({ icon: 'refresh', label: 'Converter para Input Data', size: 'sm', onClick: () => convertLegacy(n) })) : null,
     cacheBanner(n),
     statusBanner(n),
@@ -477,18 +477,18 @@ function containerPanel(c) {
     h('header', { class: 'inspector-header' },
       h('span', { class: 'inspector-icon', style: { color: c.color, background: `${c.color}22` } }, icon('group', 18)),
       h('div', { class: 'grow' },
-        h('input', { class: 'inspector-title-input', value: c.title, 'aria-label': 'Nome da caixa',
+        h('input', { class: 'inspector-title-input', value: c.title, 'aria-label': 'Nome da etapa',
           oninput: (e) => updateContainer(c.id, { title: e.target.value }, { key: `${c.id}:title` }) }),
-        h('div', { class: 'inspector-sub' }, 'Caixa de organização', h('span', { class: 'mono' }, ` · ${c.id}`))),
-      button({ icon: 'trash', title: 'Excluir caixa (mantém os nós)', variant: 'ghost', onClick: () => removeContainer(c.id) })),
-    h('p', { class: 'inspector-desc' }, 'Agrupa visualmente uma etapa do fluxo. Arraste o título no canvas para mover a caixa junto com os nós de dentro.'),
+        h('div', { class: 'inspector-sub' }, 'Etapa', h('span', { class: 'mono' }, ` · ${c.id}`))),
+      button({ icon: 'trash', title: 'Excluir etapa (mantém as caixas)', variant: 'ghost', onClick: () => removeContainer(c.id) })),
+    h('p', { class: 'inspector-desc' }, 'Agrupa visualmente uma parte do fluxo. Arraste o título no canvas para mover a etapa junto com as caixas de dentro.'),
     h('div', { class: ['container-switch', c.disabled && 'off'] },
       h('label', { class: 'switch' },
         h('input', { type: 'checkbox', checked: !c.disabled, onchange: (e) => setContainerEnabled(c.id, e.target.checked, NODE_W) }),
-        h('span', { class: 'switch-track' }), h('strong', {}, c.disabled ? 'Caixa desligada' : 'Caixa ligada')),
+        h('span', { class: 'switch-track' }), h('strong', {}, c.disabled ? 'Etapa desligada' : 'Etapa ligada')),
       h('p', { class: 'field-help' }, c.disabled
-        ? 'Os nós de dentro estão desativados e não executam. Ligue para reativá-los.'
-        : 'Desligar desativa todos os nós de dentro; eles deixam de executar.')),
+        ? 'As caixas de dentro estão desativadas e não executam. Ligue para reativá-las.'
+        : 'Desligar desativa todas as caixas de dentro; elas deixam de executar.')),
     h('div', { class: 'form pad' },
       h('div', { class: 'field' }, h('label', { class: 'field-label', for: 'c-desc' }, 'Descrição'),
         h('textarea', { id: 'c-desc', class: 'input', rows: 3, placeholder: 'Ex.: limpeza e padronização da base de clientes',
@@ -505,12 +505,12 @@ function containerPanel(c) {
             e.target.previousElementSibling.textContent = `Intensidade do fundo · ${Math.round(Number(e.target.value) * 100)}%`;
           } })),
       h('div', { class: 'field' },
-        h('span', { class: 'field-label' }, `Nós dentro da caixa (${inside.length})`),
+        h('span', { class: 'field-label' }, `Caixas dentro da etapa (${inside.length})`),
         inside.length
           ? h('div', { class: 'member-list' }, inside.map((n) => h('button', {
             type: 'button', class: ['member', n.disabled && 'disabled'], onclick: () => select(n.id),
           }, icon(toolOf(n)?.icon || 'info', 14), h('span', { class: 'ellipsis' }, n.label || toolOf(n)?.name))))
-          : h('p', { class: 'field-help' }, 'Nenhum nó dentro. Arraste nós para dentro da caixa ou redimensione-a.')),
+          : h('p', { class: 'field-help' }, 'Nenhuma caixa dentro. Arraste caixas para dentro da etapa ou mude o tamanho dela.')),
       h('div', { class: 'stack-xs' },
-        button({ icon: 'fit', label: 'Ajustar aos nós de dentro', disabled: !inside.length, onClick: () => fitContainer(c.id, NODE_W, nodeHeight) }))));
+        button({ icon: 'fit', label: 'Ajustar às caixas de dentro', disabled: !inside.length, onClick: () => fitContainer(c.id, NODE_W, nodeHeight) }))));
 }

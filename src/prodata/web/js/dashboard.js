@@ -199,6 +199,33 @@ function exportButton({ icon: name, label, kind, onClick }) {
   return withLabelTip(el, level, kind === 'html' ? 'html' : 'image');
 }
 
+/**
+ * Baixar: abre os dois formatos. São os próprios botões de exportar, para manter a dica e o selo do rótulo
+ * de cada um (spec 026). Há rótulo que pede senha? O botão já avisa, antes de abrir.
+ */
+function exportMenu(items) {
+  const level = dash().confidentiality || 'interno';
+  const menu = h('div', { class: 'dash-export-menu floating', role: 'group', 'aria-label': 'Formatos', hidden: true }, items);
+  const close = () => { menu.hidden = true; document.removeEventListener('pointerdown', outside, true); };
+  const outside = (e) => { if (!wrap.contains(e.target)) close(); };
+  const toggle = button({
+    icon: 'download', label: 'Baixar', title: 'Baixar a página como imagem ou HTML',
+    onClick: () => {
+      if (!menu.hidden) { close(); return; }
+      menu.hidden = false;
+      document.addEventListener('pointerdown', outside, true);
+    },
+  });
+  toggle.classList.add('dash-download');
+  toggle.setAttribute('aria-haspopup', 'true');
+  if (guardBadge(level, 'html')) toggle.append(h('span', { class: ['label-guard', `label-tone-${level}`] }, icon('lock', 12)));
+  toggle.append(icon('chevron-down', 13));
+  menu.addEventListener('click', close);
+  menu.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); toggle.focus(); } });
+  const wrap = h('div', { class: 'dash-export' }, toggle, menu);
+  return wrap;
+}
+
 const menuAt = (items) => (e) => { const r = e.currentTarget.getBoundingClientRect(); showMenu(r.left, r.bottom + 4, items()); };
 
 function headEl() {
@@ -206,13 +233,14 @@ function headEl() {
   const d = dash();
   const count = d ? d.items.filter((i) => i.kind === 'visual').length : 0;
   const status = store.execution
-    ? `${count} visual(is) na página · execução em ${fmt.ms(store.execution.total_elapsed_ms)}`
+    ? `${count} ${count === 1 ? 'visual' : 'visuais'} na página · execução em ${fmt.ms(store.execution.total_elapsed_ms)}`
     : 'Execute o fluxo para gerar os visuais.';
-  const brand = h('div', { class: 'dash-brand' },
-    h('img', { class: 'dash-logo', src: '/static/brand/protege-escudo.svg', alt: 'Grupo Protege' }),
-    h('div', {}, h('div', { class: 'dash-org' }, 'Grupo Protege'), h('h1', {}, store.workflow?.name || 'Dashboard'),
-      h('p', { class: 'muted' }, editing ? 'Editando o layout · arraste, redimensione, formate e use Organizar' : status)));
-  if (!d) return h('header', { class: 'dash-head' }, brand);
+  // Com página montada, título e logo estão nela; a barra fica só com a situação e as ações (spec 029, RF-2951).
+  if (!d) {
+    return h('header', { class: 'dash-head' }, h('div', { class: 'dash-brand' },
+      h('img', { class: 'dash-logo', src: '/static/brand/protege-escudo.svg', alt: 'Grupo Protege' }),
+      h('div', {}, h('div', { class: 'dash-org' }, 'Grupo Protege'), h('h1', {}, store.workflow?.name || 'Dashboard'), h('p', { class: 'muted' }, status))));
+  }
   const actions = editing ? [
     button({ icon: 'plus', label: 'Inserir', title: 'Texto, imagem, logo ou forma', onClick: menuAt(insertItems) }),
     button({ icon: 'wand', label: 'Organizar', title: 'Organizar automaticamente ou escolher um layout pronto', onClick: openOrganize }),
@@ -229,11 +257,15 @@ function headEl() {
     button({ icon: 'edit', label: 'Editar layout', title: 'Mover, redimensionar, formatar e organizar os visuais', onClick: () => setMode('edit') }),
     h('div', { class: 'dash-label-pick' }, h('span', { class: 'dash-label-title' }, 'Rótulo'),
       labelPicker({ value: d.confidentiality || 'interno', place: 'dash', onChange: (level) => commitLayout((dd) => { dd.confidentiality = level; }) })),
-    exportButton({ icon: 'download', label: 'Baixar imagem', kind: 'image', onClick: () => exportPage().catch((err) => toastError(err, 'Não foi possível gerar a imagem')) }),
-    exportButton({ icon: 'globe', label: 'Baixar HTML', kind: 'html', onClick: () => exportHtml(shownWidgets()) }),
+    exportMenu([
+      exportButton({ icon: 'download', label: 'Baixar imagem', kind: 'image', onClick: () => exportPage().catch((err) => toastError(err, 'Não foi possível gerar a imagem')) }),
+      exportButton({ icon: 'globe', label: 'Baixar HTML', kind: 'html', onClick: () => exportHtml(shownWidgets()) }),
+    ]),
     button({ icon: 'refresh', label: 'Atualizar dados', variant: 'primary', onClick: () => handlers.run() }),
   ];
-  return h('header', { class: 'dash-head' }, brand, h('div', { class: 'dash-actions' }, actions));
+  return h('header', { class: 'dash-head slim' },
+    h('p', { class: 'dash-status' }, editing ? 'Editando o layout · arraste, redimensione, formate e use Organizar' : status),
+    h('div', { class: 'dash-actions' }, actions));
 }
 
 function setMode(mode) {
@@ -265,7 +297,7 @@ export function render() {
   if (!d.items.length && !biNodes().length && !editing) {
     root.replaceChildren(headEl(), h('div', { class: 'empty big' }, icon('dashboard', 28),
       h('strong', {}, 'Nenhum visual publicado'),
-      h('span', {}, 'Adicione nós Chart ou KPI Card (categoria BI e indicadores) ao fluxo e execute.')));
+      h('span', {}, 'Adicione caixas Chart ou KPI Card (categoria BI e indicadores) ao fluxo e execute.')));
     return;
   }
   // Carrega o painel Formato já na primeira visita, para o modo Editar abrir pronto (sem redesenhar no meio).

@@ -1,0 +1,67 @@
+/* Manual dentro do programa (spec 029): ao lado do trabalho, em qualquer vista. O conteúdo usa as classes do guia. */
+:root { --manual-w: min(414px, 42vw); }
+body.manual-open .workspace { margin-right: var(--manual-w); --rw: 0px; }
+body.manual-open [data-resize="right"], body.manual-open #slot-right { visibility: hidden; }
+.manual {
+  position: fixed; top: calc(var(--topbar-h) + var(--tabs-h, 32px)); right: 0; bottom: var(--statusbar-h); z-index: 40; width: var(--manual-w);
+  display: flex; flex-direction: column; background: var(--surface); color: var(--text); border-left: 1px solid var(--border);
+}
+.manual[hidden] { display: none; }
+.manual-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--border); }
+.manual-head b { font-size: var(--fs-md); font-weight: 600; }
+.manual-expand { margin-left: auto; }
+.manual-resize { position: absolute; top: 0; bottom: 0; left: -3px; z-index: 2; width: 6px; cursor: ew-resize; }
+.manual-resize:hover { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.manual-back[hidden] { display: none; }
+.manual-search { padding: 10px 12px 6px; }
+.manual-body { flex: 1; min-height: 0; overflow: auto; padding: 6px 14px 18px; font-size: var(--fs-sm); line-height: 1.55; }
+.manual-here { display: flex; flex-direction: column; gap: 1px; width: 100%; margin-bottom: 10px; padding: 10px 12px; border: 0; border-radius: var(--radius-lg); background: var(--accent-weak); color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.manual-here small { color: var(--text-2); font-size: var(--fs-xs); }
+.manual-here b { font-weight: 600; }
+.manual-chapter { display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: var(--radius); background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.manual-chapter:hover, .manual-hit:hover { background: var(--surface-3); }
+.manual-chapter i { width: 20px; flex-shrink: 0; text-align: right; color: var(--text-3); font: var(--fs-xs) var(--mono); }
+.manual-hit { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 7px 8px; border: 0; border-radius: var(--radius); background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.manual-hit b { font-weight: 600; }
+.manual-hit small { color: var(--text-3); font-size: var(--fs-xs); }
+.manual-hit span { color: var(--text-2); font-size: var(--fs-xs); }
+.manual-none { margin: 0; padding: 18px; color: var(--text-3); text-align: center; }
+.manual-crumb { padding-top: 6px; color: var(--text-2); font-size: var(--fs-xs); }
+.manual-body h2 { margin: 2px 0 8px; font-size: var(--fs-xl); font-weight: 600; }
+
+/* o conteúdo do guia, numa coluna só */
+.manual-text h3 { margin: 16px 0 4px; font-size: var(--fs-md); font-weight: 600; scroll-margin-top: 8px; }
+.manual-text h4 { margin: 0 0 2px; font-size: var(--fs-sm); font-weight: 600; }
+.manual-text p, .manual-text li { color: var(--text-2); }
+.manual-text p { margin: 0 0 8px; }
+.manual-text ul, .manual-text ol { margin: 0 0 8px; padding-left: 18px; }
+.manual-text strong { color: var(--text); font-weight: 600; }
+.manual-text code, .manual-text kbd { font-size: var(--fs-xs); }
+.manual-text code { padding: 0 3px; border-radius: 3px; background: var(--surface-3); color: var(--text); font-family: var(--mono); }
+.manual-text .intro { color: var(--text-2); font-size: var(--fs-sm); }
+.manual-text .two-col, .manual-text [style*="grid-template-columns"] { display: block !important; }
+.manual-text figure { margin: 6px 0 10px; }
+.manual-text figcaption { margin-top: 3px; color: var(--text-3); font-size: var(--fs-xs); }
+.manual-text .frame { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); }
+.manual-text img { display: block; width: 100%; height: auto; }
+.manual-text .marker { position: absolute; display: grid; place-items: center; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: var(--brand-gold, #95793c); color: #fff; font-size: var(--fs-2xs); font-weight: 700; }
+.manual-text .legend > div { display: flex; gap: 7px; margin-bottom: 4px; }
+.manual-text .legend b { display: grid; place-items: center; flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--brand-gold, #95793c); color: #fff; font-size: var(--fs-2xs); }
+.manual-text .steps { counter-reset: m-step; }
+.manual-text .step { display: grid; grid-template-columns: 22px 1fr; gap: 8px; margin-bottom: 8px; counter-increment: m-step; }
+.manual-text .step::before { content: counter(m-step); display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: var(--fs-xs); font-weight: 700; }
+.manual-text .goal, .manual-text .callout, .manual-text .try { margin: 8px 0; padding: 8px 10px; border-radius: var(--radius); }
+.manual-text .goal { border-left: 3px solid var(--brand-gold, #95793c); background: var(--surface-2); }
+.manual-text .callout { background: var(--surface-2); color: var(--text-2); }
+.manual-text .callout > strong:first-child, .manual-text .try > strong:first-child { display: block; }
+.manual-text .try { background: var(--ok-weak); }
+.manual-text table { width: 100%; margin: 6px 0 10px; border-collapse: collapse; font-size: var(--fs-xs); }
+.manual-text th, .manual-text td { padding: 4px 6px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+
+/* o que age na tela */
+.manual-text .m-acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.manual-text .m-act { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font: 500 var(--fs-xs) var(--font); cursor: pointer; }
+.manual-text .m-act:hover { background: var(--surface-3); }
+.manual-text .m-tool { color: var(--accent); border-bottom: 1px dotted var(--accent); cursor: pointer; }
+.manual-ring { position: fixed; z-index: 1100; border: 2px solid var(--focus); border-radius: 8px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 28%, transparent); pointer-events: none; }
+.manual-ring-tip { position: fixed; z-index: 1101; padding: 5px 10px; border-radius: var(--radius); background: var(--text); color: var(--surface); font-size: var(--fs-xs); white-space: nowrap; pointer-events: none; }

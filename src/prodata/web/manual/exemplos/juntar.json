@@ -1,0 +1,85 @@
+{
+ "id": "exemplo_juntar",
+ "description": "Exemplo do Manual. Mexa à vontade: nada aqui altera os seus fluxos.",
+ "containers": [],
+ "name": "Exemplo: juntar duas tabelas",
+ "nodes": [
+  {
+   "id": "a",
+   "type": "io.input_data",
+   "label": "Clientes",
+   "x": 60,
+   "y": 60,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   }
+  },
+  {
+   "id": "b",
+   "type": "io.input_data",
+   "label": "Transações",
+   "x": 60,
+   "y": 220,
+   "config": {
+    "dataset": "transacoes_vendas.csv"
+   }
+  },
+  {
+   "id": "s",
+   "type": "transform.summarize",
+   "label": "Vendas por cliente",
+   "x": 340,
+   "y": 220,
+   "config": {
+    "group_by": [
+     "id_cliente"
+    ],
+    "aggregations": [
+     {
+      "column": "valor_bruto",
+      "agg": "sum",
+      "alias": "total_compras"
+     }
+    ]
+   }
+  },
+  {
+   "id": "j",
+   "type": "transform.join",
+   "label": "Clientes × vendas",
+   "x": 620,
+   "y": 120,
+   "config": {
+    "keys": [
+     {
+      "left": "id_cliente",
+      "right": "id_cliente"
+     }
+    ]
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "b",
+   "sourceHandle": "out",
+   "target": "s",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "a",
+   "sourceHandle": "out",
+   "target": "j",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e3",
+   "source": "s",
+   "sourceHandle": "out",
+   "target": "j",
+   "targetHandle": "R"
+  }
+ ]
+}

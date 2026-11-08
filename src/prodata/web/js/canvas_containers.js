@@ -30,12 +30,12 @@ export function renderContainers() {
         '--container-fill': `${Math.round((c.opacity ?? 0.05) * 100)}%`,
       },
     },
-    h('div', { class: 'container-title', title: 'Arraste para mover a etapa e seus nós · duplo clique para renomear' },
+    h('div', { class: 'container-title', title: 'Arraste para mover a etapa e as caixas de dentro · duplo clique para renomear' },
       h('span', { class: 'container-dot' }), h('span', { class: 'container-name' }, c.title),
       c.disabled ? h('span', { class: 'container-state' }, 'desligada') : null,
       h('button', {
         type: 'button', class: ['container-toggle', !c.disabled && 'on'], role: 'switch', 'aria-checked': String(!c.disabled),
-        title: c.disabled ? 'Ligar caixa (reativa os nós de dentro)' : 'Desligar caixa (desativa os nós de dentro)',
+        title: c.disabled ? 'Ligar etapa (reativa as caixas de dentro)' : 'Desligar etapa (desativa as caixas de dentro)',
         onclick: (ev) => { ev.stopPropagation(); setContainerEnabled(c.id, Boolean(c.disabled), NODE_W); },
       })),
     c.description ? h('div', { class: 'container-desc' }, c.description) : null,
@@ -95,7 +95,7 @@ export function containerMenu(id, x, y, pasteItem) {
   select(null, null, id);
   showMenu(x, y, [
     { label: 'Renomear', icon: 'edit', onSelect: () => renameContainer(id) },
-    { label: 'Ajustar aos nós de dentro', icon: 'fit', onSelect: () => fitContainer(id, NODE_W, nodeHeight) },
+    { label: 'Ajustar às caixas de dentro', icon: 'fit', onSelect: () => fitContainer(id, NODE_W, nodeHeight) },
     { label: c.disabled ? 'Ligar etapa' : 'Desligar etapa', icon: 'power', onSelect: () => setContainerEnabled(id, Boolean(c.disabled), NODE_W) },
     'separator',
     { label: 'Copiar etapa', icon: 'copy', shortcut: 'Ctrl+C', onSelect: () => copySelection({ nodeWidth: NODE_W }) },

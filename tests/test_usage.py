@@ -58,6 +58,10 @@ def test_fast_with_500_flows(client: TestClient, settings: Settings) -> None:
         (folder / f"w{i}.prodata.json").write_text(
             json.dumps(flow(f"w{i}", f"Fluxo {i}", f"arquivo{i % 20}.csv", extra=10)), encoding="utf-8"
         )
+    # A primeira abertura de um arquivo recém-gravado custa de 0,4 a 2 s no Windows (varia com a máquina e o antivírus).
+    # Uma biblioteca de verdade já está no disco: o que este teste mede é o índice.
+    for path in folder.glob("*.prodata.json"):
+        path.read_bytes()
     start = time.perf_counter()
     usage = client.get("/api/usage").json()
     first = time.perf_counter() - start

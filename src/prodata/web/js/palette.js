@@ -85,7 +85,7 @@ function organizationItem() {
     class: 'tool-item',
     draggable: 'true',
     dataset: { category: 'org' },
-    title: 'Caixa para agrupar etapas do fluxo (atalho G).\n\nClique para criar no centro ou arraste para o canvas; solta sobre nós, ela os envolve.',
+    title: 'Caixa para agrupar etapas do fluxo (atalho G).\n\nClique para criar no centro ou arraste para o canvas; solta sobre caixas, ela as envolve.',
     ondragstart: (e) => {
       e.dataTransfer.setData(DND_CONTAINER, '1');
       e.dataTransfer.effectAllowed = 'copy';
@@ -93,6 +93,6 @@ function organizationItem() {
     onclick: addContainerAtCenter,
   },
   h('span', { class: 'tool-icon' }, icon('group', 16)),
-  h('span', { class: 'tool-name' }, 'Caixa de organização'),
+  h('span', { class: 'tool-name' }, 'Etapa'),
   h('span', { class: 'tool-sig' }, 'etapa'));
 }

@@ -30,10 +30,10 @@ export function selectionActions(ids) {
     { label: 'Distribuir na vertical', icon: 'stack', onSelect: () => distributeNodes(ids, 'column', geometry()) },
     'separator',
     {
-      label: 'Agrupar em caixa de organização', icon: 'group',
+      label: 'Agrupar numa etapa', icon: 'group',
       onSelect: () => { const c = wrapInContainer(ids, geometry()); if (c) requestAnimationFrame(() => renameContainer(c.id)); },
     },
-    { label: 'Tirar da caixa de organização', icon: 'arrow-down', disabled: !inAnyContainer, onSelect: () => moveOutOfContainer(ids, geometry()) },
+    { label: 'Tirar da etapa', icon: 'arrow-down', disabled: !inAnyContainer, onSelect: () => moveOutOfContainer(ids, geometry()) },
     'separator',
     { label: allDisabled ? 'Habilitar todas' : 'Desabilitar todas', icon: 'power', onSelect: () => setDisabled(ids, !allDisabled) },
     { label: `Excluir ${ids.length} caixas`, icon: 'trash', danger: true, shortcut: 'Del', onSelect: () => removeNodes(ids) },

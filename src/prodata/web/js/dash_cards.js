@@ -68,6 +68,8 @@ function deltaBadge(w) {
     h('span', {}, c.label));
 }
 
+const WIDE_KPI = 420;
+
 export function kpiTile(w, { compact = false, className = '', fmt: f = {}, width = 260 } = {}) {
   const { exact, shown } = kpiNumber(w);
   const status = ruleFor(f.value_rules, w.value);
@@ -85,7 +87,11 @@ export function kpiTile(w, { compact = false, className = '', fmt: f = {}, width
     withTooltip(card, body);
     return card;
   }
-  const spark = !compact && w.trend?.length ? h('div', { class: 'kpi-spark' }, sparkline(w.trend, Math.max(80, width - 40), 32)) : null;
+  // Cartão largo: o valor à esquerda, e a tendência ou a descrição à direita, sem metade vazia (RF-2952).
+  const wide = !compact && width >= WIDE_KPI && f.align !== 'center';
+  const sparkWidth = wide ? Math.max(120, width - 300) : Math.max(80, width - 40);
+  const spark = !compact && w.trend?.length ? h('div', { class: 'kpi-spark' }, sparkline(w.trend, sparkWidth, 32)) : null;
+  if (wide) card.classList.add('wide', spark ? 'with-spark' : 'no-spark');
   card.append(...[label,
     h('div', { class: 'kpi-row' },
       h('div', { class: 'kpi-value', title: exact, style: { fontSize: f.value_size ? `${f.value_size}px` : null, color: f.value_color || null } }, shown),
@@ -160,7 +166,7 @@ export function chartCard(original, { width, height = 260, className = '', actio
   const showTitle = f.show_title !== false;
   const showSub = f.show_subtitle !== false;
   card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
-    showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: env.open ? 'Ir para o nó' : null, style: titleStyle(f), onclick: () => env.open?.(w.node_id) },
+    showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: env.open ? 'Ir para a caixa' : null, style: titleStyle(f), onclick: () => env.open?.(w.node_id) },
       showTitle ? h('h3', { style: { fontSize: f.title_size ? `${f.title_size}px` : null } }, f.title || w.title) : null,
       showSub ? h('p', { class: 'muted' }, subtitle) : null) : h('span', { class: 'grow' }),
     h('div', { class: 'chart-actions' }, actions,
@@ -199,7 +205,7 @@ export function tableCard(w, { className = '', fmt: f = {}, actions = [] } = {})
   const showTitle = f.show_title !== false;
   const showSub = f.show_subtitle !== false;
   card.append(h('header', { class: ['chart-head', !showTitle && !showSub && 'bare'] },
-    showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: env.open ? 'Ir para o nó' : null, style: titleStyle(f), onclick: () => env.open?.(w.node_id) },
+    showTitle || showSub ? h('button', { type: 'button', class: 'chart-title', title: env.open ? 'Ir para a caixa' : null, style: titleStyle(f), onclick: () => env.open?.(w.node_id) },
       showTitle ? h('h3', { style: { fontSize: f.title_size ? `${f.title_size}px` : null } }, f.title || w.title) : null,
       showSub ? h('p', { class: 'muted' }, f.subtitle || `${fmt.int(Math.min(w.rows.length, w.row_count))} de ${fmt.int(w.row_count)} linhas`) : null) : h('span', { class: 'grow' }),
     h('div', { class: 'chart-actions' }, actions)));

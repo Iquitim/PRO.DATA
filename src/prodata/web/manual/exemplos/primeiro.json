@@ -1,0 +1,67 @@
+{
+ "id": "exemplo_primeiro",
+ "description": "Exemplo do Manual. Mexa à vontade: nada aqui altera os seus fluxos.",
+ "containers": [],
+ "name": "Exemplo: seu primeiro fluxo",
+ "nodes": [
+  {
+   "id": "a",
+   "type": "io.input_data",
+   "label": "Clientes",
+   "x": 60,
+   "y": 120,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   }
+  },
+  {
+   "id": "s",
+   "type": "transform.summarize",
+   "label": "MRR por UF",
+   "x": 340,
+   "y": 120,
+   "config": {
+    "group_by": [
+     "uf"
+    ],
+    "aggregations": [
+     {
+      "column": "mrr_mensal",
+      "agg": "sum",
+      "alias": "mrr_total"
+     }
+    ]
+   }
+  },
+  {
+   "id": "c",
+   "type": "bi.chart",
+   "label": "Gráfico",
+   "x": 620,
+   "y": 120,
+   "config": {
+    "title": "MRR por UF",
+    "x_column": "uf",
+    "y_column": "mrr_total",
+    "agg": "sum",
+    "chart_type": "bar"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "a",
+   "sourceHandle": "out",
+   "target": "s",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "s",
+   "sourceHandle": "out",
+   "target": "c",
+   "targetHandle": "in"
+  }
+ ]
+}

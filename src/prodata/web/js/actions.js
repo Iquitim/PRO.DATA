@@ -28,7 +28,7 @@ const withoutMeta = (config) => Object.fromEntries(Object.entries(config).filter
 
 /** Retorna a mensagem de erro se a conexão for inválida, ou null. */
 export function connectionError(source, sourceHandle, target, targetHandle) {
-  if (source === target) return 'Um nó não pode se conectar a ele mesmo.';
+  if (source === target) return 'Uma caixa não pode se ligar a ela mesma.';
   if (descendants(target).has(source)) return 'Essa conexão criaria um ciclo.';
   const outPort = store.tools[node(source)?.type]?.outputs.find((p) => p.id === sourceHandle);
   const inPort = store.tools[node(target)?.type]?.inputs.find((p) => p.id === targetHandle);

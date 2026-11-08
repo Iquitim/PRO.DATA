@@ -87,3 +87,37 @@ def test_every_css_variable_exists() -> None:
     defined |= set(re.findall(r"--[\w-]+(?=[\'\"`]?\s*[:,])", scripts))
     used = set(re.findall(r"var\((--[\w-]+)\s*\)", css))
     assert not used - defined
+
+
+# ---------------------------------------------------------------- spec 029: leitura nos dois temas
+
+
+@pytest.mark.parametrize("text", ["text", "text-2", "text-3", "ok", "warn", "err"])
+@pytest.mark.parametrize("background", ["bg", "surface", "surface-2", "surface-3"])
+def test_light_text_is_readable(text: str, background: str) -> None:
+    """RF-2972: dicas e texto secundário com contraste 4,5:1 também no claro."""
+    assert contrast(LIGHT[text], LIGHT[background]) >= 4.5, (
+        text,
+        background,
+        contrast(LIGHT[text], LIGHT[background]),
+    )
+
+
+def test_dark_action_text_is_readable() -> None:
+    """RF-2963: o botão principal do escuro é laranja, com texto escuro legível."""
+    assert contrast(DARK["action-text"], DARK["action"]) >= 4.5
+
+
+def test_font_sizes_come_from_the_scale() -> None:
+    """RF-2971: tamanhos de letra pela escala de tokens; 11 px é o menor, e só para selos."""
+    scale = dict(re.findall(r"--(fs-[\w-]+):\s*(\d+)px", TOKENS))
+    assert min(int(v) for v in scale.values()) == 11 and scale["fs-xs"] == "12"
+    loose = []
+    for css in sorted((WEB / "css").glob("*.css")):
+        text = css.read_text(encoding="utf-8")
+        sizes = re.findall(r"font-size:\s*([\d.]+)px", text)
+        sizes += re.findall(r"\bfont:\s*(?:italic\s+)?(?:\d{3}\s+)?([\d.]+)px", text)
+        for size in sizes:
+            if float(size) < 22:  # títulos grandes ficam fora da escala
+                loose.append(f"{css.name}: {size}px")
+    assert not loose, loose

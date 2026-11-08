@@ -5,10 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import threading
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,8 @@ from prodata.nodes.io import OutputDataConfig, export_path
 from prodata.services.constants import ConstantStore
 
 log = logging.getLogger(__name__)
+# Today() numa fórmula: o resultado muda a cada dia, então a data entra na impressão digital da caixa.
+_TODAY = re.compile(r"\btoday\s*\(", re.IGNORECASE)
 
 
 class SkippedError(Exception):
@@ -122,7 +125,7 @@ class WorkflowRunner:
         order = graph.topological_order(workflow)
         if target_node_id:
             if target_node_id not in order:
-                raise graph.GraphError(f"Nó alvo inexistente: {target_node_id}")
+                raise graph.GraphError(f"Caixa não encontrada no fluxo: {target_node_id}")
             keep = graph.ancestors(workflow, target_node_id) | {target_node_id}
             order = [n for n in order if n in keep]
 
@@ -448,7 +451,7 @@ class WorkflowRunner:
                 elapsed_ms=self._ms(started),
             )
         except Exception as exc:  # isolamento: um nó com bug não derruba o fluxo inteiro
-            log.exception("Falha inesperada no nó %s (%s)", node.id, node.type)
+            log.exception("Falha inesperada na caixa %s (%s)", node.id, node.type)
             self.cache.drop(workflow.id, node.id)
             return NodeResult(
                 status="error",
@@ -509,11 +512,15 @@ class WorkflowRunner:
 
     @staticmethod
     def _fingerprint(node: Node, spec: ToolSpec, cfg: Any, ctx: NodeContext, inputs: _Inputs) -> str:
+        config = cfg.model_dump(mode="json")
         payload = {
             "type": node.type,
-            "config": cfg.model_dump(mode="json"),
+            "config": config,
             "inputs": dict(sorted(inputs.fingerprints.items())),
             "extra": spec.fingerprint(ctx, cfg) if spec.fingerprint else "",
+            # Constantes usadas e, com Today() na caixa, a data: o resultado muda quando o dia muda (spec 029).
+            "constants": node.config.get(constants_engine.USED_KEY) or {},
+            "day": date.today().isoformat() if _TODAY.search(json.dumps(config)) else "",
         }
         return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()[:20]
 

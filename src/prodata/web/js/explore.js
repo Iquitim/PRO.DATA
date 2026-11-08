@@ -3,6 +3,7 @@
 
 import { button, h } from './dom.js';
 import { icon } from './icons.js';
+import { typeLabel } from './types.js';
 
 export const OPS = {
   eq: { label: 'igual a', short: '=' },
@@ -82,7 +83,7 @@ export function openFilterEditor(x, y, { columns, initial = {}, onApply }) {
         cond.column = e.target.value;
         if (!opsFor(colInfo().type).includes(cond.op)) cond.op = opsFor(colInfo().type)[0];
         draw();
-      } }, columns.map((c) => h('option', { value: c.name, selected: c.name === cond.column }, `${c.name}  ·  ${c.type}`))),
+      } }, columns.map((c) => h('option', { value: c.name, selected: c.name === cond.column }, `${c.name}  ·  ${typeLabel(c.type)}`))),
       h('select', { class: 'input input-sm', 'aria-label': 'Operador', onchange: (e) => { cond.op = e.target.value; draw(); } },
         opsFor(info.type).map((k) => h('option', { value: k, selected: k === cond.op }, OPS[k].label))),
       op.noValue ? null : cond.op === 'between'

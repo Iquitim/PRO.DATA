@@ -17,6 +17,7 @@ import {
 import { copySelection, cutSelection, hasClipboard, paste } from './clipboard.js';
 import { $, debounce, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
+import { openResultsOnClick, revealPanel } from './layout.js';
 import {
   checkpoint,
   commit,
@@ -67,6 +68,16 @@ function applyView() {
   els.viewport.style.backgroundSize = `${grid}px ${grid}px`;
   els.viewport.style.backgroundPosition = `${view.x}px ${view.y}px`;
   emit('zoom', view.zoom);
+}
+
+/** Traz a caixa para o meio do canvas, sem mudar o zoom. */
+export function revealNode(id) {
+  const n = node(id);
+  if (!n) return;
+  const r = els.viewport.getBoundingClientRect();
+  view.x = r.width / 2 - (n.x + NODE_W / 2) * view.zoom;
+  view.y = r.height / 2 - (n.y + nodeHeight(n) / 2) * view.zoom;
+  applyView();
 }
 
 export function zoomBy(factor, clientX, clientY) {
@@ -144,6 +155,7 @@ export function inspectInput(nodeId, port) {
     return;
   }
   inspect(edge.source, edge.sourceHandle, { nodeId, port });
+  openResultsOnClick();
 }
 
 // ------------------------------------------------------------------ gestos
@@ -402,11 +414,13 @@ function onPointerUp(e) {
     } else {
       select(g.id);
       inspect(g.id, store.inspect.nodeId === g.id && !store.inspect.via ? store.inspect.anchor : null);
+      openResultsOnClick();
     }
   } else if (g.type === 'connect') {
     if (!g.moved) {
       select(g.nodeId);
       inspect(g.nodeId, g.port);
+      openResultsOnClick();
     } else {
       const hover = document.elementFromPoint(e.clientX, e.clientY)?.closest('.port.in');
       if (hover) connect(g.nodeId, g.port, hover.dataset.node, hover.dataset.port);
@@ -475,9 +489,9 @@ function onContextMenu(e) {
     const n = node(id);
     select(id);
     showMenu(e.clientX, e.clientY, [
-      { label: 'Configurar', icon: 'settings', onSelect: () => select(id) },
+      { label: 'Configurar', icon: 'settings', onSelect: () => { revealPanel('explorer'); select(id); } },
       { label: 'Executar até aqui', icon: 'target', shortcut: 'Ctrl+Shift+Enter', onSelect: () => state.handlers.runTo?.(id) },
-      { label: 'Ver resultados', icon: 'table', onSelect: () => inspect(id) },
+      { label: 'Ver resultados', icon: 'table', onSelect: () => { revealPanel('results'); inspect(id); } },
       { label: 'Ver SQL', icon: 'terminal', onSelect: () => state.handlers.viewSql?.(id) },
       ...cacheActions(n),
       'separator',
@@ -506,7 +520,7 @@ function onContextMenu(e) {
       'separator',
       { label: 'Adicionar ferramenta aqui…', icon: 'plus', onSelect: () => openQuickAdd(e.clientX, e.clientY, { to: world }) },
       {
-        label: 'Nova caixa de organização aqui', icon: 'group', shortcut: 'G',
+        label: 'Nova etapa aqui', icon: 'group', shortcut: 'G',
         onSelect: () => { const c = addContainer(world.x, world.y); requestAnimationFrame(() => renameContainer(c.id)); },
       },
       'separator',

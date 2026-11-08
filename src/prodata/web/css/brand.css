@@ -39,8 +39,8 @@
 .brand { gap: 10px; }
 .brand-logo { height: 34px; width: auto; display: block; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-.brand-name { font-weight: 800; letter-spacing: .04em; font-size: 14px; }
-.brand-org { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #c9b27c; }
+.brand-name { font-weight: 800; letter-spacing: .04em; font-size: var(--fs-md); }
+.brand-org { font-size: var(--fs-2xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #c9b27c; }
 
 .topbar .wf-name { color: #fff; }
 .topbar .wf-name:hover { border-color: rgb(255 255 255 / .25); }
@@ -65,7 +65,7 @@
 /* Dashboard: cabeçalho com a marca, para apresentações */
 .dash-brand { display: flex; align-items: center; gap: 14px; }
 .dash-logo { height: 44px; width: auto; }
-.dash-org { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-gold); }
+.dash-org { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-gold); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .dash-logo { content: url('../brand/protege-escudo-claro.svg'); }
 }

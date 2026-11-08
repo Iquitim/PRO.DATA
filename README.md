@@ -12,6 +12,9 @@ localmente.
   separador decimal — CSVs brasileiros (`;` e vírgula decimal) funcionam sem
   configuração. Em planilhas, a prévia mostra as **abas** como guias e permite
   **pular linhas e colunas** quando a tabela não começa em A1.
+- **Manual dentro do programa** (`?` ou `F1`): o guia ao lado do trabalho, com busca, imagens no tema da tela,
+  "Mostrar onde fica" e exemplos para experimentar. **Ctrl+K** acha ferramenta, ação, caixa, fonte ou capítulo.
+- **Modo foco** (`F11`), painéis recolhidos em faixa e editor de fórmula em janela larga (**Abrir grande**).
 - **Vista Dados**: a primeira tela reúne arquivos, consultas, APIs, conexões e constantes,
   com situação, prévia, qualidade das colunas e o **mapa de onde cada fonte é usada** nos
   fluxos da biblioteca. Antes de excluir uma fonte em uso, a tela lista o que deixa de funcionar.
@@ -47,11 +50,11 @@ localmente.
   uma caixa — inclusive em disco — e dispensa tudo o que vem antes dela até alguma
   caixa anterior mudar. Ideal para consultas a banco e arquivos grandes.
 - **Seleção múltipla**: `Shift`/`Ctrl` + clique, `Shift` + arrastar (retângulo) e
-  `Ctrl+A`; mover, alinhar, distribuir, agrupar em caixa de organização ou tirar
+  `Ctrl+A`; mover, alinhar, distribuir, agrupar numa etapa ou tirar
   dela, copiar e excluir várias caixas de uma vez.
 - **Dados de cada porta**: clicar numa saída mostra o que sai; clicar numa
   entrada mostra o que chega por ela.
-- **Execução incremental**: só recalcula os nós cuja configuração, entradas ou
+- **Execução incremental**: só recalcula as caixas cuja configuração, entradas ou
   arquivo de origem mudaram.
 - **Perfil de dados** em toda saída: barra de qualidade (preenchido/vazio/nulo),
   histogramas e estatísticas por coluna.
@@ -68,9 +71,9 @@ localmente.
   minigráfico de tendência. Um painel de **gráficos e resumos** abaixo do canvas
   mostra os mesmos visuais e um gráfico automático de cada Summarize.
 - **Exploração sem mexer no fluxo**: filtros por coluna na tabela de resultados
-  (texto, número, data, nulos), com perfil recalculado e opção de virar um nó Filter.
+  (texto, número, data, nulos), com perfil recalculado e opção de virar uma caixa Filter.
 - **Organização**: caixas de etapa com nome, descrição, cor e interruptor
-  liga/desliga (desligada, os nós de dentro não executam).
+  liga/desliga (desligada, as caixas de dentro não executam).
 - **Edição rápida**: lixeira em cada caixa, copiar/recortar/colar caixas ou
   etapas inteiras (inclusive entre fluxos) e menu de botão direito com as ações
   mais comuns.
@@ -135,13 +138,13 @@ exemplo e o fluxo de demonstração *Pipeline 360° de clientes*.
 
 | Atalho | Ação |
 |--------|------|
-| `Ctrl+Enter` | Executar (com `Shift`: até o nó selecionado) |
+| `Ctrl+Enter` | Executar (com `Shift`: até a caixa selecionada) |
 | `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` | Salvar / salvar como / abrir fluxo |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Desfazer / refazer |
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copiar / recortar / colar caixa ou etapa |
 | `Ctrl+D` / `Delete` | Duplicar / excluir seleção |
 | `F` | Ajustar à tela |
-| `G` | Nova etapa (contêiner) |
+| `G` | Nova etapa |
 | `?` | Todos os atalhos |
 
 ## Aplicativo de desktop (Windows)
@@ -209,6 +212,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [026](specs/026-seguranca-e-rotulos/spec.md) | Ordenação, Summarize por tipo, rótulos, segurança de API e HTML; Multi-Row com receitas e clique no gráfico |
 | [027](specs/027-qualidade-do-codigo/spec.md) | Código dividido, limites verificados por teste e fórmulas sem acesso externo |
 | [028](specs/028-dados-e-confianca/spec.md) | Vista Dados com mapa de uso, abertura protegida, Data Quality e constantes |
+| [029](specs/029-experiencia-e-idioma/spec.md) | Espaço para o fluxo, um nome para cada coisa, letra e contraste, busca Ctrl+K, `[#hoje]` e Manual dentro do programa |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
 

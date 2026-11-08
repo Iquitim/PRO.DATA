@@ -44,7 +44,11 @@ class ValidateFormulaRequest(BaseModel):
 
 @router.post("/formula/validate")
 def validate_formula(req: ValidateFormulaRequest, services: ServicesDep) -> dict[str, Any]:
-    known = {**services.constants.all(), **{c.name: c for c in req.constants}}
+    known = {
+        **constants_engine.system_values(),
+        **services.constants.all(),
+        **{c.name: c for c in req.constants},
+    }
     if missing := sorted(constants_engine.node_refs("", {"expression": req.expression}) - set(known)):
         return {
             "valid": False,

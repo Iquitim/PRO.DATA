@@ -3,7 +3,7 @@
 
 import { $, button, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
-import { emit } from './store.js';
+import { emit, on, store } from './store.js';
 import { showMenu } from './ui.js';
 
 const KEY = 'prodata.panels.v1';
@@ -27,16 +27,31 @@ function setDensity(value) {
   applyDensity();
 }
 const DND_PANEL = 'application/x-prodata-panel';
+const COLLAPSED_KEY = 'prodata.panels.recolhidos';
+const SMALL_WINDOW = 1280;
 
 export const PANELS = {
   explorer: { title: 'Ferramentas e configuração', el: '#leftPanel' },
-  results: { title: 'Resultados', el: '#results' },
+  results: { title: 'Resultado', el: '#results' },
   insights: { title: 'Gráficos e resumos', el: '#insights' },
 };
 const SLOTS = { left: 'Esquerda', right: 'Direita', bottom: 'Embaixo' };
 const DEFAULT = { left: 'explorer', right: 'results', bottom: 'insights' };
 
+// Painéis recolhidos em faixa (spec 029, RF-2902). `auto`: recolhido só por a janela ser pequena: abre sozinho
+// ao clicar numa caixa. Quem recolheu com a própria mão não é contrariado.
+const collapsed = loadCollapsed();
 let state = load();
+// Modo foco (RF-2901): o arranjo de antes; enquanto houver, nada é gravado, e reabrir o programa volta ao normal.
+let beforeFocus = null;
+
+function loadCollapsed() {
+  const saved = storage(COLLAPSED_KEY, null);
+  if (saved) return { ids: new Set(saved.ids || []), auto: new Set(saved.auto || []) };
+  const firstTimeSmall = storage(KEY, null) === null && innerWidth < SMALL_WINDOW;
+  const ids = firstTimeSmall ? ['results', 'insights'] : [];
+  return { ids: new Set(ids), auto: new Set(ids) };
+}
 
 function load() {
   const saved = storage(KEY, DEFAULT);
@@ -67,12 +82,82 @@ function apply() {
     if (el.parentElement !== target) target.append(el);
   }
   for (const slot of Object.keys(SLOTS)) document.body.classList.toggle(`slot-${slot}-empty`, !state[slot]);
-  persist(KEY, state);
+  drawStrips();
+  if (!beforeFocus) {
+    persist(KEY, state);
+    persist(COLLAPSED_KEY, { ids: [...collapsed.ids], auto: [...collapsed.auto] });
+  }
   emit('layout', { ...state });
+}
+
+function stripFor(slot, id) {
+  const count = id === 'insights' ? store.execution?.bi_widgets?.length : 0;
+  const { title } = PANELS[id];
+  return h('button', {
+    type: 'button', class: ['panel-strip', slot !== 'bottom' && 'vertical'], title: `Abrir ${title}`, 'aria-label': `Abrir ${title}`,
+    onclick: () => expandPanel(id),
+  }, icon('chevron-right', 14), h('strong', {}, title), count ? h('small', {}, String(count)) : null,
+  id === 'results' && collapsed.auto.has(id) ? h('small', {}, 'clique numa caixa para abrir') : null);
+}
+
+function drawStrips() {
+  for (const slot of Object.keys(SLOTS)) {
+    const id = state[slot];
+    const closed = Boolean(id && collapsed.ids.has(id));
+    const host = $(`#slot-${slot}`);
+    host.querySelector(':scope > .panel-strip')?.remove();
+    document.body.classList.toggle(`slot-${slot}-collapsed`, closed);
+    if (closed) host.append(stripFor(slot, id));
+  }
+}
+
+export function collapsePanel(id) {
+  collapsed.ids.add(id);
+  collapsed.auto.delete(id);
+  apply();
+}
+
+export function expandPanel(id) {
+  collapsed.ids.delete(id);
+  collapsed.auto.delete(id);
+  apply();
+}
+
+/** Clique numa caixa ou porta: abre o resultado que só estava recolhido por causa da janela pequena. */
+export function openResultsOnClick() {
+  if (collapsed.auto.has('results')) expandPanel('results');
+}
+
+/** Pedido explícito ("Ver resultados", "Configurar"): sai do foco e deixa o painel à vista. */
+export function revealPanel(id) {
+  leaveFocus();
+  showPanel(id);
+  if (collapsed.ids.has(id)) expandPanel(id);
+}
+
+export const inFocus = () => beforeFocus !== null;
+
+export function enterFocus() {
+  if (beforeFocus) return;
+  beforeFocus = { ...state };
+  for (const slot of Object.keys(SLOTS)) state[slot] = null;
+  apply();
+  emit('focus', true);
+}
+
+/** Devolve os painéis como estavam. Retorna false se não estava em foco. */
+export function leaveFocus() {
+  if (!beforeFocus) return false;
+  state = beforeFocus;
+  beforeFocus = null;
+  apply();
+  emit('focus', false);
+  return true;
 }
 
 /** Coloca o painel na posição; se ocupada, troca com o painel que estava lá. */
 export function movePanel(id, slot) {
+  leaveFocus();
   const from = slotOf(id);
   if (from === slot) return;
   const displaced = state[slot];
@@ -90,6 +175,7 @@ export function hidePanel(id) {
 
 /** Reexibe na posição padrão do painel, ou na primeira livre, ou desloca o da posição padrão. */
 export function showPanel(id) {
+  leaveFocus();
   if (isVisible(id)) return;
   const home = Object.keys(DEFAULT).find((s) => DEFAULT[s] === id);
   const free = Object.keys(SLOTS).find((s) => !state[s]);
@@ -98,11 +184,16 @@ export function showPanel(id) {
 }
 
 export function togglePanel(id) {
+  if (leaveFocus()) { revealPanel(id); return; }
   if (isVisible(id)) hidePanel(id);
   else showPanel(id);
 }
 
 export function resetLayout() {
+  beforeFocus = null;
+  collapsed.ids.clear();
+  collapsed.auto.clear();
+  emit('focus', false);
   state = { ...DEFAULT };
   apply();
 }
@@ -159,6 +250,7 @@ export function panelControls(id) {
         ...Object.entries(SLOTS).filter(([s]) => s !== here)
           .map(([s, label]) => ({ label: `Mover para: ${label}`, icon: 'panel', onSelect: () => movePanel(id, s) })),
         'separator',
+        { label: 'Recolher em faixa', icon: 'chevron-right', onSelect: () => collapsePanel(id) },
         { label: 'Ocultar painel', icon: 'x', onSelect: () => hidePanel(id) },
       ]);
     },
@@ -166,22 +258,24 @@ export function panelControls(id) {
   return h('div', { class: 'panel-controls' }, grip, menu);
 }
 
-/** Menu "Painéis" da barra superior. */
-export function openPanelsMenu(anchor) {
-  const r = anchor.getBoundingClientRect();
-  showMenu(r.left, r.bottom + 4, [
-    ...Object.entries(PANELS).map(([id, p]) => ({
-      label: isVisible(id) ? `${p.title} · ${SLOTS[slotOf(id)].toLowerCase()}` : `${p.title} · oculto`,
+const DENSITY_NAMES = { auto: 'automática', comfortable: 'confortável', compact: 'compacta' };
+
+/** Clicar passa para a próxima densidade. */
+export function densityMenuItem() {
+  const order = Object.keys(DENSITIES);
+  return {
+    label: `Densidade: ${DENSITY_NAMES[density]}`, icon: 'columns', title: DENSITIES[density],
+    onSelect: () => setDensity(order[(order.indexOf(density) + 1) % order.length]),
+  };
+}
+
+/** Os painéis no menu Exibir: mostrar e ocultar cada um. */
+export function panelMenuItems() {
+  return Object.entries(PANELS).map(([id, p]) => ({
+      label: isVisible(id) ? `${p.title} · ${SLOTS[slotOf(id)].toLowerCase()}${collapsed.ids.has(id) ? ' (recolhido)' : ''}` : `${p.title} · oculto`,
       icon: isVisible(id) ? 'check' : null,
       onSelect: () => togglePanel(id),
-    })),
-    'separator',
-    ...Object.entries(DENSITIES).map(([value, label]) => ({
-      label: `Densidade: ${label}`, icon: density === value ? 'check' : null, onSelect: () => setDensity(value),
-    })),
-    'separator',
-    { label: 'Restaurar layout padrão', icon: 'refresh', onSelect: resetLayout },
-  ]);
+  }));
 }
 
 export function initLayout() {
@@ -190,4 +284,5 @@ export function initLayout() {
   for (const [id, p] of Object.entries(PANELS)) elements[id] = $(p.el);
   buildDropTargets();
   apply();
+  on('execution', drawStrips); // o número de visuais na faixa dos gráficos
 }

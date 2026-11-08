@@ -48,6 +48,14 @@ def _stop_reason(plan: SqlPlan, output: Output) -> str:
     return comment(f"{node.label or node.type}: {block.reason}")
 
 
+def _constant_note(name: str, used: str) -> str:
+    """Como cada constante entrou no código; a do sistema muda a cada dia (spec 029, RF-2998)."""
+    kind, value = used.split(":", 1)
+    if kind == "sistema":
+        return f"{name} = data do dia (Today() nas fórmulas; {value} nos demais campos, ao gerar)"
+    return f"{name} = {value}"
+
+
 def _sources(plan: SqlPlan, steps: list[str]) -> list[str]:
     found: list[str] = []
     for step in steps:
@@ -96,7 +104,7 @@ def _header(plan: SqlPlan, outputs: list[Output], steps: list[str], states: dict
     for step in steps:
         used |= plan.workflow.node(plan.blocks[step].node_id).config.get("__constants") or {}
     if used:
-        values = ", ".join(f"{name} = {value.split(':', 1)[1]}" for name, value in sorted(used.items()))
+        values = ", ".join(_constant_note(name, value) for name, value in sorted(used.items()))
         lines.append(f"-- Constantes usadas (o valor já está no código): {comment(values)}")
     for output in outputs:
         state = states.get(output.id)
