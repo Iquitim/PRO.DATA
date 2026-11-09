@@ -36,6 +36,8 @@ OUT = ROOT / "src/prodata/web/manual/img"
 
 
 def shot(target: Any, name: str, **kw: Any) -> None:
+    # Aviso de um passo anterior (ex.: "Imagem salva") não pode aparecer no print.
+    getattr(target, "page", target).evaluate("() => document.querySelectorAll('.toast').forEach((t) => t.remove())")
     target.screenshot(path=str(OUT / f"{name}.png"), **kw)
     done.append(name)
 
