@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -37,9 +37,6 @@ from prodata.nodes.excel_output import (
 from prodata.services.audit import log_export
 
 # ------------------------------------------------------------------ Input Data
-
-
-JIRA_FULL_DAYS = 30
 
 
 class InputDataConfig(ReadOptions, ToolConfig):
@@ -160,11 +157,6 @@ def _read_jira(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
         "jira_calls": info["calls"],
         "jira_incremental": info["incremental"],
     }
-    full_at = info.get("full_at")
-    if full_at and datetime.now(UTC) - datetime.fromisoformat(full_at) > timedelta(days=JIRA_FULL_DAYS):
-        extra["warnings"] = [
-            f"A última releitura completa foi há mais de {JIRA_FULL_DAYS} dias: o que foi excluído no Jira ainda aparece aqui. Faça a releitura na vista Dados."
-        ]
     return NodeOutput(tables={"out": frame.head(cfg.limit) if cfg.limit else frame}, extra=extra)
 
 

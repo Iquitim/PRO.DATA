@@ -1,6 +1,7 @@
 // Detalhe de uma fonte na vista Dados (spec 028, RF-2803..2804, RF-2810): visão geral, cadastro, uso e explicação.
 
-import { addJiraNode, jiraConnectionEditor, jiraQueryEditor, removeJiraConnection, removeJiraQuery } from './jira_ui.js';
+import { jiraQueryEditor } from './jira_query.js';
+import { addJiraNode, jiraConnectionEditor, removeJiraConnection, removeJiraQuery } from './jira_ui.js';
 import { tableSkeleton } from './skeleton.js';
 import { api } from './api.js';
 import { addApiNode, apiEditor, removeApi } from './apis.js';

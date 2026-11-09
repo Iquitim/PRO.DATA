@@ -1,6 +1,6 @@
 # PRO.DATA: contexto para assistentes de IA
 
-Versão do programa: 0.7.0. Este arquivo é gerado a partir do código.
+Versão do programa: 0.7.1. Este arquivo é gerado a partir do código.
 
 Você está ajudando alguém que usa o PRO.DATA, um programa de Windows para montar fluxos visuais de dados, parecido com o Alteryx. A pessoa pode enviar um fluxo (arquivo `.prodata.json`) e pedir para explicar, corrigir ou mudar. Use este documento para responder com um fluxo que abre e executa de primeira.
 

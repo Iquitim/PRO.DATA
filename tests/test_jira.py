@@ -201,7 +201,8 @@ def test_second_load_only_asks_what_changed(store: JiraStore, fake: FakeJira) ->
     fake.calls.clear()
     second, info = jira_read.load(query(), store)
     assert info["incremental"] and second.height == first.height
-    assert sum(1 for _, p in fake.calls if p.endswith("/search/jql")) == 1
+    # uma busca do que mudou e uma conferência das chaves
+    assert sum(1 for _, p in fake.calls if p.endswith("/search/jql")) == 2
 
 
 def test_incremental_replaces_what_changed(store: JiraStore, fake: FakeJira) -> None:
@@ -220,11 +221,51 @@ def test_incremental_history_adds_the_new_change(store: JiraStore, fake: FakeJir
     assert after.height == before.height + 1 and after.filter(pl.col("chave") == "DEMO-3").height == 4
 
 
-def test_deleted_issue_goes_away_only_on_full_reload(store: JiraStore, fake: FakeJira) -> None:
+def test_deleted_issue_goes_away_on_the_next_load(store: JiraStore, fake: FakeJira) -> None:
     jira_read.load(query(), store)
     fake.issues = [i for i in fake.issues if i["key"] != "DEMO-5"]
-    assert jira_read.load(query(), store)[0].height == 12
-    assert jira_read.load(query(), store, full=True)[0].height == 11
+    assert jira_read.load(query(), store)[0].height == 11
+
+
+def test_issue_that_left_the_filter_goes_away(store: JiraStore, fake: FakeJira) -> None:
+    first, _ = jira_read.load(query(statuses=["A fazer"]), store)
+    key = first["chave"][0]
+    next(i for i in fake.issues if i["key"] == key)["fields"]["status"]["name"] = "Concluído"
+    after, _ = jira_read.load(query(statuses=["A fazer"]), store)
+    assert key not in after["chave"].to_list() and after.height == first.height - 1
+
+
+def test_history_of_an_issue_that_left_goes_away(store: JiraStore, fake: FakeJira) -> None:
+    jira_read.load(query("history"), store)
+    fake.issues = [i for i in fake.issues if i["key"] != "DEMO-3"]
+    after, _ = jira_read.load(query("history"), store)
+    assert "DEMO-3" not in after["chave"].to_list()
+
+
+@pytest.mark.parametrize("table", ["issues", "history"])
+def test_issue_that_came_back_without_changes_returns(store: JiraStore, fake: FakeJira, table: str) -> None:
+    jira_read.load(query(table), store)
+    jira_read.load(query(table), store)  # a primeira atualização guarda a lista conferida
+    gone = next(i for i in fake.issues if i["key"] == "DEMO-3")
+    fake.issues = [i for i in fake.issues if i is not gone]
+    assert "DEMO-3" not in jira_read.load(query(table), store)[0]["chave"].to_list()
+    fake.issues = [*fake.issues, gone]
+    assert "DEMO-3" in jira_read.load(query(table), store)[0]["chave"].to_list()
+
+
+def test_without_keys_in_the_answer_nothing_is_removed(
+    store: JiraStore, fake: FakeJira, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first, _ = jira_read.load(query(), store)
+    real = JiraClient.search_pages
+
+    def no_keys(self: JiraClient, jql: str, fields: list[str], **kw: Any) -> Any:
+        for issues, token in real(self, jql, fields, **kw):
+            yield ([{"id": i["id"]} for i in issues] if fields == ["key"] else issues), token
+
+    monkeypatch.setattr(JiraClient, "search_pages", no_keys)
+    fake.issues = fake.issues[:3]
+    assert jira_read.load(query(), store)[0].height == first.height
 
 
 def test_changing_the_query_invalidates_the_local_copy(store: JiraStore) -> None:
@@ -332,6 +373,31 @@ def test_preview_shows_lines_total_and_jql(api: TestClient) -> None:
 def test_invalid_jql_is_explained(api: TestClient) -> None:
     res = api.post("/api/jira/queries/preview", json={"connection": "c", "advanced": True, "jql": "ERRO ="})
     assert res.status_code == 400 and "sintaxe" in res.text
+
+
+def test_project_scope_separates_statuses(api: TestClient) -> None:
+    ops = api.get("/api/jira/connections/c/projects/OPS/scope").json()
+    assert ops["available"] is True
+    assert ops["issue_types"] == [{"name": "Bug", "statuses": ["A fazer", "Em andamento"]}]
+
+
+def test_project_without_statuses_falls_back(api: TestClient) -> None:
+    res = api.get("/api/jira/connections/c/projects/NADA/scope")
+    assert res.status_code == 200 and res.json()["available"] is False
+
+
+def test_catalog_groups_statuses(api: TestClient) -> None:
+    categories = api.get("/api/jira/connections/c/catalog").json()["status_categories"]
+    assert categories["Concluído"] == "done" and categories["A fazer"] == "new"
+
+
+def test_deleting_a_connection_clears_the_vault(tmp_path: Path) -> None:
+    secrets = MemorySecretStore()
+    store = JiraStore(tmp_path, secrets)
+    store.save_connection(JiraConnection(id="c", name="J", site="e.atlassian.net"), EMAIL, CLASSIC)
+    assert secrets.get("jira:c:token") == CLASSIC
+    store.delete_connection("c")
+    assert secrets.get("jira:c:email") is None and secrets.get("jira:c:token") is None
 
 
 def test_input_data_reads_a_jira_query(api: TestClient) -> None:

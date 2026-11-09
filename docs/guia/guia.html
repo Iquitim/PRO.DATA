@@ -165,7 +165,7 @@
     <div class="rule"></div>
     <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
     <div class="shot"><img src="../../src/prodata/web/manual/img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.7.0 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.7.1 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -440,7 +440,7 @@
   </figure>
   <p>Um token comum também funciona, mas ele poderia alterar dados em outro programa. Por isso o PRO.DATA avisa e recomenda o token com escopo.</p>
   <h3>Montar a consulta</h3>
-  <p>Em <strong>Adicionar &gt; Nova consulta do Jira</strong>, escolha o que trazer e de quais projetos. O filtro em JQL é montado sozinho e aparece na tela. Quem preferir pode escrever o JQL à mão.</p>
+  <p>Em <strong>Adicionar &gt; Nova consulta do Jira</strong>, a tela vai em passos: o que trazer, de quais projetos (com busca) e os filtros. Tipos e status só aparecem depois de escolher o projeto, e somente os que existem nele, agrupados em A fazer, Em andamento e Concluído. Uma frase resume o que será trazido. O JQL fica em <strong>Mais opções</strong>, para quem preferir escrever à mão.</p>
   <table>
     <tr><th>Tabela</th><th>Uma linha por</th><th>Para quê</th></tr>
     <tr><td class="tool">Demandas</td><td>Demanda</td><td>Status, tipo, responsável, datas e campos personalizados que você marcar</td></tr>
@@ -452,8 +452,8 @@
     <figcaption>A consulta vira uma fonte: arraste para o canvas e ela aparece no Input Data, como um arquivo.</figcaption>
   </figure>
   <h3>Só o que mudou</h3>
-  <p>A primeira execução traz tudo e guarda uma cópia local. As seguintes buscam só o que mudou desde a última leitura, com folga de segurança. Se a carga cair no meio, a próxima continua de onde parou, e o limite de chamadas do Jira é respeitado.</p>
-  <div class="avoid"><h4>Quando reler tudo</h4><p>Demandas excluídas no Jira não aparecem na busca por alteração. Na página da consulta, <strong>Reler tudo</strong> refaz a carga inteira, e <strong>Apagar o guardado</strong> remove a cópia local.</p></div>
+  <p>A primeira execução traz tudo e guarda uma cópia local. As seguintes buscam só o que mudou desde a última leitura, com folga de segurança, e conferem com o Jira quais demandas ainda atendem à consulta: o que foi excluído, saiu do filtro ou passou do período sai da tabela. Se a carga cair no meio, a próxima continua de onde parou, e o limite de chamadas do Jira é respeitado.</p>
+  <div class="avoid"><h4>Quando reler tudo</h4><p>Raramente é preciso, por exemplo quando um campo muda de nome no Jira. Na página da consulta, <strong>Reler tudo</strong> refaz a carga inteira, e <strong>Apagar o guardado</strong> remove a cópia local.</p></div>
   <h3>Do evento à foto de cada período</h3>
   <p>O Jira guarda mudanças; muitas análises precisam de fotos: como cada demanda estava no fim de cada mês. A caixa <strong>Estado por período</strong> faz essa passagem para qualquer tabela de eventos. Na entrada <strong>I</strong> vão os itens; na <strong>E</strong>, os eventos. Com o histórico do Jira, use <code>campo</code> igual a <code>status</code>.</p>
   <p>O que os eventos não explicam fica <strong>sem histórico</strong>. O valor de hoje nunca é usado para preencher o passado, a menos que a demanda nunca tenha mudado e você escolha a coluna de estado atual.</p>
@@ -924,8 +924,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.0-setup.exe</code> (164 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.0-portable.zip</code> (247 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.1-setup.exe</code> (164 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.1-portable.zip</code> (247 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>

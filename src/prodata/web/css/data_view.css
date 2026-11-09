@@ -176,3 +176,14 @@ body[data-view="data"] .data-view { display: flex; }
 .jira-form .jira-steps .btn { align-self: flex-start; }
 .jira-chips { display: flex; flex-flow: row wrap; gap: 6px; }
 .jira-chips .value-chip { width: auto; max-width: 100%; }
+
+/* Consulta em passos (spec 031) */
+.jira-step > div { min-width: 0; }
+.jira-projects { max-height: 170px; }
+.jira-chosen { padding-bottom: 2px; }
+.jira-status-group small { display: block; margin-bottom: 3px; color: var(--text-2); font-size: var(--fs-xs); }
+.jira-summary { margin: 0; padding: 8px 10px; border-left: 3px solid var(--accent); border-radius: var(--radius); background: var(--surface-2); font-size: var(--fs-md); }
+.jira-more { padding-left: 36px; color: var(--text); font-size: var(--fs-sm); }
+.jira-more summary { margin-bottom: 8px; color: var(--text-2); cursor: pointer; }
+.jira-status-group { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; align-items: center; }
+.jira-status-group small { margin: 0; }

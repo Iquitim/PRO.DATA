@@ -15,6 +15,7 @@ import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -34,6 +35,7 @@ TEST_BASE_ENV = "PRODATA_JIRA_TEST_BASE"  # só fora do executável: aponta para
 READ_ONLY = (
     ("GET", re.compile(r"^/rest/api/3/myself$")),
     ("GET", re.compile(r"^/rest/api/3/project/search$")),
+    ("GET", re.compile(r"^/rest/api/3/project/[^/]+/statuses$")),
     ("GET", re.compile(r"^/rest/api/3/field$")),
     ("GET", re.compile(r"^/rest/api/3/status$")),
     ("GET", re.compile(r"^/rest/api/3/issuetype$")),
@@ -201,6 +203,10 @@ class JiraClient:
 
     def statuses(self) -> list[dict[str, Any]]:
         return list(self._json("GET", "/rest/api/3/status"))
+
+    def project_statuses(self, key: str) -> list[dict[str, Any]]:
+        """Um item por tipo de demanda do projeto, cada um com os seus status."""
+        return list(self._json("GET", f"/rest/api/3/project/{quote(key, safe='')}/statuses"))
 
     def issue_types(self) -> list[dict[str, Any]]:
         return list(self._json("GET", "/rest/api/3/issuetype"))

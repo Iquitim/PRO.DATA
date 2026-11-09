@@ -1,23 +1,16 @@
-// Jira na vista Dados (spec 030): conexão com token guiado e consulta sem escrever JQL.
+// Jira na vista Dados (spec 030): conexão com token guiado. A consulta fica em jira_query.js.
 
 import { addNode } from './actions.js';
 import { api } from './api.js';
 import { viewportCenter } from './canvas.js';
 import { openLink } from './desktop.js';
-import { button, debounce, fmt, h } from './dom.js';
+import { button, fmt, h } from './dom.js';
 import { icon } from './icons.js';
-import { previewTable } from './datasets.js';
 import { emit, JIRA_PREFIX, store } from './store.js';
-import { confirmDialog, toast, toastError } from './ui.js';
+import { toast, toastError } from './ui.js';
 
 const TOKEN_PAGE = 'https://id.atlassian.com/manage-profile/security/api-tokens';
-const TABLES = [
-  ['issues', 'Demandas', 'Uma linha por demanda, com status, responsável e datas.', 'list'],
-  ['history', 'Histórico de alterações', 'Uma linha por mudança: quem mudou o quê e quando.', 'clock'],
-  ['comments', 'Comentários', 'Uma linha por comentário. Costumam ter dados pessoais.', 'edit'],
-];
-const PERIODS = [[0, 'Sem limite de data'], [30, 'Últimos 30 dias'], [90, 'Últimos 90 dias'], [180, 'Últimos 6 meses'], [365, 'Último ano'], [730, 'Últimos 2 anos']];
-const newId = (prefix) => `${prefix}_${Date.now().toString(36)}`;
+export const newId = (prefix) => `${prefix}_${Date.now().toString(36)}`;
 
 export async function refreshJira() {
   const [connections, queries] = await Promise.all([api.jiraConnections(), api.jiraQueries()]);
@@ -41,9 +34,9 @@ export async function removeJiraConnection(conn) {
   await refreshJira();
 }
 
-const field = (label, control, help) => h('div', { class: 'field' }, h('label', { class: 'field-label' }, label), control, help ? h('p', { class: 'field-help' }, help) : null);
+export const field = (label, control, help) => h('div', { class: 'field' }, h('label', { class: 'field-label' }, label), control, help ? h('p', { class: 'field-help' }, help) : null);
 
-function step(n, title, body) {
+export function step(n, title, body) {
   return h('li', { class: 'jira-step' }, h('b', {}, String(n)), h('div', {}, h('strong', {}, title), body));
 }
 
@@ -109,155 +102,5 @@ export function jiraConnectionEditor(existing, { onSaved }, host) {
       button({ label: 'Testar', onClick: test }),
       button({ label: 'Salvar', variant: 'primary', onClick: save }),
     ],
-  };
-}
-
-function chips(list, selected, onToggle, labelOf = (x) => x, valueOf = (x) => x) {
-  return h('div', { class: 'value-list jira-chips' }, list.map((item) => {
-    const value = valueOf(item);
-    const on = selected.includes(value);
-    return h('button', { type: 'button', class: ['value-chip', on && 'on'], 'aria-pressed': String(on), onclick: () => onToggle(value) },
-      icon(on ? 'check' : 'plus', 12), h('span', { class: 'ellipsis' }, labelOf(item)));
-  }));
-}
-
-const definition = (q) => ({
-  connection: q.connection, table: q.table, projects: q.projects, issue_types: q.issue_types, statuses: q.statuses,
-  assignees: [], period_field: q.period_field, period_days: q.period_days, advanced: q.advanced, jql: q.jql, fields: q.fields,
-});
-
-function queryStatus(query, onChange) {
-  const when = query.synced_at ? new Date(query.synced_at).toLocaleString('pt-BR') : null;
-  const line = h('p', { class: 'field-help' }, when
-    ? `Guardada aqui: ${fmt.int(query.rows)} linhas, atualizada em ${when}.`
-    : query.interrupted ? 'A última carga parou no meio: a próxima continua de onde ficou.' : 'Ainda não foi carregada. A primeira carga acontece ao executar o fluxo.');
-  const reload = async () => {
-    const yes = await confirmDialog({ title: 'Reler tudo do Jira?', message: 'Refaz a carga inteira. É o que remove daqui o que foi excluído no Jira.', confirm: 'Reler tudo' });
-    if (!yes) return;
-    line.textContent = 'Relendo do Jira…';
-    try {
-      const res = await api.reloadJiraQuery(query.id);
-      toast(`${fmt.int(res.rows)} linhas relidas do Jira`, { kind: 'success' });
-      await refreshJira();
-      onChange?.();
-    } catch (err) {
-      line.textContent = err.message;
-    }
-  };
-  const forget = async () => {
-    await api.forgetJiraQuery(query.id);
-    toast('Guardado local apagado', { kind: 'success' });
-    await refreshJira();
-    onChange?.();
-  };
-  return h('div', { class: 'stack-xs jira-status' }, line, h('div', { class: 'row' },
-    button({ icon: 'refresh', label: 'Reler tudo', size: 'sm', onClick: reload }),
-    when ? button({ icon: 'trash', label: 'Apagar o guardado', size: 'sm', variant: 'ghost', onClick: forget }) : null));
-}
-
-function tablePicker(state, redraw) {
-  return h('div', { class: 'jira-tables', role: 'radiogroup', 'aria-label': 'O que trazer' }, TABLES.map(([value, name, about, ic]) => h('button', {
-    type: 'button', role: 'radio', 'aria-checked': String(state.table === value), class: ['jira-table', state.table === value && 'on'], dataset: { table: value },
-    onclick: () => { state.table = value; redraw(); },
-  }, h('span', { class: 'jira-table-head' }, icon(ic, 14), h('b', {}, name)), h('small', {}, about))));
-}
-
-function filterControls(state, catalog, redraw) {
-  const toggle = (key) => (value) => {
-    state[key] = state[key].includes(value) ? state[key].filter((x) => x !== value) : [...state[key], value];
-    redraw();
-  };
-  return [
-    field('Projetos', chips(catalog.projects, state.projects, toggle('projects'), (p) => `${p.name} (${p.key})`, (p) => p.key)),
-    field('Tipos', chips(catalog.issue_types, state.issue_types, toggle('issue_types')), 'Nenhum marcado: todos.'),
-    field('Status', chips(catalog.statuses, state.statuses, toggle('statuses')), 'Nenhum marcado: todos.'),
-    field('Período', h('div', { class: 'row' },
-      h('select', { class: 'input', 'aria-label': 'Data usada no período', onchange: (e) => { state.period_field = e.target.value; redraw(); } },
-        [['created', 'Criadas'], ['updated', 'Atualizadas'], ['resolved', 'Resolvidas']].map(([v, t]) => h('option', { value: v, selected: state.period_field === v }, t))),
-      h('select', { class: 'input', 'aria-label': 'Período', onchange: (e) => { state.period_days = Number(e.target.value); redraw(); } },
-        PERIODS.map(([v, t]) => h('option', { value: v, selected: state.period_days === v }, t))))),
-  ];
-}
-
-function jqlText(state) {
-  if (state.advanced) return state.jql;
-  const q = (v) => `"${v.replace(/"/g, '\\"')}"`;
-  const parts = [];
-  if (state.projects.length) parts.push(`project in (${state.projects.map(q).join(', ')})`);
-  if (state.issue_types.length) parts.push(`issuetype in (${state.issue_types.map(q).join(', ')})`);
-  if (state.statuses.length) parts.push(`status in (${state.statuses.map(q).join(', ')})`);
-  if (state.period_days) parts.push(`${state.period_field} >= -${state.period_days}d`);
-  return parts.length ? `${parts.join(' AND ')} ORDER BY created ASC` : '';
-}
-
-/** Consulta: o que trazer, de quais projetos e com quais filtros, com a prévia antes de salvar. */
-export function jiraQueryEditor({ query = null, connectionId = '', onSaved }, host) {
-  const state = {
-    name: query?.name || '', connection: query?.connection || connectionId || store.jiraConnections[0]?.id || '', table: query?.table || 'issues',
-    projects: query?.projects || [], issue_types: query?.issue_types || [], statuses: query?.statuses || [], period_field: query?.period_field || 'created',
-    period_days: query?.period_days || 0, advanced: query?.advanced || false, jql: query?.jql || '', fields: query?.fields || [],
-  };
-  let catalog = null;
-  const form = h('div', { class: 'stack-md jira-form' }, h('p', { class: 'muted' }, 'Lendo os projetos do Jira…'));
-  const meta = h('div', { class: 'jira-meta' });
-  const grid = h('div', { class: 'jira-grid' });
-  const preview = debounce(async () => {
-    if (!jqlText(state)) { meta.replaceChildren(h('span', { class: 'muted' }, 'Escolha ao menos um projeto para ver a prévia.')); grid.replaceChildren(); return; }
-    meta.replaceChildren(h('span', { class: 'muted' }, 'Consultando o Jira…'));
-    try {
-      const res = await api.previewJira(definition(state));
-      meta.replaceChildren(h('span', { class: 'badge' }, icon('check', 12), `cerca de ${fmt.int(res.total)} demandas`), h('span', { class: 'muted' }, `prévia de ${fmt.int(res.rows.length)} linhas`));
-      grid.replaceChildren(previewTable(res.columns, res.rows));
-    } catch (err) {
-      meta.replaceChildren(h('span', { class: 'text-error' }, icon('alert', 14), ` ${err.message}`));
-      grid.replaceChildren();
-    }
-  }, 400);
-  const jqlBox = h('code', { class: 'jira-jql' });
-  const redraw = () => {
-    if (!catalog) return;
-    jqlBox.textContent = jqlText(state) || 'Escolha ao menos um projeto';
-    form.replaceChildren(...[
-      field('Nome da consulta', h('input', { class: 'input', value: state.name, placeholder: 'Ex.: Demandas do time de Dados', oninput: (e) => { state.name = e.target.value; } })),
-      store.jiraConnections.length > 1 ? field('Conexão', h('select', { class: 'input', onchange: (e) => { state.connection = e.target.value; load(); } },
-        store.jiraConnections.map((c) => h('option', { value: c.id, selected: c.id === state.connection }, c.name)))) : null,
-      field('O que trazer', tablePicker(state, redraw)),
-      state.table === 'comments' ? h('p', { class: 'field-warn' }, icon('alert', 13), ' Comentários costumam ter nomes e dados pessoais. Traga só se precisar, e use o rótulo certo ao compartilhar.') : null,
-      h('label', { class: 'jira-advanced' }, h('input', { type: 'checkbox', checked: state.advanced, onchange: (e) => { state.advanced = e.target.checked; if (e.target.checked && !state.jql) state.jql = jqlText({ ...state, advanced: false }); redraw(); } }), ' Escrever o JQL à mão'),
-      ...(state.advanced
-        ? [field('JQL', h('textarea', { class: 'input code', rows: 4, spellcheck: false, 'aria-label': 'JQL', oninput: (e) => { state.jql = e.target.value; preview(); } }, state.jql))]
-        : [...filterControls(state, catalog, redraw), field('O filtro em JQL', jqlBox, 'Montado sozinho a partir das escolhas acima.')]),
-      state.table === 'issues' && catalog.fields.length ? field('Campos personalizados', chips(catalog.fields, state.fields, (id) => { state.fields = state.fields.includes(id) ? state.fields.filter((x) => x !== id) : [...state.fields, id]; redraw(); }, (f) => f.name, (f) => f.id)) : null,
-      query ? queryStatus(store.jiraQueries.find((q) => q.id === query.id) || query, () => host.close()) : null,
-      h('div', { class: 'stack-xs' }, meta, grid),
-    ].filter(Boolean));
-    preview();
-  };
-  const load = async () => {
-    try {
-      catalog = await api.jiraCatalog(state.connection);
-      redraw();
-    } catch (err) {
-      form.replaceChildren(h('p', { class: 'text-error' }, icon('alert', 14), ` ${err.message}`));
-    }
-  };
-  load();
-  const save = async () => {
-    const name = state.name.trim();
-    if (!name) { toast('Dê um nome à consulta', { kind: 'error' }); return; }
-    try {
-      const saved = await api.saveJiraQuery({ id: query?.id || newId('consulta'), name, ...definition(state) });
-      await refreshJira();
-      toast(`Consulta ${saved.name} salva`, { kind: 'success' });
-      host.close();
-      onSaved?.(saved);
-    } catch (err) {
-      toastError(err, 'Não foi possível salvar a consulta');
-    }
-  };
-  return {
-    title: query ? `Editar consulta · ${query.name}` : 'Nova consulta do Jira',
-    body: form,
-    actions: [button({ label: 'Cancelar', onClick: () => host.close() }), button({ label: 'Salvar', variant: 'primary', onClick: save })],
   };
 }

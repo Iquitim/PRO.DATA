@@ -25,6 +25,19 @@ READ_METHODS = {"GET"}
 READ_POSTS = {"/rest/api/3/search/approximate-count", "/rest/api/3/changelog/bulkfetch"}
 START = datetime(2026, 1, 5, 9, 0, tzinfo=UTC)
 STATUSES = ["A fazer", "Em andamento", "Em revisão", "Concluído"]
+CATEGORY = {
+    "A fazer": "new",
+    "Em andamento": "indeterminate",
+    "Em revisão": "indeterminate",
+    "Concluído": "done",
+}
+PROJECT_STATUSES = {
+    "DEMO": [
+        {"name": "História", "statuses": [{"name": s} for s in STATUSES]},
+        {"name": "Bug", "statuses": [{"name": "A fazer"}, {"name": "Concluído"}]},
+    ],
+    "OPS": [{"name": "Bug", "statuses": [{"name": "A fazer"}, {"name": "Em andamento"}]}],
+}
 TEAMS = ["Plataforma", "Dados", "Atendimento"]
 
 
@@ -101,6 +114,10 @@ class FakeJira:
                 if datetime.strptime(i["fields"]["updated"][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC)
                 >= limit
             ]
+        keys = re.fullmatch(r"key in \(([^)]*)\)", jql)
+        if keys:
+            wanted = re.findall(r'"([^"]+)"', keys.group(1))
+            found = [i for i in found if i["key"] in wanted]
         status = re.search(r"status in \(([^)]*)\)", jql)
         if status:
             wanted = re.findall(r'"([^"]+)"', status.group(1))
@@ -164,6 +181,9 @@ class FakeJira:
         path = path.split(f"/ex/jira/{CLOUD}")[-1]
         if not self._authorized(auth, gateway):
             return 401, {}, {"message": "Client must be authenticated"}
+        if path.startswith("/rest/api/3/project/") and path.endswith("/statuses"):
+            key = path.split("/")[5]
+            return (200, {}, PROJECT_STATUSES[key]) if key in PROJECT_STATUSES else (404, {}, {})
         return self._route(method, path, query, body)
 
     def _route(
@@ -191,7 +211,7 @@ class FakeJira:
                 ],
             )
         if path == "/rest/api/3/status":
-            return 200, {}, [{"name": s} for s in STATUSES]
+            return 200, {}, [{"name": s, "statusCategory": {"key": CATEGORY[s]}} for s in STATUSES]
         if path == "/rest/api/3/issuetype":
             return 200, {}, [{"name": "História"}, {"name": "Bug"}]
         if path == "/rest/api/3/search/jql":

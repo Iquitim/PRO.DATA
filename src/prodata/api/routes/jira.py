@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from prodata.api.deps import ServicesDep
 from prodata.connectors import jira_read
-from prodata.connectors.jira import JiraClient
+from prodata.connectors.jira import JiraClient, JiraError
 from prodata.connectors.jira_model import (
     JiraConnection,
     JiraInfo,
@@ -23,6 +23,7 @@ from prodata.engine.serialize import json_rows
 
 router = APIRouter(prefix="/api/jira", tags=["jira"])
 ItemId = Annotated[str, Path(pattern=ID_PATTERN)]
+ProjectKey = Annotated[str, Path(pattern=r"^[A-Za-z0-9_-]{1,64}$")]
 
 
 class SaveConnection(BaseModel):
@@ -73,15 +74,36 @@ def delete_connection(conn_id: ItemId, services: ServicesDep) -> Response:
 def catalog(conn_id: ItemId, services: ServicesDep) -> dict[str, Any]:
     """O que a tela oferece: projetos, tipos, status e campos, com os nomes que aparecem no Jira."""
     with services.jira.client(conn_id) as client:
+        statuses = client.statuses()
         return {
             "projects": [{"key": p.get("key"), "name": p.get("name")} for p in client.projects()],
             "issue_types": sorted({str(t.get("name")) for t in client.issue_types()}),
-            "statuses": sorted({str(s.get("name")) for s in client.statuses()}),
+            "statuses": sorted({str(s.get("name")) for s in statuses}),
+            "status_categories": {
+                str(s.get("name")): (s.get("statusCategory") or {}).get("key", "") for s in statuses
+            },
             "fields": sorted(
                 ({"id": f.get("id"), "name": f.get("name")} for f in client.fields() if f.get("custom")),
                 key=lambda f: str(f["name"]).lower(),
             ),
         }
+
+
+@router.get("/connections/{conn_id}/projects/{key}/scope")
+def project_scope(conn_id: ItemId, key: ProjectKey, services: ServicesDep) -> dict[str, Any]:
+    """Tipos e status de um projeto. Se o Jira não informar, a tela cai para a lista geral e avisa."""
+    try:
+        with services.jira.client(conn_id) as client:
+            rows = client.project_statuses(key)
+    except JiraError:
+        return {"available": False, "issue_types": []}
+    return {
+        "available": True,
+        "issue_types": [
+            {"name": str(t.get("name")), "statuses": [str(s.get("name")) for s in t.get("statuses", [])]}
+            for t in rows
+        ],
+    }
 
 
 @router.get("/queries")

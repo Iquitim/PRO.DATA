@@ -87,6 +87,7 @@ export const api = {
   saveJiraConnection: (body) => request('PUT', `/api/jira/connections/${enc(body.connection.id)}`, body),
   deleteJiraConnection: (id) => request('DELETE', `/api/jira/connections/${enc(id)}`),
   jiraCatalog: (id) => request('GET', `/api/jira/connections/${enc(id)}/catalog`),
+  jiraScope: (id, key) => request('GET', `/api/jira/connections/${enc(id)}/projects/${enc(key)}/scope`),
   saveJiraQuery: (body) => request('PUT', `/api/jira/queries/${enc(body.id)}`, body),
   deleteJiraQuery: (id) => request('DELETE', `/api/jira/queries/${enc(id)}`),
   previewJira: (body) => request('POST', '/api/jira/queries/preview', body),

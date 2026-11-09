@@ -1,12 +1,13 @@
 """Do Jira para a tabela (spec 030): colunas, texto simples, datas, carga incremental e retomada.
 
 A carga guarda no disco o que já veio. Se cair no meio, a próxima continua de onde parou. Depois da primeira,
-só o que mudou é buscado; a releitura completa existe porque o que foi excluído no Jira não aparece como mudança.
+só o que mudou é buscado, e a lista de chaves do Jira diz o que saiu da consulta ou voltou a ela.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -17,6 +18,8 @@ import polars as pl
 from prodata.connectors.jira import JiraClient
 from prodata.connectors.jira_model import JiraQuery
 from prodata.connectors.jira_store import JiraStore
+
+log = logging.getLogger(__name__)
 
 # Coluna da tabela -> campo do Jira.
 BASE_COLUMNS = {
@@ -61,6 +64,8 @@ CHANGED_MARGIN = timedelta(
     days=1
 )  # o JQL compara em minutos e no fuso da conta: uma folga garante que nada escape
 BATCH = 200
+KEYS_PAGE = 5000  # o Jira entrega páginas maiores quando só a chave é pedida
+KEYS_IN_JQL = 100
 SEARCH_FIELDS = ["updated"]
 PREVIEW_ROWS = 50
 
@@ -213,6 +218,7 @@ class Loader:
         self.partial = store.local_path(query.id, "parcial.parquet")
         self.meta_path = store.local_path(query.id, "json")
         self.progress_path = store.local_path(query.id, "progresso.json")
+        self.keys_path = store.local_path(query.id, "chaves.json")
 
     def meta(self) -> dict[str, Any]:
         if not self.meta_path.is_file():
@@ -258,18 +264,62 @@ class Loader:
                 self._checkpoint(frame, stage="issues", token=next_token)
         return frame if frame is not None else pl.DataFrame({c: [] for c in BASE_COLUMNS})
 
-    def _issues_changed(self, since: str, custom: dict[str, str]) -> pl.DataFrame:
+    def _issues_changed(
+        self, jqls: list[str], custom: dict[str, str], current: set[str] | None
+    ) -> pl.DataFrame:
         old = pl.read_parquet(self.table)
         fields = [*REQUESTED, *custom]
-        fresh: list[dict[str, Any]] = []
-        for issues, _ in self.client.search_pages(self.query.changed_since(since), fields):
-            fresh += [issue_row(i, custom) for i in issues]
+        fresh: dict[str, dict[str, Any]] = {}
+        for jql in jqls:
+            for issues, _ in self.client.search_pages(jql, fields):
+                fresh.update({str(i["key"]): issue_row(i, custom) for i in issues})
         if not fresh:
-            return old
-        page = _frame(fresh)
-        return pl.concat(
+            return self._only_current(old, current, set())
+        page = _frame(list(fresh.values()))
+        merged = pl.concat(
             [old.join(page.select("chave"), on="chave", how="anti"), page], how="diagonal_relaxed"
         ).sort("criado_em")
+        return self._only_current(merged, current, set(fresh))
+
+    # ------------------------------------------------------------------ conferência com o Jira
+
+    def _current_keys(self) -> set[str] | None:
+        """As demandas que atendem à consulta agora. Sem a chave na resposta, não dá para conferir: None."""
+        keys: set[str] = set()
+        for issues, _ in self.client.search_pages(self.query.to_jql(), ["key"], size=KEYS_PAGE):
+            for issue in issues:
+                if not issue.get("key"):
+                    log.warning("O Jira não devolveu a chave das demandas: conferência ignorada nesta carga")
+                    return None
+                keys.add(str(issue["key"]))
+        return keys
+
+    def _changed_jqls(self, since: str, current: set[str] | None) -> list[str]:
+        """O que mudou e o que voltou à consulta sem ter mudado, como depois de recuperar uma permissão."""
+        jqls = [self.query.changed_since(since)]
+        if current is None or not self.keys_path.is_file():
+            return jqls
+        known = set(json.loads(self.keys_path.read_text(encoding="utf-8")))
+        back = sorted(current - known)
+        for start in range(0, len(back), KEYS_IN_JQL):
+            names = ", ".join(f'"{k}"' for k in back[start : start + KEYS_IN_JQL])
+            jqls.append(f"key in ({names})")
+        return jqls
+
+    def _only_current(self, frame: pl.DataFrame, current: set[str] | None, fresh: set[str]) -> pl.DataFrame:
+        """Tira o que saiu da consulta. O que acabou de vir na busca fica, mesmo se o índice do Jira atrasar."""
+        if current is None or frame.is_empty():
+            return frame
+        kept = frame.filter(pl.col("chave").is_in(pl.Series(sorted(current | fresh), dtype=pl.String)))
+        if kept.height < frame.height:
+            self.report("Removendo o que saiu da consulta")
+        return kept
+
+    def _remember(self, current: set[str] | None) -> None:
+        if current is None:
+            self.keys_path.unlink(missing_ok=True)
+        else:
+            self.keys_path.write_text(json.dumps(sorted(current)), encoding="utf-8")
 
     # ------------------------------------------------------------------ histórico e comentários
 
@@ -293,21 +343,25 @@ class Loader:
             self._checkpoint(frame, stage="details", done=sorted(done))
         return frame
 
-    def _details_changed(self, since: str) -> pl.DataFrame:
+    def _details_changed(self, jqls: list[str], current: set[str] | None) -> pl.DataFrame:
         old = pl.read_parquet(self.table)
-        issues = self._all_issues(self.query.changed_since(since))
-        if not issues:
-            return old
+        found: dict[str, dict[str, Any]] = {}
+        for jql in jqls:
+            found.update({str(i["key"]): i for i in self._all_issues(jql)})
+        if not found:
+            return self._only_current(old, current, set())
+        issues = list(found.values())
         fresh = pl.concat(
             [
                 _detail_frame(self.query, self.client, issues[i : i + BATCH])
                 for i in range(0, len(issues), BATCH)
             ]
         )
-        keys = pl.DataFrame({"chave": [i["key"] for i in issues]})
-        return pl.concat([old.join(keys, on="chave", how="anti"), fresh]).sort(
+        keys = pl.DataFrame({"chave": list(found)})
+        merged = pl.concat([old.join(keys, on="chave", how="anti"), fresh]).sort(
             "chave", "quando" if self.query.table == "history" else "criado_em"
         )
+        return self._only_current(merged, current, set(found))
 
     # ------------------------------------------------------------------ carga
 
@@ -316,12 +370,15 @@ class Loader:
         before = self.meta()
         changed_only = bool(before) and not full
         custom = _custom_columns(self.query, field_names(self.client)) if self.query.table == "issues" else {}
+        current: set[str] | None = None
         if changed_only:
             since = (datetime.fromisoformat(before["synced_at"]) - CHANGED_MARGIN).strftime("%Y-%m-%d %H:%M")
+            current = self._current_keys()
+            jqls = self._changed_jqls(since, current)
             frame = (
-                self._issues_changed(since, custom)
+                self._issues_changed(jqls, custom, current)
                 if self.query.table == "issues"
-                else self._details_changed(since)
+                else self._details_changed(jqls, current)
             )
         else:
             resume = self._progress()
@@ -333,6 +390,7 @@ class Loader:
                 else self._details_full(resume)
             )
         self._finish(frame, started, not changed_only, before)
+        self._remember(current)
         return frame
 
 

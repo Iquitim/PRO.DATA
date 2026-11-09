@@ -2,7 +2,8 @@
 // Gerenciar acontece só aqui; o painel lateral do Designer fica com busca e arrasto.
 
 import { apiEditor, refreshApis } from './apis.js';
-import { jiraConnectionEditor, jiraQueryEditor, refreshJira } from './jira_ui.js';
+import { jiraQueryEditor } from './jira_query.js';
+import { jiraConnectionEditor, refreshJira } from './jira_ui.js';
 import { connectionEditor, queryEditor, refreshConnections, refreshQueries } from './connections.js';
 import { refreshConstants } from './constants.js';
 import { constantEditor } from './constants_ui.js';
@@ -12,7 +13,7 @@ import { accept, linkFile, refreshDatasets, uploadFiles } from './datasets.js';
 import { button, h } from './dom.js';
 import { icon } from './icons.js';
 import { on, store } from './store.js';
-import { confirmDialog, showMenu } from './ui.js';
+import { confirmDialog, showMenu, toast, toastError } from './ui.js';
 
 const ui = { key: null, tab: 'overview', search: '', creating: null };
 let root = null;
@@ -150,17 +151,35 @@ async function afterSave(kind, saved) {
   await afterChange();
 }
 
+/** Excluir também apaga o segredo: a pessoa fica sabendo antes (spec 031). */
+function vaultNote(source) {
+  if (source.kind === 'jiraconn' && source.raw.has_token) return 'O e-mail e o token guardados no cofre do Windows também serão apagados.';
+  if (source.kind === 'conn' && source.raw.has_password) return 'A senha guardada no cofre do Windows também será apagada.';
+  if (source.kind === 'api' && source.raw.set_secrets?.length) return 'A credencial guardada no cofre do Windows também será apagada.';
+  return '';
+}
+
 async function removeSource(source, action) {
   const uses = usesOf(source);
-  if (uses.length) {
+  const vault = vaultNote(source);
+  if (uses.length || vault) {
     const ok = await confirmDialog({
-      title: `Esta fonte é usada em ${uses.length} fluxo(s)`,
-      message: `Ao excluir, deixam de funcionar: ${uses.map((u) => `${u.workflow} (${u.readers.map((r) => r.label || r.type).join(', ')})`).join('; ')}.`,
-      confirm: 'Continuar', danger: true,
+      title: uses.length ? `Esta fonte é usada em ${uses.length} fluxo(s)` : `Excluir ${source.name}?`,
+      message: [
+        uses.length ? `Ao excluir, deixam de funcionar: ${uses.map((u) => `${u.workflow} (${u.readers.map((r) => r.label || r.type).join(', ')})`).join('; ')}.` : '',
+        vault,
+      ].filter(Boolean).join(' '),
+      confirm: uses.length ? 'Continuar' : 'Excluir', danger: true,
     });
     if (!ok) return;
   }
-  await action();
+  try {
+    await action();
+  } catch (err) {
+    toastError(err, 'Não foi possível excluir');
+    return;
+  }
+  if (vault) toast('Excluída, e a credencial saiu do cofre do Windows', { kind: 'success' });
   ui.key = null;
   await afterChange();
 }
