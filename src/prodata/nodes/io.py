@@ -154,10 +154,17 @@ def _read_jira(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
         raise ValueError("O Jira não está disponível neste ambiente.")
     query = ctx.jira.query(source_jira_id(cfg.dataset))
     frame, info = jira_read.load(query, ctx.jira, report=ctx.report)
-    extra: dict[str, Any] = {"source": query.name, "source_read_at": _now(), "jira_calls": info["calls"], "jira_incremental": info["incremental"]}
+    extra: dict[str, Any] = {
+        "source": query.name,
+        "source_read_at": _now(),
+        "jira_calls": info["calls"],
+        "jira_incremental": info["incremental"],
+    }
     full_at = info.get("full_at")
     if full_at and datetime.now(UTC) - datetime.fromisoformat(full_at) > timedelta(days=JIRA_FULL_DAYS):
-        extra["warnings"] = [f"A última releitura completa foi há mais de {JIRA_FULL_DAYS} dias: o que foi excluído no Jira ainda aparece aqui. Faça a releitura na vista Dados."]
+        extra["warnings"] = [
+            f"A última releitura completa foi há mais de {JIRA_FULL_DAYS} dias: o que foi excluído no Jira ainda aparece aqui. Faça a releitura na vista Dados."
+        ]
     return NodeOutput(tables={"out": frame.head(cfg.limit) if cfg.limit else frame}, extra=extra)
 
 

@@ -12,11 +12,26 @@ D = datetime
 
 
 def cfg(**kw: Any) -> PeriodStateConfig:
-    base = {"item_key": "id", "created": "criado", "event_key": "id", "when": "quando", "new_state": "para", "old_state": "de", "period": "month"}
+    base = {
+        "item_key": "id",
+        "created": "criado",
+        "event_key": "id",
+        "when": "quando",
+        "new_state": "para",
+        "old_state": "de",
+        "period": "month",
+    }
     return PeriodStateConfig(**{**base, **kw})
 
 
-ITEMS = pl.DataFrame({"id": ["A", "B"], "criado": [D(2026, 1, 10), D(2026, 2, 5)], "atual": ["Feito", "Novo"], "time": ["X", "Y"]})
+ITEMS = pl.DataFrame(
+    {
+        "id": ["A", "B"],
+        "criado": [D(2026, 1, 10), D(2026, 2, 5)],
+        "atual": ["Feito", "Novo"],
+        "time": ["X", "Y"],
+    }
+)
 EVENTS = pl.DataFrame({
     "id": ["A", "A"], "quando": [D(2026, 1, 20), D(2026, 3, 3)], "de": ["Novo", "Fazendo"], "para": ["Fazendo", "Feito"], "campo": ["status", "status"],
 })  # fmt: skip
@@ -29,7 +44,11 @@ def states(frame: pl.DataFrame, key: str) -> list[tuple[date, str]]:
 
 def test_state_at_the_end_of_each_period() -> None:
     frame, _ = period_state(ITEMS, EVENTS, cfg())
-    assert states(frame, "A") == [(date(2026, 1, 1), "Fazendo"), (date(2026, 2, 1), "Fazendo"), (date(2026, 3, 1), "Feito")]
+    assert states(frame, "A") == [
+        (date(2026, 1, 1), "Fazendo"),
+        (date(2026, 2, 1), "Fazendo"),
+        (date(2026, 3, 1), "Feito"),
+    ]
 
 
 def test_item_appears_only_after_it_exists() -> None:
@@ -55,7 +74,20 @@ def test_without_old_state_the_past_is_unknown() -> None:
 
 
 def test_only_events_of_a_given_kind_count() -> None:
-    mixed = pl.concat([EVENTS, pl.DataFrame({"id": ["A"], "quando": [D(2026, 2, 2)], "de": ["x"], "para": ["Outro campo"], "campo": ["prioridade"]})])
+    mixed = pl.concat(
+        [
+            EVENTS,
+            pl.DataFrame(
+                {
+                    "id": ["A"],
+                    "quando": [D(2026, 2, 2)],
+                    "de": ["x"],
+                    "para": ["Outro campo"],
+                    "campo": ["prioridade"],
+                }
+            ),
+        ]
+    )
     frame, _ = period_state(ITEMS, mixed, cfg(only_column="campo", only_value="status"))
     assert "Outro campo" not in frame["estado"].to_list()
 

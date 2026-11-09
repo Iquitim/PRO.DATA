@@ -124,7 +124,12 @@ def add_replay_section(workflow: dict[str, Any]) -> bool:
     """Leva a corrida de barras e a linha do tempo a uma demonstração salva, sem cobrir o que foi movido."""
     dashboard = workflow.get("dashboard")
     ids = {n["id"] for n in workflow["nodes"]}
-    if RACE_NODE in ids or "n_vendas" not in ids or not dashboard or (dashboard.get("timeline") or {}).get("column"):
+    if (
+        RACE_NODE in ids
+        or "n_vendas" not in ids
+        or not dashboard
+        or (dashboard.get("timeline") or {}).get("column")
+    ):
         return False
     node = _race_node()
     taken = any(abs(n["x"] - node["x"]) < 200 and abs(n["y"] - node["y"]) < 110 for n in workflow["nodes"])

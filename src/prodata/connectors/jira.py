@@ -90,7 +90,9 @@ class JiraClient:
         self.calls = 0
         credential = base64.b64encode(f"{email}:{token}".encode()).decode()
         self._headers = {"Authorization": f"Basic {credential}", "Accept": "application/json"}
-        self._client = httpx.Client(timeout=60, verify=_system_tls(), transport=_transport, follow_redirects=False)
+        self._client = httpx.Client(
+            timeout=60, verify=_system_tls(), transport=_transport, follow_redirects=False
+        )
         self._base: str | None = None
 
     def close(self) -> None:
@@ -116,7 +118,9 @@ class JiraClient:
                 res = self._client.request(method, url, headers=self._headers, **kw)
             except httpx.HTTPError as exc:
                 if attempt == MAX_ATTEMPTS:
-                    raise JiraError("Não foi possível falar com o Jira. Confira a internet e tente de novo.") from exc
+                    raise JiraError(
+                        "Não foi possível falar com o Jira. Confira a internet e tente de novo."
+                    ) from exc
                 self._sleep(min(2.0**attempt, MAX_WAIT))
                 continue
             if res.status_code != 429 and res.status_code < 500:
@@ -150,7 +154,9 @@ class JiraClient:
                 res = self._send("GET", base + path)
                 kind = "com escopo"
         if res.status_code in (401, 403):
-            raise JiraAuthError("O Jira não aceitou o e-mail e o token. O token pode ter vencido: crie outro.")
+            raise JiraAuthError(
+                "O Jira não aceitou o e-mail e o token. O token pode ter vencido: crie outro."
+            )
         if res.status_code != 200:
             raise JiraError(f"O Jira respondeu {res.status_code} ao conectar. Confira o endereço.")
         self._base = base
@@ -166,7 +172,9 @@ class JiraClient:
     def _json(self, method: str, path: str, **kw: Any) -> Any:
         res = self._call(method, path, **kw)
         if res.status_code in (401, 403):
-            raise JiraAuthError("O Jira recusou o acesso. O token pode ter vencido ou não ter permissão de leitura.")
+            raise JiraAuthError(
+                "O Jira recusou o acesso. O token pode ter vencido ou não ter permissão de leitura."
+            )
         if res.status_code == 400:
             messages = "; ".join(res.json().get("errorMessages", [])) if res.content else ""
             raise InvalidInputError(f"O Jira recusou a consulta: {messages or 'JQL inválido.'}")
@@ -180,7 +188,9 @@ class JiraClient:
         found: list[dict[str, Any]] = []
         start = 0
         while True:
-            page = self._json("GET", "/rest/api/3/project/search", params={"startAt": start, "maxResults": 50})
+            page = self._json(
+                "GET", "/rest/api/3/project/search", params={"startAt": start, "maxResults": 50}
+            )
             found += page.get("values", [])
             if page.get("isLast", True) or not page.get("values"):
                 return found
@@ -198,7 +208,9 @@ class JiraClient:
     # ------------------------------------------------------------------ busca
 
     def count(self, jql: str) -> int:
-        return int(self._json("POST", "/rest/api/3/search/approximate-count", json={"jql": jql}).get("count", 0))
+        return int(
+            self._json("POST", "/rest/api/3/search/approximate-count", json={"jql": jql}).get("count", 0)
+        )
 
     def search_pages(
         self, jql: str, fields: list[str], *, token: str | None = None, size: int = PAGE
@@ -229,7 +241,9 @@ class JiraClient:
                 log.info("Histórico em lote indisponível (%s): lendo uma demanda por vez", res.status_code)
                 return {i: self.changelog_of(i) for i in issue_ids}
             if res.status_code in (401, 403):
-                raise JiraAuthError("O Jira recusou o histórico. O token precisa da permissão de leitura de demandas.")
+                raise JiraAuthError(
+                    "O Jira recusou o histórico. O token precisa da permissão de leitura de demandas."
+                )
             if res.status_code != 200:
                 raise JiraError(f"O Jira respondeu {res.status_code} ao buscar o histórico.")
             page = res.json()

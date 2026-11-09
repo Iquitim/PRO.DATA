@@ -31,7 +31,14 @@ def test_race_is_always_ranked_and_never_folds_the_rest() -> None:
 
 
 def test_bubble_has_one_point_per_category() -> None:
-    w = widget(chart_type="bubble", x_column="projeto", y_column="horas", x_value_column="pontos", size_column="custo", agg="sum")
+    w = widget(
+        chart_type="bubble",
+        x_column="projeto",
+        y_column="horas",
+        x_value_column="pontos",
+        size_column="custo",
+        agg="sum",
+    )
     assert w["points"][0] == {"label": "A", "x": 4.0, "y": 30.0, "size": 200.0}
     assert [p["label"] for p in w["points"]] == ["A", "B", "C"]
 
@@ -66,7 +73,9 @@ def test_sankey_needs_a_target() -> None:
 
 
 def test_text_dates_can_drive_the_timeline() -> None:
-    frame = pl.DataFrame({"competencia": ["2026-05", "2026-06"], "nome": ["Ana", "Bia"], "br": ["29/10/2026", "30/10/2026"]})
+    frame = pl.DataFrame(
+        {"competencia": ["2026-05", "2026-06"], "nome": ["Ana", "Bia"], "br": ["29/10/2026", "30/10/2026"]}
+    )
     options = {o["column"]: o for o in filter_options([frame])}
     assert options["competencia"]["date_like"] and options["br"]["date_like"]
     assert not options["nome"]["date_like"]

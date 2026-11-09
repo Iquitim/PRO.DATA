@@ -220,7 +220,12 @@ _PNG_FILTER = "Imagem PNG (*.png)"
 _DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.xlsb;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
 _SQL_FILTER = "Código SQL (*.sql)"
 _ZIP_FILTER = "Arquivo compactado (*.zip)"
-_GENERATED_FILTERS = {".sql": _SQL_FILTER, ".zip": _ZIP_FILTER, ".html": "Página da web (*.html)", ".gif": "Imagem GIF (*.gif)"}
+_GENERATED_FILTERS = {
+    ".sql": _SQL_FILTER,
+    ".zip": _ZIP_FILTER,
+    ".html": "Página da web (*.html)",
+    ".gif": "Imagem GIF (*.gif)",
+}
 _GENERATED_MAX_BYTES = 64 * 1024 * 1024
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_MAX_BYTES = 64 * 1024 * 1024

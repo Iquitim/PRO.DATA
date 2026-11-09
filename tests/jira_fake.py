@@ -73,21 +73,35 @@ class FakeJira:
         now = datetime.now(UTC)
         issue["fields"]["updated"] = stamp(now)
         issue["fields"]["summary"] = f"{issue['fields']['summary']} (editada)"
-        issue["changes"].append({"id": f"{issue['id']}99", "created": stamp(now), "author": {"displayName": "Time"}, "items": [{"field": "status", "fromString": "A fazer", "toString": "Concluído"}]})
+        issue["changes"].append(
+            {
+                "id": f"{issue['id']}99",
+                "created": stamp(now),
+                "author": {"displayName": "Time"},
+                "items": [{"field": "status", "fromString": "A fazer", "toString": "Concluído"}],
+            }
+        )
 
     def _authorized(self, auth: str, gateway: bool) -> bool:
         if not self.valid or not auth.startswith("Basic "):
             return False
         email, _, token = base64.b64decode(auth[6:]).decode().partition(":")
-        return (email == EMAIL and token == (SCOPED if gateway else CLASSIC)) or (gateway and email == EMAIL and token == CLASSIC)
+        return (email == EMAIL and token == (SCOPED if gateway else CLASSIC)) or (
+            gateway and email == EMAIL and token == CLASSIC
+        )
 
     def _matching(self, jql: str) -> list[dict[str, Any]]:
         found = self.issues
         since = re.search(r'updated >= "(\d{4}-\d{2}-\d{2} \d{2}:\d{2})"', jql)
         if since:
             limit = datetime.strptime(since.group(1), "%Y-%m-%d %H:%M").replace(tzinfo=UTC)
-            found = [i for i in found if datetime.strptime(i["fields"]["updated"][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC) >= limit]
-        status = re.search(r'status in \(([^)]*)\)', jql)
+            found = [
+                i
+                for i in found
+                if datetime.strptime(i["fields"]["updated"][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC)
+                >= limit
+            ]
+        status = re.search(r"status in \(([^)]*)\)", jql)
         if status:
             wanted = re.findall(r'"([^"]+)"', status.group(1))
             found = [i for i in found if i["fields"]["status"]["name"] in wanted]
@@ -102,7 +116,10 @@ class FakeJira:
         start = int(query.get("nextPageToken", ["0"])[0])
         page = found[start : start + size]
         wanted = set(query.get("fields", [""])[0].split(","))
-        issues = [{"id": i["id"], "key": i["key"], "fields": {k: v for k, v in i["fields"].items() if k in wanted}} for i in page]
+        issues = [
+            {"id": i["id"], "key": i["key"], "fields": {k: v for k, v in i["fields"].items() if k in wanted}}
+            for i in page
+        ]
         last = start + size >= len(found)
         return {"issues": issues, "isLast": last, **({} if last else {"nextPageToken": str(start + size)})}
 
@@ -111,7 +128,23 @@ class FakeJira:
         items = []
         for issue in self.issues:
             if issue["id"] in wanted:
-                items.append({"issueId": issue["id"], "changeHistories": [{**c, "created": int(datetime.strptime(c["created"][:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC).timestamp() * 1000)} for c in issue["changes"]]})
+                items.append(
+                    {
+                        "issueId": issue["id"],
+                        "changeHistories": [
+                            {
+                                **c,
+                                "created": int(
+                                    datetime.strptime(c["created"][:19], "%Y-%m-%dT%H:%M:%S")
+                                    .replace(tzinfo=UTC)
+                                    .timestamp()
+                                    * 1000
+                                ),
+                            }
+                            for c in issue["changes"]
+                        ],
+                    }
+                )
         return {"issueChangeLogs": items}
 
     def answer(self, method: str, url: str, auth: str, body: bytes) -> tuple[int, dict[str, str], Any]:
@@ -133,13 +166,30 @@ class FakeJira:
             return 401, {}, {"message": "Client must be authenticated"}
         return self._route(method, path, query, body)
 
-    def _route(self, method: str, path: str, query: dict[str, list[str]], body: bytes) -> tuple[int, dict[str, str], Any]:
+    def _route(
+        self, method: str, path: str, query: dict[str, list[str]], body: bytes
+    ) -> tuple[int, dict[str, str], Any]:
         if path == "/rest/api/3/myself":
             return 200, {}, {"displayName": "Ana Souza", "accountId": "abc"}
         if path == "/rest/api/3/project/search":
-            return 200, {}, {"values": [{"key": "DEMO", "name": "Demonstração"}, {"key": "OPS", "name": "Operações"}], "isLast": True}
+            return (
+                200,
+                {},
+                {
+                    "values": [{"key": "DEMO", "name": "Demonstração"}, {"key": "OPS", "name": "Operações"}],
+                    "isLast": True,
+                },
+            )
         if path == "/rest/api/3/field":
-            return 200, {}, [{"id": "summary", "name": "Resumo", "custom": False}, {"id": "customfield_10001", "name": "Story Points", "custom": True}, {"id": "customfield_10002", "name": "Equipe", "custom": True}]
+            return (
+                200,
+                {},
+                [
+                    {"id": "summary", "name": "Resumo", "custom": False},
+                    {"id": "customfield_10001", "name": "Story Points", "custom": True},
+                    {"id": "customfield_10002", "name": "Equipe", "custom": True},
+                ],
+            )
         if path == "/rest/api/3/status":
             return 200, {}, [{"name": s} for s in STATUSES]
         if path == "/rest/api/3/issuetype":
@@ -168,7 +218,9 @@ class FakeJira:
         return 404, {}, {}
 
     def handle(self, request: httpx.Request) -> httpx.Response:
-        status, headers, data = self.answer(request.method, str(request.url), request.headers.get("authorization", ""), request.content)
+        status, headers, data = self.answer(
+            request.method, str(request.url), request.headers.get("authorization", ""), request.content
+        )
         return httpx.Response(status, headers=headers, json=data)
 
 
@@ -183,7 +235,9 @@ def serve(port: int, issues: int) -> None:
         def _reply(self, method: str) -> None:
             size = int(self.headers.get("Content-Length") or 0)
             body = self.rfile.read(size) if size else b""
-            status, headers, data = fake.answer(method, f"http://x{self.path}", self.headers.get("Authorization", ""), body)
+            status, headers, data = fake.answer(
+                method, f"http://x{self.path}", self.headers.get("Authorization", ""), body
+            )
             raw = json.dumps(data).encode()
             self.send_response(status)
             for key, value in headers.items():

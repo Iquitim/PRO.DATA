@@ -52,12 +52,22 @@ def no_sleep(_s: float) -> None:
     pass
 
 
-@pytest.mark.parametrize("text", ["empresa.atlassian.net", "https://empresa.atlassian.net/jira/software/projects/X/boards/1", "EMPRESA", " empresa.atlassian.net/ "])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "empresa.atlassian.net",
+        "https://empresa.atlassian.net/jira/software/projects/X/boards/1",
+        "EMPRESA",
+        " empresa.atlassian.net/ ",
+    ],
+)
 def test_site_accepts_how_people_paste_it(text: str) -> None:
     assert normalize_site(text) == "empresa.atlassian.net"
 
 
-@pytest.mark.parametrize("text", ["https://evil.com", "169.254.169.254", "empresa.atlassian.net.evil.com", ""])
+@pytest.mark.parametrize(
+    "text", ["https://evil.com", "169.254.169.254", "empresa.atlassian.net.evil.com", ""]
+)
 def test_site_refuses_anything_that_is_not_jira_cloud(text: str) -> None:
     with pytest.raises(InvalidInputError):
         normalize_site(text)
@@ -65,7 +75,10 @@ def test_site_refuses_anything_that_is_not_jira_cloud(text: str) -> None:
 
 def test_filters_become_jql() -> None:
     q = query(issue_types=["Bug"], statuses=['Em "teste"'], period_field="updated", period_days=90)
-    assert q.to_jql() == 'project in ("DEMO") AND issuetype in ("Bug") AND status in ("Em \\"teste\\"") AND updated >= -90d ORDER BY created ASC'
+    assert (
+        q.to_jql()
+        == 'project in ("DEMO") AND issuetype in ("Bug") AND status in ("Em \\"teste\\"") AND updated >= -90d ORDER BY created ASC'
+    )
 
 
 def test_query_without_limit_is_refused() -> None:
@@ -74,7 +87,9 @@ def test_query_without_limit_is_refused() -> None:
 
 
 def test_changed_since_keeps_the_filter_and_drops_the_order() -> None:
-    jql = JiraQuery(id="q", name="x", connection="c", advanced=True, jql="project = X OR project = Y ORDER BY rank").changed_since("2026-01-02 10:00")
+    jql = JiraQuery(
+        id="q", name="x", connection="c", advanced=True, jql="project = X OR project = Y ORDER BY rank"
+    ).changed_since("2026-01-02 10:00")
     assert jql == '(project = X OR project = Y) AND updated >= "2026-01-02 10:00" ORDER BY updated ASC'
 
 
@@ -91,11 +106,24 @@ def test_scoped_token_finds_the_gateway_alone(fake: FakeJira) -> None:
 
 
 def test_wrong_token_is_explained(fake: FakeJira) -> None:
-    with JiraClient("empresa.atlassian.net", EMAIL, "errado") as c, pytest.raises(JiraAuthError, match="vencido"):
+    with (
+        JiraClient("empresa.atlassian.net", EMAIL, "errado") as c,
+        pytest.raises(JiraAuthError, match="vencido"),
+    ):
         c.connect()
 
 
-@pytest.mark.parametrize(("method", "path"), [("POST", "/rest/api/3/issue"), ("PUT", "/rest/api/3/issue/X-1"), ("DELETE", "/rest/api/3/issue/X-1"), ("POST", "/rest/api/3/issue/X-1/comment"), ("POST", "/rest/api/3/issue/X-1/transitions"), ("POST", "/rest/api/3/search/jql")])
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("POST", "/rest/api/3/issue"),
+        ("PUT", "/rest/api/3/issue/X-1"),
+        ("DELETE", "/rest/api/3/issue/X-1"),
+        ("POST", "/rest/api/3/issue/X-1/comment"),
+        ("POST", "/rest/api/3/issue/X-1/transitions"),
+        ("POST", "/rest/api/3/search/jql"),
+    ],
+)
 def test_only_read_routes_can_be_called(method: str, path: str) -> None:
     with pytest.raises(JiraError, match="só lê"):
         assert_read_only(method, path)
@@ -117,7 +145,10 @@ def test_rate_limit_waits_as_told(fake: FakeJira) -> None:
 
 def test_gives_up_with_a_clear_message(fake: FakeJira) -> None:
     fake.rate_limit_next = 99
-    with JiraClient("empresa.atlassian.net", EMAIL, CLASSIC, sleep=no_sleep) as c, pytest.raises(JiraError, match="várias tentativas"):
+    with (
+        JiraClient("empresa.atlassian.net", EMAIL, CLASSIC, sleep=no_sleep) as c,
+        pytest.raises(JiraError, match="várias tentativas"),
+    ):
         c.connect()
 
 
@@ -125,7 +156,12 @@ def test_issues_become_columns(store: JiraStore) -> None:
     frame, info = jira_read.load(query(fields=["customfield_10001", "customfield_10002"]), store)
     assert frame.height == 12 and not info["incremental"]
     row = frame.filter(pl.col("chave") == "DEMO-1").row(0, named=True)
-    assert row["status"] == "Em andamento" and row["responsavel"] == "Dados" and row["rotulos"] == "a, b" and row["componentes"] == "Web"
+    assert (
+        row["status"] == "Em andamento"
+        and row["responsavel"] == "Dados"
+        and row["rotulos"] == "a, b"
+        and row["componentes"] == "Web"
+    )
     assert row["descricao"] == "Linha um\nLinha dois"
     assert isinstance(row["criado_em"], datetime)
     assert row["Story Points"] == "4" and row["Equipe"] == "Dados"
@@ -172,7 +208,9 @@ def test_incremental_replaces_what_changed(store: JiraStore, fake: FakeJira) -> 
     jira_read.load(query(), store)
     fake.touch("DEMO-2")
     frame, _ = jira_read.load(query(), store)
-    assert frame.height == 12 and frame.filter(pl.col("chave") == "DEMO-2")["resumo"].item().endswith("(editada)")
+    assert frame.height == 12 and frame.filter(pl.col("chave") == "DEMO-2")["resumo"].item().endswith(
+        "(editada)"
+    )
 
 
 def test_incremental_history_adds_the_new_change(store: JiraStore, fake: FakeJira) -> None:
@@ -195,7 +233,9 @@ def test_changing_the_query_invalidates_the_local_copy(store: JiraStore) -> None
     assert not info["incremental"]
 
 
-def test_interrupted_load_resumes_and_matches_a_full_one(store: JiraStore, fake: FakeJira, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_interrupted_load_resumes_and_matches_a_full_one(
+    store: JiraStore, fake: FakeJira, monkeypatch: pytest.MonkeyPatch
+) -> None:
     fake.issues = [fake._issue(i) for i in range(1, 451)]
     monkeypatch.setattr(jira_module.time, "sleep", no_sleep)
     fake.fail_after = 1  # primeiro lote passa, o segundo cai
@@ -205,7 +245,9 @@ def test_interrupted_load_resumes_and_matches_a_full_one(store: JiraStore, fake:
     fake.fail_after = None
     fake.calls.clear()
     resumed, _ = jira_read.load(query("history"), store)
-    assert sum(1 for _, p in fake.calls if p.endswith("bulkfetch")) == 2  # só o que faltava: 450 demandas em lotes de 200
+    assert (
+        sum(1 for _, p in fake.calls if p.endswith("bulkfetch")) == 2
+    )  # só o que faltava: 450 demandas em lotes de 200
     store.forget("q")
     whole, _ = jira_read.load(query("history"), store)
     assert resumed.sort("mudanca_id").equals(whole.sort("mudanca_id"))
@@ -229,7 +271,24 @@ def test_dates_keep_the_moment() -> None:
 
 
 def test_document_format_becomes_text() -> None:
-    doc = {"type": "doc", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Oi "}, {"type": "mention", "attrs": {"text": "@Ana"}}]}, {"type": "bulletList", "content": [{"type": "listItem", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "item"}]}]}]}]}
+    doc = {
+        "type": "doc",
+        "content": [
+            {
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Oi "}, {"type": "mention", "attrs": {"text": "@Ana"}}],
+            },
+            {
+                "type": "bulletList",
+                "content": [
+                    {
+                        "type": "listItem",
+                        "content": [{"type": "paragraph", "content": [{"type": "text", "text": "item"}]}],
+                    }
+                ],
+            },
+        ],
+    }
     assert adf_text(doc).split() == ["Oi", "@Ana", "item"]
 
 
@@ -238,7 +297,14 @@ def test_document_format_becomes_text() -> None:
 
 @pytest.fixture
 def api(client: TestClient, fake: FakeJira) -> TestClient:
-    save = client.put("/api/jira/connections/c", json={"connection": {"id": "c", "name": "Empresa", "site": "empresa.atlassian.net"}, "email": EMAIL, "token": CLASSIC})
+    save = client.put(
+        "/api/jira/connections/c",
+        json={
+            "connection": {"id": "c", "name": "Empresa", "site": "empresa.atlassian.net"},
+            "email": EMAIL,
+            "token": CLASSIC,
+        },
+    )
     assert save.status_code == 200, save.text
     return client
 
@@ -250,7 +316,12 @@ def test_routes_never_return_the_token(api: TestClient) -> None:
 
 def test_connection_test_says_who_and_how_many(api: TestClient) -> None:
     res = api.post("/api/jira/test", json={"site": "https://empresa.atlassian.net/x", "id": "c"}).json()
-    assert res == {"display_name": "Ana Souza", "token_kind": "comum", "projects": 2, "site": "empresa.atlassian.net"}
+    assert res == {
+        "display_name": "Ana Souza",
+        "token_kind": "comum",
+        "projects": 2,
+        "site": "empresa.atlassian.net",
+    }
 
 
 def test_preview_shows_lines_total_and_jql(api: TestClient) -> None:
@@ -266,7 +337,12 @@ def test_invalid_jql_is_explained(api: TestClient) -> None:
 def test_input_data_reads_a_jira_query(api: TestClient) -> None:
     body = {"id": "q", "name": "Demandas", "connection": "c", "projects": ["DEMO"]}
     assert api.put("/api/jira/queries/q", json=body).status_code == 200
-    flow = {"id": "j", "name": "Jira", "nodes": [{"id": "i", "type": "io.input_data", "config": {"dataset": "jira:q"}}], "edges": []}
+    flow = {
+        "id": "j",
+        "name": "Jira",
+        "nodes": [{"id": "i", "type": "io.input_data", "config": {"dataset": "jira:q"}}],
+        "edges": [],
+    }
     result = api.post("/api/execute", json={"workflow": flow}).json()["node_results"]["i"]
     assert result["status"] == "executed", result.get("error")
     assert result["anchors"]["out"]["row_count"] == 12 and result["extra"]["source"] == "Demandas"
@@ -275,7 +351,12 @@ def test_input_data_reads_a_jira_query(api: TestClient) -> None:
 def test_opening_a_flow_does_not_call_jira(api: TestClient, fake: FakeJira) -> None:
     api.put("/api/jira/queries/q", json={"id": "q", "name": "D", "connection": "c", "projects": ["DEMO"]})
     fake.calls.clear()
-    flow = {"id": "j2", "name": "Jira", "nodes": [{"id": "i", "type": "io.input_data", "config": {"dataset": "jira:q"}}], "edges": []}
+    flow = {
+        "id": "j2",
+        "name": "Jira",
+        "nodes": [{"id": "i", "type": "io.input_data", "config": {"dataset": "jira:q"}}],
+        "edges": [],
+    }
     report = api.post("/api/execute", json={"workflow": flow, "hold_exports": True}).json()
     assert report["node_results"]["i"]["status"] != "executed"
     assert not any(p.endswith("/search/jql") for _, p in fake.calls)

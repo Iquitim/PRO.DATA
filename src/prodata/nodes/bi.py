@@ -225,7 +225,9 @@ def chart(ctx: NodeContext, cfg: ChartConfig) -> NodeOutput:
         widget.update(_scatter(df, cfg), agg="none", y_column=cfg.y_column)
     elif cfg.chart_type == "bubble":
         widget.update(
-            bubble(df, cfg.x_column, cfg.x_value_column, cfg.y_column, cfg.size_column, cfg.agg, cfg.max_items),
+            bubble(
+                df, cfg.x_column, cfg.x_value_column, cfg.y_column, cfg.size_column, cfg.agg, cfg.max_items
+            ),
             x_value=cfg.x_value_column,
             size_column=cfg.size_column,
         )
@@ -715,11 +717,17 @@ def chart_sql(ctx: SqlContext, cfg: ChartConfig) -> dict[str, Fragment]:
         fn = _SQL_AGG[cfg.agg]
         size = f"{fn}({q(cfg.size_column)})" if cfg.size_column else "count(*)"
         select = f"SELECT {x}, {fn}({q(cfg.x_value_column)}) AS eixo_x, {fn}({q(cfg.y_column)}) AS eixo_y, {size} AS tamanho"
-        return _passthrough(ctx, cfg.title, f"{select}\nFROM {block}\nGROUP BY {x}\nORDER BY tamanho DESC, {x}")
+        return _passthrough(
+            ctx, cfg.title, f"{select}\nFROM {block}\nGROUP BY {x}\nORDER BY tamanho DESC, {x}"
+        )
     if cfg.chart_type == "scatter":
         return _passthrough(ctx, cfg.title, f"SELECT {x}, {q(cfg.y_column)}\nFROM {block}")
     value = "count(*)" if cfg.agg == "count" else f"{_SQL_AGG[cfg.agg]}({q(cfg.y_column)})"
-    series = [q(cfg.series_column)] if cfg.series_column and (cfg.chart_type in SERIES_CHARTS or cfg.chart_type == "sankey") else []
+    series = (
+        [q(cfg.series_column)]
+        if cfg.series_column and (cfg.chart_type in SERIES_CHARTS or cfg.chart_type == "sankey")
+        else []
+    )
     groups = ", ".join([x, *series])
     order = (
         groups

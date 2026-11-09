@@ -86,7 +86,9 @@ def catalog(conn_id: ItemId, services: ServicesDep) -> dict[str, Any]:
 
 @router.get("/queries")
 def list_queries(services: ServicesDep) -> list[dict[str, Any]]:
-    return [{**q.model_dump(mode="json"), **jira_read.status(q, services.jira)} for q in services.jira.queries()]
+    return [
+        {**q.model_dump(mode="json"), **jira_read.status(q, services.jira)} for q in services.jira.queries()
+    ]
 
 
 @router.put("/queries/{query_id}")
@@ -111,7 +113,9 @@ def preview(definition: JiraQueryDefinition, services: ServicesDep) -> dict[str,
 
 
 @router.post("/queries/{query_id}/reload")
-def reload_query(query_id: ItemId, services: ServicesDep, full: Annotated[bool, Query()] = True) -> dict[str, Any]:
+def reload_query(
+    query_id: ItemId, services: ServicesDep, full: Annotated[bool, Query()] = True
+) -> dict[str, Any]:
     frame, info = jira_read.load(services.jira.query(query_id), services.jira, full=full)
     return {"rows": frame.height, **info}
 

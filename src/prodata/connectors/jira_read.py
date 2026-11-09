@@ -40,9 +40,26 @@ BASE_COLUMNS = {
 }
 _DATES = {"criado_em", "atualizado_em", "resolvido_em"}
 REQUESTED = [f for c, f in BASE_COLUMNS.items() if c not in ("chave", "categoria_status")]
-HISTORY_SCHEMA = {"chave": pl.String, "mudanca_id": pl.String, "quando": pl.Datetime("us"), "autor": pl.String, "campo": pl.String, "de": pl.String, "para": pl.String}
-COMMENT_SCHEMA = {"chave": pl.String, "comentario_id": pl.String, "autor": pl.String, "criado_em": pl.Datetime("us"), "atualizado_em": pl.Datetime("us"), "texto": pl.String}
-CHANGED_MARGIN = timedelta(days=1)  # o JQL compara em minutos e no fuso da conta: uma folga garante que nada escape
+HISTORY_SCHEMA = {
+    "chave": pl.String,
+    "mudanca_id": pl.String,
+    "quando": pl.Datetime("us"),
+    "autor": pl.String,
+    "campo": pl.String,
+    "de": pl.String,
+    "para": pl.String,
+}
+COMMENT_SCHEMA = {
+    "chave": pl.String,
+    "comentario_id": pl.String,
+    "autor": pl.String,
+    "criado_em": pl.Datetime("us"),
+    "atualizado_em": pl.Datetime("us"),
+    "texto": pl.String,
+}
+CHANGED_MARGIN = timedelta(
+    days=1
+)  # o JQL compara em minutos e no fuso da conta: uma folga garante que nada escape
 BATCH = 200
 SEARCH_FIELDS = ["updated"]
 PREVIEW_ROWS = 50
@@ -186,7 +203,9 @@ def _detail_frame(query: JiraQuery, client: JiraClient, issues: list[dict[str, A
 class Loader:
     """Uma carga: completa, retomada ou só com o que mudou."""
 
-    def __init__(self, query: JiraQuery, store: JiraStore, client: JiraClient, report: Callable[[str], None]) -> None:
+    def __init__(
+        self, query: JiraQuery, store: JiraStore, client: JiraClient, report: Callable[[str], None]
+    ) -> None:
         self.query = query
         self.client = client
         self.report = report
@@ -248,7 +267,9 @@ class Loader:
         if not fresh:
             return old
         page = _frame(fresh)
-        return pl.concat([old.join(page.select("chave"), on="chave", how="anti"), page], how="diagonal_relaxed").sort("criado_em")
+        return pl.concat(
+            [old.join(page.select("chave"), on="chave", how="anti"), page], how="diagonal_relaxed"
+        ).sort("criado_em")
 
     # ------------------------------------------------------------------ histórico e comentários
 
@@ -277,9 +298,16 @@ class Loader:
         issues = self._all_issues(self.query.changed_since(since))
         if not issues:
             return old
-        fresh = pl.concat([_detail_frame(self.query, self.client, issues[i : i + BATCH]) for i in range(0, len(issues), BATCH)])
+        fresh = pl.concat(
+            [
+                _detail_frame(self.query, self.client, issues[i : i + BATCH])
+                for i in range(0, len(issues), BATCH)
+            ]
+        )
         keys = pl.DataFrame({"chave": [i["key"] for i in issues]})
-        return pl.concat([old.join(keys, on="chave", how="anti"), fresh]).sort("chave", "quando" if self.query.table == "history" else "criado_em")
+        return pl.concat([old.join(keys, on="chave", how="anti"), fresh]).sort(
+            "chave", "quando" if self.query.table == "history" else "criado_em"
+        )
 
     # ------------------------------------------------------------------ carga
 
@@ -290,17 +318,27 @@ class Loader:
         custom = _custom_columns(self.query, field_names(self.client)) if self.query.table == "issues" else {}
         if changed_only:
             since = (datetime.fromisoformat(before["synced_at"]) - CHANGED_MARGIN).strftime("%Y-%m-%d %H:%M")
-            frame = self._issues_changed(since, custom) if self.query.table == "issues" else self._details_changed(since)
+            frame = (
+                self._issues_changed(since, custom)
+                if self.query.table == "issues"
+                else self._details_changed(since)
+            )
         else:
             resume = self._progress()
             if resume:
                 self.report("Continuando de onde parou")
-            frame = self._issues_full(resume, custom) if self.query.table == "issues" else self._details_full(resume)
+            frame = (
+                self._issues_full(resume, custom)
+                if self.query.table == "issues"
+                else self._details_full(resume)
+            )
         self._finish(frame, started, not changed_only, before)
         return frame
 
 
-def load(query: JiraQuery, store: JiraStore, *, full: bool = False, report: Callable[[str], None] = lambda _t: None) -> tuple[pl.DataFrame, dict[str, Any]]:
+def load(
+    query: JiraQuery, store: JiraStore, *, full: bool = False, report: Callable[[str], None] = lambda _t: None
+) -> tuple[pl.DataFrame, dict[str, Any]]:
     """Traz a consulta e devolve a tabela e o que aconteceu na carga."""
     with store.client(query.connection, report=report) as client:
         loader = Loader(query, store, client, report)
@@ -312,4 +350,9 @@ def load(query: JiraQuery, store: JiraStore, *, full: bool = False, report: Call
 def status(query: JiraQuery, store: JiraStore) -> dict[str, Any]:
     loader = Loader(query, store, None, lambda _t: None)  # type: ignore[arg-type]
     meta = loader.meta()
-    return {"synced_at": meta.get("synced_at"), "full_at": meta.get("full_at"), "rows": meta.get("rows"), "interrupted": bool(loader._progress())}
+    return {
+        "synced_at": meta.get("synced_at"),
+        "full_at": meta.get("full_at"),
+        "rows": meta.get("rows"),
+        "interrupted": bool(loader._progress()),
+    }

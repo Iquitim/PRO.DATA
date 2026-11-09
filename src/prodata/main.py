@@ -85,7 +85,9 @@ def build_services(settings: Settings) -> Services:
         settings=settings,
         datasets=datasets,
         cache=cache,
-        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries, apis, constants, jira),
+        runner=WorkflowRunner(
+            cache, datasets, settings.exports_dir, connections, queries, apis, constants, jira
+        ),
         workflows=workflows,
         connections=connections,
         queries=queries,

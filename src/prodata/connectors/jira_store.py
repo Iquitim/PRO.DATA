@@ -54,7 +54,9 @@ class JiraStore:
     def connection(self, conn_id: str) -> JiraConnection:
         conn = self._connections().get(conn_id)
         if conn is None:
-            raise NotFoundError(f"Conexão do Jira não encontrada: {conn_id}. Ela foi excluída da vista Dados?")
+            raise NotFoundError(
+                f"Conexão do Jira não encontrada: {conn_id}. Ela foi excluída da vista Dados?"
+            )
         return conn
 
     def save_connection(self, conn: JiraConnection, email: str | None, token: str | None) -> JiraInfo:

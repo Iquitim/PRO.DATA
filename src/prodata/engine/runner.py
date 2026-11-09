@@ -311,7 +311,11 @@ class WorkflowRunner:
         for upstream in sorted(graph.ancestors(workflow, node_id)):
             node = workflow.node(upstream)
             dataset = str(node.config.get("dataset") or "")
-            external = source_query_id(dataset) is not None or source_api_id(dataset) is not None or dataset.startswith("jira:")
+            external = (
+                source_query_id(dataset) is not None
+                or source_api_id(dataset) is not None
+                or dataset.startswith("jira:")
+            )
             if node.type != "io.input_data" or not dataset or external:
                 continue
             try:
