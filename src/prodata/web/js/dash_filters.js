@@ -5,6 +5,7 @@ import { icon } from './icons.js';
 
 const SHOWN_VALUES = 200;
 const MAX_PILLS = 12; // acima disso, os valores ficam na caixa com busca
+const EMPTY_VALUE = '(vazio)'; // o mesmo de filters.py
 const CROSS_CHARTS = ['bar', 'hbar', 'donut', 'pareto'];
 const CLICK_ONLY_CHARTS = ['stacked', 'grouped', 'stacked100'];
 
@@ -96,6 +97,11 @@ function listEditor(f, option, onChange) {
         for (const v of all) if (!q || v.toLowerCase().includes(q)) chosen.add(v);
         emit(); draw();
       } }),
+      all.includes(EMPTY_VALUE) && !option?.truncated ? button({ label: 'Só preenchidos', size: 'sm', variant: 'ghost', onClick: () => {
+        chosen.clear();
+        for (const v of all) if (v !== EMPTY_VALUE) chosen.add(v);
+        emit(); draw();
+      } }) : null,
       button({ label: 'Limpar', size: 'sm', variant: 'ghost', onClick: () => { chosen.clear(); emit(); draw(); } })),
     box,
     option?.truncated ? h('p', { class: 'field-help' }, 'Muitos valores: a lista traz só os primeiros.') : null);

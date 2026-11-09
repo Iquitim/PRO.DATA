@@ -1,6 +1,6 @@
 /* Dashboard de BI. Texto usa sempre tokens de texto; as cores de série só pintam marcas. */
 
-.dashboard { padding: 24px; }
+.dashboard { padding: 24px; scrollbar-gutter: stable; } /* a barra de rolagem não muda a largura nem a escala */
 .dash-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .dash-head h1 { font-size: var(--fs-2xl); font-weight: 600; }
 
@@ -152,6 +152,25 @@
 .dash-guide { position: absolute; z-index: 4; pointer-events: none; background: var(--brand-gold, #b58a2a); }
 .dash-guide.v { top: 0; bottom: 0; width: calc(1px * var(--inv)); }
 .dash-guide.h { left: 0; right: 0; height: calc(1px * var(--inv)); }
+/* medidas iguais: espaço entre itens (dourado) e mesma largura ou altura (destaque) */
+.dash-measure { position: absolute; z-index: 4; pointer-events: none; color: var(--brand-gold, #b58a2a); }
+.dash-measure.size { color: var(--accent); }
+.dash-measure.x { height: 0; border-top: calc(1.5px * var(--inv)) solid currentColor; }
+.dash-measure.y { width: 0; border-left: calc(1.5px * var(--inv)) solid currentColor; }
+.dash-measure::before, .dash-measure::after { content: ''; position: absolute; background: currentColor; }
+.dash-measure.x::before, .dash-measure.x::after { top: calc(-5px * var(--inv)); width: calc(1.5px * var(--inv)); height: calc(9px * var(--inv)); }
+.dash-measure.x::before { left: 0; }
+.dash-measure.x::after { right: 0; }
+.dash-measure.y::before, .dash-measure.y::after { left: calc(-5px * var(--inv)); height: calc(1.5px * var(--inv)); width: calc(9px * var(--inv)); }
+.dash-measure.y::before { top: 0; }
+.dash-measure.y::after { bottom: 0; }
+.dash-measure b {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 0 calc(4px * var(--inv));
+  border: calc(1px * var(--inv)) solid currentColor; border-radius: calc(4px * var(--inv)); background: var(--surface);
+  color: var(--text); font-size: calc(11px * var(--inv)); font-weight: 600; line-height: 1.4; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.dash-page.painting, .dash-page.painting .dash-item { cursor: copy; }
+.dash-panel-tools { display: flex; margin-bottom: 10px; }
 .dash-marquee {
   position: absolute; z-index: 4; pointer-events: none;
   border: calc(1px * var(--inv)) dashed var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent);

@@ -117,6 +117,10 @@ def _simple_condition(source: SqlInput, cfg: FilterConfig) -> str:
         return f"{column} IS NULL"
     if cfg.operator == "is_not_null":
         return f"{column} IS NOT NULL"
+    if cfg.operator == "is_empty":
+        return f"({column} IS NULL OR trim({text_cast(column, kind)}) = '')"
+    if cfg.operator == "is_not_empty":
+        return f"({column} IS NOT NULL AND trim({text_cast(column, kind)}) <> '')"
     if cfg.operator == "contains":
         return f"contains(lower({text_cast(column, kind)}), {lit(cfg.value.lower())})"
     if cfg.operator == "starts_with":

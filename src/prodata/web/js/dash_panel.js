@@ -37,7 +37,9 @@ export function panelEl() {
   return h('aside', { class: 'dash-panel', style: { width: `${PANEL_W}px` } }, body);
 }
 
-function formatKind(item) {
+export const formatFields = (kind) => formats?.[kind] || [];
+
+export function formatKind(item) {
   if (item.kind !== 'visual') return item.kind;
   const type = widgetsByNode()[item.node_id]?.widget_type || { 'bi.kpi_card': 'kpi', 'bi.table': 'table' }[nodeOf(item.node_id)?.type];
   return type === 'kpi' || type === 'table' ? type : 'chart';
@@ -57,18 +59,23 @@ function itemPanel(item) {
     if (ctrl.has(name) || (path.length === 1 && Array.isArray(value))) els.panelKey = null;
     commitLayout((dd) => {
       const it = dd.items.find((i) => i.id === item.id);
-      if (it) it.format = setIn(structuredClone(it.format || {}), path, value);
+      if (!it) return;
+      it.format = setIn(structuredClone(it.format || {}), path, value);
+      if (name === 'category_colors') keepOtherColors(it.format);
     }, { key: `fmt:${item.id}:${path.join('.')}` });
   };
   // "Cor por categoria" pinta o que tem cor no visual: séries, conjuntos do Venn ou categorias.
+  const oneColor = !widget?.series_names?.length && ['line', 'area'].includes(widget?.chart_type);
   const colored = widget?.widget_type === 'venn' ? widget.sets.map((s) => s.name)
     : widget?.series_names?.length ? widget.series_names
+      : oneColor ? []
       : widget?.chart_type === 'bubble' ? (widget.points || []).map((p) => p.label)
       : widget?.chart_type === 'sankey' ? [...new Set((widget.links || []).flatMap((l) => [l.source, l.target]))]
       : widget?.chart_type === 'scatter' ? [...new Set((widget.points || []).map((p) => p.s).filter((s) => s !== undefined))]
         : widget?.series?.map((s) => s.label) || [];
   const ctx = {
     categories: colored,
+    noCategories: oneColor ? 'Este gráfico tem uma série só. Mude a cor dele em Uma cor só.' : '',
     columns: () => (widget?.columns || []).filter((c) => c.numeric).map((c) => ({ name: c.name, type: 'Float64' })),
     contrastFor: (name) => {
       if (['color', 'category_colors'].includes(name) && kind === 'chart') return { against: surface, min: 3, what: 'o fundo do cartão' };
@@ -77,7 +84,8 @@ function itemPanel(item) {
       return null;
     },
     defaultColor: (name, i = 0) => {
-      if (['color', 'category_colors'].includes(name) && kind === 'chart') return hex(cssVar(`--series-${(i % 8) + 1}`));
+      if (name === 'category_colors') return colorInUse(i, widget, item.format || {});
+      if (name === 'color' && kind === 'chart') return hex(cssVar('--series-1'));
       if (['color', 'value_color'].includes(name)) return hex(cssVar('--text'));
       if (['background', 'fill'].includes(name)) return hex(cssVar('--surface'));
       return hex(cssVar('--border-strong'));
@@ -88,12 +96,33 @@ function itemPanel(item) {
     h('header', { class: 'dash-panel-head' },
       h('span', { class: 'dash-panel-kicker' }, item.kind === 'visual' ? (kind === 'kpi' ? 'KPI' : 'Gráfico') : 'Elemento'),
       h('strong', {}, title)),
+    h('div', { class: 'dash-panel-tools' }, button({
+      icon: 'paintbrush', label: ui.paint ? 'Parar de copiar' : 'Copiar formato', size: 'sm', title: 'Levar este formato para outras caixas',
+      onClick: () => (ui.paint ? dashPage.stopPaint() : dashPage.startPaint(item)),
+    })),
     item.kind === 'visual' ? h('div', { class: 'dash-panel-note' },
       h('span', { class: 'muted' }, 'Dados, ordenação e limite de categorias ficam na caixa do fluxo.'),
       button({ icon: 'workflow', label: 'Editar dados', size: 'sm', onClick: () => dashPage.goToNode(item.node_id) })) : null,
     item.kind === 'text' ? textContentField(item) : null,
     item.kind === 'image' ? imageField(item) : null,
     renderFields(fields, f, onChange, ctx));
+}
+
+/** Barras, funil e Pareto usam uma cor para todas as categorias; os demais, uma por posição. */
+function colorInUse(i, widget, f) {
+  const base = f.palette === 'custom' ? (f.other_palette || 'brand') : (f.palette || 'brand');
+  if (base === 'single' && f.color) return f.color;
+  const shared = !widget?.series_names?.length && ['bar', 'hbar', 'funnel', 'pareto'].includes(widget?.chart_type);
+  return hex(cssVar(`--${base === 'alt' ? 'alt' : 'series'}-${shared ? 1 : (i % 8) + 1}`));
+}
+
+/** Quem muda a cor de uma categoria passa a usar cor por categoria, sem mexer nas outras. */
+function keepOtherColors(f) {
+  if (f.palette === 'custom') return;
+  if (f.palette && f.palette !== 'brand') f.other_palette = f.palette;
+  f.palette = 'custom';
+  const select = els.panel?.querySelector('[id^="f_palette_"]');
+  if (select) select.value = 'custom';
 }
 
 /** Atribui `value` no caminho dentro de `obj` (cria listas e objetos no caminho) e devolve `obj`. */
@@ -149,5 +178,5 @@ function pagePanel(d) {
         if (name === 'size' && value === 'free') dd.page.height = pageHeight(d.page);
       }, { key: `page:${name}` });
     }, { defaultColor: () => hex(cssVar('--bg')) }),
-    h('p', { class: 'muted' }, 'Clique num visual para formatá-lo. Shift+arrastar seleciona vários; Alt solta o encaixe.'));
+    h('p', { class: 'muted' }, 'Clique num visual para formatá-lo. Arrastar no vazio seleciona vários; Alt solta o encaixe.'));
 }

@@ -97,7 +97,21 @@ def apply_select(
 
 # ------------------------------------------------------------------ Filter
 
-Operator = Literal["==", "!=", ">", ">=", "<", "<=", "contains", "starts_with", "is_null", "is_not_null"]
+Operator = Literal[
+    "==",
+    "!=",
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "contains",
+    "starts_with",
+    "is_null",
+    "is_not_null",
+    "is_empty",
+    "is_not_empty",
+]
+_NO_VALUE = ("is_null", "is_not_null", "is_empty", "is_not_empty")
 
 
 class FilterConfig(ToolConfig):
@@ -123,6 +137,8 @@ class FilterConfig(ToolConfig):
                 "starts_with": "começa com",
                 "is_null": "é nulo",
                 "is_not_null": "não é nulo",
+                "is_empty": "está vazio (nulo ou em branco)",
+                "is_not_empty": "está preenchido",
             },
         ),
     )
@@ -158,6 +174,9 @@ def _simple_mask(df: pl.DataFrame, cfg: FilterConfig) -> pl.Series:
         return s.is_null()
     if cfg.operator == "is_not_null":
         return s.is_not_null()
+    if cfg.operator in ("is_empty", "is_not_empty"):
+        empty = (s.cast(pl.String).str.strip_chars(" ") == "").fill_null(True)
+        return empty if cfg.operator == "is_empty" else ~empty
     if cfg.operator in ("contains", "starts_with"):
         text = s.cast(pl.String).str.to_lowercase()
         needle = cfg.value.lower()
@@ -192,7 +211,7 @@ def _simple_mask(df: pl.DataFrame, cfg: FilterConfig) -> pl.Series:
 def _filter_annotation(c: FilterConfig) -> str:
     if c.mode == "expression":
         return c.expression
-    if c.operator in ("is_null", "is_not_null"):
+    if c.operator in _NO_VALUE:
         return f"[{c.column}] {c.operator.replace('_', ' ')}"
     return f"[{c.column}] {c.operator} {c.value}"
 

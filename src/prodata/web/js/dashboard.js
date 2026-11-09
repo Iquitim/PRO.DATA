@@ -17,6 +17,7 @@ import { commitLayout, dash, els, itemById, newId, nodeLabel, nodeOf, page as da
 import { bbox, drawGuides, overlaps, resizeRect, snapBox } from './dash_snap.js';
 import { insertItems } from './dash_insert.js';
 import { openOrganize } from './dash_organize.js';
+import { applyPaint, startPaint, stopPaint } from './dash_paint.js';
 import { loadFormats, PANEL_W, panelEl } from './dash_panel.js';
 import { exportPage, exportVisual } from './dash_png.js';
 
@@ -31,7 +32,7 @@ let clip = { items: [], pastes: 0 };
 export function initDashboard(el, opts) {
   root = el;
   handlers = opts;
-  Object.assign(dashPage, { root: el, render, pageEl, itemEl, shownWidgets, goToNode, alignItems, stripNote: momentNote });
+  Object.assign(dashPage, { root: el, render, pageEl, itemEl, shownWidgets, goToNode, alignItems, stripNote: momentNote, startPaint, stopPaint });
   initReplay({ redraw: () => store.view === 'dashboard' && render(), patch: patchVisuals, columns: () => options.list, goToNode });
   setCardEnv({
     open: goToNode,
@@ -43,9 +44,11 @@ export function initDashboard(el, opts) {
   });
   const refresh = () => store.view === 'dashboard' && render();
   on('execution', refresh);
-  on('workflow:loaded', () => { ui.selected.clear(); ui.mode = 'view'; refresh(); });
+  on('workflow:loaded', () => { ui.selected.clear(); ui.mode = 'view'; ui.paint = null; refresh(); });
   on('workflow:changed', refresh);
-  new ResizeObserver(debounce(refresh, 120)).observe(root);
+  // Só a largura decide a escala: redesenhar por causa da altura poderia entrar em ciclo.
+  let width = 0;
+  new ResizeObserver(debounce(() => { if (root.clientWidth !== width) { width = root.clientWidth; refresh(); } }, 120)).observe(root);
 }
 
 export function goToNode(id) {
@@ -196,7 +199,7 @@ function pageEl({ editing = false, exporting = false } = {}) {
   const pulse = filtered.pulse && !exporting && !editing;
   if (!exporting) filtered.pulse = false;
   return h('div', {
-    class: ['dash-page', editing && 'editing', exporting && 'dash-export', pulse && 'dash-refresh'],
+    class: ['dash-page', editing && 'editing', editing && ui.paint && 'painting', exporting && 'dash-export', pulse && 'dash-refresh'],
     style: { width: `${PAGE_W}px`, height: `${pageHeight(d.page)}px`, backgroundColor: d.page.background || null },
   }, d.items.map((item) => itemEl(item, widgets, { editing, exporting })));
 }
@@ -277,12 +280,13 @@ function headEl() {
     button({ icon: 'refresh', label: 'Atualizar dados', variant: 'primary', onClick: () => handlers.run() }),
   ];
   return h('header', { class: 'dash-head slim' },
-    h('p', { class: 'dash-status' }, editing ? 'Editando o layout · arraste, redimensione, formate e use Organizar' : status),
+    h('p', { class: 'dash-status' }, !editing ? status : ui.paint ? 'Copiando o formato · clique nas caixas que devem recebê-lo. Esc encerra' : 'Editando o layout · arraste, redimensione, formate e use Organizar'),
     h('div', { class: 'dash-actions' }, actions));
 }
 
 function setMode(mode) {
   ui.mode = mode;
+  ui.paint = null;
   ui.selected.clear();
   ui.zoom = null;
   render();
@@ -406,6 +410,11 @@ function onDown(e) {
   const p = toPage(e);
   const handle = e.target.closest('.dash-handle');
   const el = e.target.closest('.dash-item');
+  if (ui.paint) {
+    if (el) applyPaint(el.dataset.id); else stopPaint();
+    e.preventDefault();
+    return;
+  }
   const additive = e.shiftKey || e.ctrlKey || e.metaKey;
   if (handle) {
     const item = itemById(el.dataset.id);
@@ -515,6 +524,7 @@ function onContextMenu(e) {
   if (ui.mode === 'edit') {
     const free = !visual;
     items.push('separator',
+      { label: 'Copiar formato', icon: 'paintbrush', onSelect: () => startPaint(item) },
       free ? { label: 'Copiar', icon: 'copy', shortcut: 'Ctrl+C', onSelect: copySelection } : null,
       free ? { label: 'Duplicar', icon: 'copy', shortcut: 'Ctrl+D', onSelect: () => copySelection() && pasteClip() } : null,
       clip.items.length ? { label: 'Colar', icon: 'clipboard', shortcut: 'Ctrl+V', onSelect: pasteClip } : null,
@@ -618,7 +628,7 @@ export function handleDashboardKey(e) {
   if (mod && key === 'v') { pasteClip(); return true; }
   if (mod && key === 'd') { if (copySelection()) pasteClip(); return true; }
   if (mod) return false;
-  if (e.key === 'Escape') { ui.selected.clear(); refreshSelection(); return true; }
+  if (e.key === 'Escape') { if (!stopPaint()) { ui.selected.clear(); refreshSelection(); } return true; }
   if (!ui.selected.size) return false;
   if (e.key === 'Delete' || e.key === 'Backspace') { removeSelected(); return true; }
   const step = e.shiftKey ? GRID : 1;

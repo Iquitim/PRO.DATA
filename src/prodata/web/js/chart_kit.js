@@ -57,7 +57,9 @@ export function options(opts = {}) {
   const affix = (s) => `${opts.prefix || ''}${s}${opts.suffix || ''}`;
   const decimals = opts.decimals ?? 1;
   return {
-    palette: opts.palette || 'brand',
+    // Com cor por categoria, o que não tem cor própria segue a paleta das demais.
+    palette: opts.palette === 'custom' ? opts.other_palette || 'brand' : opts.palette || 'brand',
+    custom: opts.palette === 'custom',
     color: opts.color || '',
     categoryColors: opts.category_colors || {},
     labels: opts.data_labels, // undefined = comportamento original de cada gráfico
@@ -83,7 +85,7 @@ export function options(opts = {}) {
  */
 export function paint(o, i, label, multi) {
   const slot = (i % MAX_SLICES) + 1;
-  const custom = o.palette === 'custom' && o.categoryColors[o.keyOf(label)];
+  const custom = o.custom && o.categoryColors[o.keyOf(label)];
   if (custom) return { style: `fill:${custom}` };
   if (o.palette === 'single' && o.color) return { style: `fill:${o.color}${multi ? `;fill-opacity:${Math.max(0.35, 1 - i * 0.12)}` : ''}` };
   if (o.palette === 'alt') return multi ? { class: `a${slot}` } : { style: 'fill:var(--alt-1)' };
@@ -168,7 +170,7 @@ export function yScale(values, o, fromZero) {
 
 /** Cor (CSS) da série i: a mesma regra de paint(), em forma de valor para fill/stroke. */
 export function tone(o, i, name) {
-  if (o.palette === 'custom' && o.categoryColors[o.keyOf(name)]) return o.categoryColors[o.keyOf(name)];
+  if (o.custom && o.categoryColors[o.keyOf(name)]) return o.categoryColors[o.keyOf(name)];
   if (o.palette === 'single' && o.color) return o.color;
   return `var(--${o.palette === 'alt' ? 'alt' : 'series'}-${(i % MAX_SLICES) + 1})`;
 }

@@ -4,7 +4,7 @@ import { refreshJira } from './jira_ui.js';
 import { duplicateNode, removeContainer, removeEdge, removeNodes } from './actions.js';
 import { api } from './api.js';
 import {
-  addContainerAtCenter, currentZoom, fitView, heldBy, initCanvas, NODE_W, pointerWorld, render as renderCanvas, showProgress, zoomBy,
+  addContainerAtCenter, canvasTool, currentZoom, fitView, heldBy, initCanvas, NODE_W, pointerWorld, render as renderCanvas, setCanvasTool, showProgress, zoomBy,
 } from './canvas.js';
 import { copySelection, cutSelection, paste } from './clipboard.js';
 import { handleDashboardKey, initDashboard, render as renderDashboard } from './dashboard.js';
@@ -376,6 +376,7 @@ const SHORTCUTS = [
   ['Ctrl + D', 'Duplicar caixa'], ['Delete', 'Excluir caixa, ligação ou etapa selecionada'], ['G', 'Nova etapa'], ['Ctrl + K', 'Buscar ferramenta, ação, caixa, fonte ou capítulo'], ['F1', 'Abrir e fechar o Manual'], ['F', 'Ajustar à tela'], ['F11 / Esc', 'Modo foco: só o fluxo na tela / voltar os painéis'],
   ['Shift + clique / Ctrl + clique', 'Adicionar ou tirar caixa da seleção'],
   ['Shift + arrastar no vazio', 'Selecionar várias caixas com um retângulo'], ['Ctrl + A', 'Selecionar todas'],
+  ['H / V', 'Arrastar no vazio: navegar / selecionar'],
   ['+ / −', 'Zoom'], ['Duplo clique no canvas', 'Adicionar ferramenta'],
   ['Esc', 'Limpar seleção'],
 ];
@@ -511,7 +512,18 @@ function buildCanvasToolbar() {
   };
   on('focus', (active) => { placeCanvasToolbar(active); drawFocus(); showFocusHint(active); });
   drawFocus();
+  const toolButton = (name, iconName, title) => {
+    const el = button({ icon: iconName, title, variant: 'ghost', onClick: () => setCanvasTool(name) });
+    const draw = () => el.setAttribute('aria-pressed', String(canvasTool() === name));
+    on('canvas:tool', draw);
+    draw();
+    return el;
+  };
   $('#canvasToolbar').replaceChildren(
+    h('div', { class: 'canvas-tools', role: 'group', 'aria-label': 'O que o arraste faz' },
+      toolButton('pan', 'hand', 'Navegar: arrastar anda pela tela (H)'),
+      toolButton('select', 'pointer', 'Selecionar: arrastar marca várias caixas (V)')),
+    h('div', { class: 'divider-v' }),
     undoBtn, redoBtn, h('div', { class: 'divider-v' }),
     button({ icon: 'zoom-out', title: 'Diminuir zoom (−)', variant: 'ghost', onClick: () => zoomBy(1 / 1.2) }),
     button({ icon: 'zoom-in', title: 'Aumentar zoom (+)', variant: 'ghost', onClick: () => zoomBy(1.2) }),
@@ -665,6 +677,8 @@ function setupShortcuts() {
       else if (store.selection.containerId) removeContainer(store.selection.containerId);
     } else if (key === 'g' && store.view === 'designer') addContainerAtCenter();
     else if (key === 'f' && store.view === 'designer') fitView();
+    else if (key === 'h' && store.view === 'designer') setCanvasTool('pan');
+    else if (key === 'v' && store.view === 'designer') setCanvasTool('select');
     else if (key === '+' || key === '=') zoomBy(1.2);
     else if (key === '-') zoomBy(1 / 1.2);
     else if (key === '?') shortcutsDialog();

@@ -188,7 +188,7 @@ function multiPanel(ids) {
       h('span', { class: 'inspector-icon neutral' }, icon('check', 18)),
       h('div', { class: 'grow' }, h('div', { class: 'inspector-title' }, `${nodes.length} caixas selecionadas`),
         h('div', { class: 'inspector-sub' }, 'Arraste qualquer uma para mover todas'))),
-    h('p', { class: 'inspector-desc' }, 'Shift ou Ctrl + clique adiciona ou tira uma caixa da seleção; Shift + arrastar no vazio seleciona com um retângulo.'),
+    h('p', { class: 'inspector-desc' }, 'Shift ou Ctrl + clique adiciona ou tira uma caixa da seleção; Shift + arrastar no vazio, ou o modo Selecionar da barra, marca com um retângulo.'),
     h('div', { class: 'pad stack-sm' },
       h('div', { class: 'multi-actions' }, actions.map((a) => button({
         icon: a.icon, label: a.label, size: 'sm', variant: a.danger ? 'danger' : '', disabled: a.disabled, onClick: a.onSelect,

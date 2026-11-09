@@ -158,7 +158,7 @@ Esses cadastros existem só no computador da pessoa: mantenha os que vieram no f
 IF c THEN a ELSEIF d THEN b ELSE e ENDIF
 = == != <> < <= > >=                   comparações
 AND OR NOT                             lógica
-Null                                   valor vazio; teste com IsNull([coluna])
+Null                                   valor vazio; teste com IsNull([coluna]) ou IsNotNull([coluna])
 Concat([a], ' - ', [b])                junta textos: o + só soma números
 ```
 

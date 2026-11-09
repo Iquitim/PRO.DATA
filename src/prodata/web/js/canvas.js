@@ -57,6 +57,7 @@ const DRAG_THRESHOLD = 4;
 let gesture = null;
 let lastTitleClick = { id: null, at: 0 };
 let lastPointer = null; // posição do cursor sobre o canvas (para colar no lugar certo)
+let tool = storage('prodata.canvas.tool', 'pan'); // pan = arrastar anda pela tela; select = arrastar seleciona
 
 // ------------------------------------------------------------------ geometria
 
@@ -160,6 +161,15 @@ export function inspectInput(nodeId, port) {
 
 // ------------------------------------------------------------------ gestos
 
+export const canvasTool = () => tool;
+
+export function setCanvasTool(next) {
+  tool = next;
+  persist('prodata.canvas.tool', next);
+  els.viewport.classList.toggle('tool-select', next === 'select');
+  emit('canvas:tool', next);
+}
+
 function onPointerDown(e) {
   // A barra flutuante fica dentro do canvas: sem isto o pan capturaria o ponteiro e o clique não chegaria aos botões.
   if (e.button === 2 || e.target.closest('.canvas-toolbar, .trust-host')) return;
@@ -180,10 +190,10 @@ function onPointerDown(e) {
     const members = nodesInside(c, NODE_W).map((n) => ({ id: n.id, x: n.x, y: n.y }));
     gesture = { type: 'container-move', id: c.id, x: c.x, y: c.y, members, start: world,
       startX: e.clientX, startY: e.clientY, moved: false };
-  } else if (e.button !== 1 && (e.shiftKey || e.ctrlKey || e.metaKey) && !target.closest('.node, .edge-pill, g.edge')) {
-    // Shift/Ctrl + arrastar no vazio: retângulo de seleção (spec 012). Ctrl soma à seleção atual.
+  } else if (e.button !== 1 && (tool === 'select' || e.shiftKey || e.ctrlKey || e.metaKey) && !target.closest('.node, .edge-pill, g.edge')) {
+    // Modo Selecionar, ou Shift/Ctrl + arrastar no vazio: retângulo de seleção (spec 012). Ctrl soma à seleção atual.
     gesture = { type: 'marquee', start: world, startX: e.clientX, startY: e.clientY, moved: false,
-      additive: e.ctrlKey || e.metaKey };
+      additive: e.ctrlKey || e.metaKey || (tool === 'select' && e.shiftKey) };
   } else if (e.button === 1 || (!target.closest('.node, .edge-pill, g.edge'))) {
     gesture = { type: 'pan', startX: e.clientX, startY: e.clientY, vx: view.x, vy: view.y, moved: false };
   } else if ((e.shiftKey || e.ctrlKey || e.metaKey) && target.closest('.node') && !target.closest('.port')) {
@@ -626,6 +636,7 @@ export function initCanvas(root, opts = {}) {
   on('inspect', () => render());
   on('execution', () => render());
 
+  root.classList.toggle('tool-select', tool === 'select');
   const saved = storage('prodata.view', null);
   if (saved) Object.assign(view, saved);
   applyView();

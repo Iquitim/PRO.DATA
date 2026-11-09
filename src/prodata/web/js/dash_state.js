@@ -4,7 +4,7 @@ import { growToFit } from './dash_model.js';
 import { mutate, store } from './store.js';
 import { toast } from './ui.js';
 
-export const ui = { mode: 'view', zoom: null, selected: new Set(), scale: 1 };
+export const ui = { mode: 'view', zoom: null, selected: new Set(), scale: 1, paint: null };
 export const els = {};
 // O que as partes precisam da página, preenchido por dashboard.js: evita que elas dependam dele.
 export const page = { render: () => {}, root: null, pageEl: null, itemEl: null, shownWidgets: null };

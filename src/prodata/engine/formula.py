@@ -36,7 +36,9 @@ _UNIT = (
 ALTERYX_FUNCTIONS: dict[str, tuple[str, str]] = {
     "iif": ("ax_iif", "ax_iif(c, a, b) AS CASE WHEN c THEN a ELSE b END"),
     "isnull": ("ax_isnull", "ax_isnull(x) AS (x IS NULL)"),
+    "isnotnull": ("ax_isnotnull", "ax_isnotnull(x) AS (x IS NOT NULL)"),
     "isempty": ("ax_isempty", "ax_isempty(x) AS (x IS NULL OR trim(CAST(x AS VARCHAR)) = '')"),
+    "isnotempty": ("ax_isnotempty", "ax_isnotempty(x) AS (x IS NOT NULL AND trim(CAST(x AS VARCHAR)) <> '')"),
     "contains": ("ax_contains", "ax_contains(s, t) AS contains(CAST(s AS VARCHAR), t)"),
     "startswith": ("ax_startswith", "ax_startswith(s, t) AS starts_with(CAST(s AS VARCHAR), t)"),
     "endswith": ("ax_endswith", "ax_endswith(s, t) AS ends_with(CAST(s AS VARCHAR), t)"),
@@ -159,8 +161,12 @@ FUNCTION_DOCS: list[FunctionDoc] = [
                 "Escolhe um de dois valores conforme a condição.", "IIF([valor] > 100, 'alto', 'baixo')"),
     FunctionDoc("IsNull", "IsNull(valor)", "Condicional",
                 "Verdadeiro quando o valor é nulo.", "IsNull([cidade])"),
+    FunctionDoc("IsNotNull", "IsNotNull(valor)", "Condicional",
+                "Verdadeiro quando o valor não é nulo.", "IsNotNull([cidade])"),
     FunctionDoc("IsEmpty", "IsEmpty(valor)", "Condicional",
                 "Verdadeiro quando o valor é nulo ou texto em branco.", "IsEmpty([cidade])"),
+    FunctionDoc("IsNotEmpty", "IsNotEmpty(valor)", "Condicional",
+                "Verdadeiro quando o valor está preenchido: nem nulo, nem texto em branco.", "IsNotEmpty([cidade])"),
     FunctionDoc("Coalesce", "Coalesce(valor1, valor2, …)", "Condicional",
                 "Primeiro valor não nulo da lista.", "Coalesce([cidade], 'sem cidade')"),
     FunctionDoc("Contains", "Contains(texto, trecho)", "Texto",
@@ -354,6 +360,9 @@ def transpile(expression: str) -> str:
     sql = re.sub(r"\bENDIF\b", "END", sql, flags=re.IGNORECASE)
     sql = re.sub(r"\bIF\b(?!\s*\()", "CASE WHEN", sql, flags=re.IGNORECASE)
     sql = sql.replace("==", "=")
+    # Comparar com Null nunca é verdadeiro em SQL; quem escreve isso quer o teste de nulo.
+    sql = re.sub(r"(?:!=|<>)\s*NULL\b", " IS NOT NULL", sql, flags=re.IGNORECASE)
+    sql = re.sub(r"(?<![<>!])=\s*NULL\b", " IS NULL", sql, flags=re.IGNORECASE)
     sql = re.sub(r"!(?!=)", " NOT ", sql)
 
     def _function(match: re.Match[str]) -> str:

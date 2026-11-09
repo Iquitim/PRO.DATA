@@ -1,6 +1,6 @@
 # PRO.DATA: contexto para assistentes de IA
 
-Versão do programa: 0.7.1. Este arquivo é gerado a partir do código.
+Versão do programa: 0.7.2. Este arquivo é gerado a partir do código.
 
 Você está ajudando alguém que usa o PRO.DATA, um programa de Windows para montar fluxos visuais de dados, parecido com o Alteryx. A pessoa pode enviar um fluxo (arquivo `.prodata.json`) e pedir para explicar, corrigir ou mudar. Use este documento para responder com um fluxo que abre e executa de primeira.
 
@@ -79,7 +79,7 @@ Esses cadastros existem só no computador da pessoa: mantenha os que vieram no f
 IF c THEN a ELSEIF d THEN b ELSE e ENDIF
 = == != <> < <= > >=                   comparações
 AND OR NOT                             lógica
-Null                                   valor vazio; teste com IsNull([coluna])
+Null                                   valor vazio; teste com IsNull([coluna]) ou IsNotNull([coluna])
 Concat([a], ' - ', [b])                junta textos: o + só soma números
 ```
 
@@ -95,7 +95,9 @@ Se você escrever a fórmula da Multi-Row à mão, use `"recipe": "custom"`. Com
 
 - `IIF(condição, se_verdadeiro, se_falso)`: Escolhe um de dois valores conforme a condição. Ex.: `IIF([valor] > 100, 'alto', 'baixo')`
 - `IsNull(valor)`: Verdadeiro quando o valor é nulo. Ex.: `IsNull([cidade])`
+- `IsNotNull(valor)`: Verdadeiro quando o valor não é nulo. Ex.: `IsNotNull([cidade])`
 - `IsEmpty(valor)`: Verdadeiro quando o valor é nulo ou texto em branco. Ex.: `IsEmpty([cidade])`
+- `IsNotEmpty(valor)`: Verdadeiro quando o valor está preenchido: nem nulo, nem texto em branco. Ex.: `IsNotEmpty([cidade])`
 - `Coalesce(valor1, valor2, …)`: Primeiro valor não nulo da lista. Ex.: `Coalesce([cidade], 'sem cidade')`
 - `NullIf(valor, valor_a_anular)`: Nulo quando o valor é igual ao segundo (ex.: zero vira nulo). Ex.: `NullIf([valor], 0)`
 - `Between(valor, mínimo, máximo)`: Verdadeiro se o valor está entre os limites (inclusive). Ex.: `Between([valor], 100, 500)`
@@ -415,7 +417,7 @@ Entradas: `in` (Entrada). Saídas: `T` (Verdadeiro), `F` (Falso).
 
 - `mode` ("simple"): Modo. Opções: `simple`, `expression`
 - `column` (""): Coluna [nome de coluna]. Aparece se `mode` em simple
-- `operator` ("=="): Operador. Opções: `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts_with`, `is_null`, `is_not_null`. Aparece se `mode` em simple
+- `operator` ("=="): Operador. Opções: `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts_with`, `is_null`, `is_not_null`, `is_empty`, `is_not_empty`. Aparece se `mode` em simple
 - `value` (""): Valor. Aparece se `mode` em simple; `operator` em ==, !=, >, >=, <, <=, contains, starts_with
 - `expression` (""): Expressão [fórmula]. Aparece se `mode` em expression. Linhas que satisfazem a expressão saem em [T]; as demais em [F]
 

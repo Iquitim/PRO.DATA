@@ -6,6 +6,9 @@
   background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1.2px);
 }
 .canvas.panning { cursor: grabbing; }
+.canvas.tool-select { cursor: crosshair; }
+.canvas-tools { display: flex; gap: 2px; }
+.canvas-tools .btn[aria-pressed="true"] { background: var(--accent-weak); color: var(--accent); }
 .canvas.file-over { box-shadow: inset 0 0 0 2px var(--accent); }
 .canvas-world { position: absolute; inset: 0 auto auto 0; width: 0; height: 0; transform-origin: 0 0; }
 .canvas-edges { position: absolute; overflow: visible; width: 1px; height: 1px; pointer-events: none; }

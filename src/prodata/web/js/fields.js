@@ -673,7 +673,7 @@ function optionalNumber(field, value, set, _ctx, id) {
 function categoryColors(field, value, set, ctx) {
   const map = { ...(value || {}) };
   const cats = ctx.categories || [];
-  if (!cats.length) return h('p', { class: 'field-help' }, 'Execute o fluxo para listar as categorias.');
+  if (!cats.length) return h('p', { class: 'field-help' }, ctx.noCategories || 'Execute o fluxo para listar as categorias.');
   return h('div', { class: 'category-colors' }, cats.map((cat, i) => {
     const note = h('div', {}, contrastNote(map[cat], ctx.contrastFor?.(field.name)));
     return h('div', { class: 'category-color' },

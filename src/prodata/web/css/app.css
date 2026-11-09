@@ -107,7 +107,8 @@ select.input { padding-right: 24px; }
 .form-section[open] > summary { margin-bottom: 12px; }
 .form-section > .field + .field { margin-top: 14px; }
 
-.switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: var(--fs-sm); }
+/* position: o campo invisível precisa rolar junto com o painel, senão o foco nele desloca a tela inteira */
+.switch { position: relative; display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: var(--fs-sm); }
 .switch input { position: absolute; opacity: 0; pointer-events: none; }
 .switch-track {
   position: relative; width: 30px; height: 18px; border-radius: 999px;

@@ -106,6 +106,13 @@ CASES: list[tuple[str, str, dict[str, Any]]] = [
         {"mode": "simple", "column": "uf", "operator": "starts_with", "value": "s"},
     ),
     ("filter_is_null", "prep.filter", {"mode": "simple", "column": "valor", "operator": "is_null"}),
+    ("filter_is_empty", "prep.filter", {"mode": "simple", "column": "numero", "operator": "is_empty"}),
+    ("filter_is_filled", "prep.filter", {"mode": "simple", "column": "numero", "operator": "is_not_empty"}),
+    (
+        "filter_is_filled_num",
+        "prep.filter",
+        {"mode": "simple", "column": "valor", "operator": "is_not_empty"},
+    ),
     ("filter_bool", "prep.filter", {"mode": "simple", "column": "ativo", "operator": "==", "value": "sim"}),
     (
         "formula_new",

@@ -237,7 +237,6 @@ function paretoChart(series, width, height, opts, w) {
   const y = (v) => m.top + ph - (Math.min(100, Math.max(0, v)) / 100) * ph;
   const band = pw / Math.max(1, series.length);
   const barW = Math.min(28, band * 0.7);
-  const color = tone(o, 0, series[0]?.label);
   const lineColor = 'var(--text-2)';
   const cx = (i) => m.left + band * i + band / 2;
   const cut = series.reduce((last, s, i) => (s.highlight ? i : last), -1);
@@ -249,7 +248,7 @@ function paretoChart(series, width, height, opts, w) {
     return [
       svg('rect', { class: 'hit', x: m.left + band * i, y: m.top, width: band, height: ph,
         'data-tip': `<span>${esc(s.label)}</span><b>${esc(o.full(s.value))}</b><span>${fmt.number(share, 1)}% do total · acumulado ${fmt.number(s.cum_pct, 1)}%</span>` , ...catAttr(o, s.label) }),
-      svg('path', { class: isDim(o, s.label) ? 'bar dim' : 'bar', d: roundedBar(cx(i) - barW / 2, top0, barW, y(0) - top0, true), style: `fill:${color};fill-opacity:${s.highlight ? 1 : 0.35}` }),
+      svg('path', { class: isDim(o, s.label) ? 'bar dim' : 'bar', d: roundedBar(cx(i) - barW / 2, top0, barW, y(0) - top0, true), style: `fill:${tone(o, 0, s.label)};fill-opacity:${s.highlight ? 1 : 0.35}` }),
       axis.show(i) ? svg('text', { class: 'tick x-tick', y: svgH - 9 - (o.xTitle ? 18 : 0), ...axis.anchor(cx(i), s.label, width) }, axis.text(s.label)) : null,
     ];
   });
@@ -264,7 +263,7 @@ function paretoChart(series, width, height, opts, w) {
   ] : null;
   return framed(o,
     h('ul', { class: 'legend-row' },
-      h('li', {}, h('i', { class: 'swatch', style: { background: color } }), h('span', {}, `Participação no total · ${cut + 1} de ${series.length} somam ${fmt.number(threshold, 0)}%`)),
+      h('li', {}, h('i', { class: 'swatch', style: { background: tone(o, 0, '') } }), h('span', {}, `Participação no total · ${cut + 1} de ${series.length} somam ${fmt.number(threshold, 0)}%`)),
       h('li', {}, h('i', { class: 'swatch line-swatch', style: { background: lineColor } }), h('span', {}, 'Acumulado'))),
     svg('svg', { class: 'chart', width, height: svgH, viewBox: `0 0 ${width} ${svgH}` }, grid,
       svg('line', { class: 'axis', x1: m.left, x2: width - m.right, y1: y(0), y2: y(0) }), marks,
@@ -283,7 +282,6 @@ function funnelChart(series, width, height, opts) {
   const labelW = Math.min(160, width * 0.28);
   const valueW = 120;
   const area = Math.max(40, width - labelW - valueW - 16);
-  const color = tone(o, 0, rows[0]?.label);
   const marks = rows.map((s, i) => {
     const bw = Math.max(2, (Math.max(0, s.value) / max) * area);
     const yy = 4 + i * rowH;
@@ -291,7 +289,7 @@ function funnelChart(series, width, height, opts) {
     return [
       svg('rect', { class: 'hit', x: 0, y: yy, width, height: rowH, 'data-tip': tipHtml(s.label, s.value, o) }),
       svg('text', { class: 'tick', x: labelW, y: yy + rowH / 2 + 4, 'text-anchor': 'end' }, truncate(s.label, Math.floor(labelW / 6.6))),
-      svg('rect', { class: 'seg', x: x0, y: yy + 3, width: bw, height: rowH - 6, rx: 4, style: `fill:${color};fill-opacity:${Math.max(0.4, 1 - i * 0.08)}` }),
+      svg('rect', { class: 'seg', x: x0, y: yy + 3, width: bw, height: rowH - 6, rx: 4, style: `fill:${tone(o, 0, s.label)};fill-opacity:${Math.max(0.4, 1 - i * 0.08)}` }),
       svg('text', { class: 'value', x: labelW + 16 + area, y: yy + rowH / 2 + 4 }, `${o.short(s.value)} · ${fmt.number((s.value / first) * 100, 0)}%`),
     ];
   });

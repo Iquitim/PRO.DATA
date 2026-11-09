@@ -93,13 +93,26 @@ class ChartFormat(CardFormat):
             },
         ),
     )
+    other_palette: Literal["brand", "alt", "single"] = Field(
+        "brand",
+        title="Demais categorias",
+        description="Cor do que não tem cor própria na lista abaixo.",
+        json_schema_extra=ui(
+            group=COLORS,
+            show_if={"palette": ["custom"]},
+            labels={"brand": "Paleta da marca", "alt": "Paleta alternativa", "single": "Uma cor só"},
+        ),
+    )
     color: Color = Field(
-        "", title="Cor", json_schema_extra=ui(widget="color", group=COLORS, show_if={"palette": ["single"]})
+        "",
+        title="Cor única",
+        json_schema_extra=ui(widget="color", group=COLORS, show_if={"palette": ["single", "custom"]}),
     )
     category_colors: Annotated[dict[str, str], AfterValidator(_color_map)] = Field(
         default_factory=dict,
         title="Cor de cada categoria",
-        json_schema_extra=ui(widget="category_colors", group=COLORS, show_if={"palette": ["custom"]}),
+        description="Mude uma cor para destacar só aquela categoria.",
+        json_schema_extra=ui(widget="category_colors", group=COLORS),
     )
     data_labels: Literal["none", "max", "max_min"] = Field(
         "max",
