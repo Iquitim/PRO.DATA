@@ -26,6 +26,7 @@ from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[3]
 PORT = 8796
+FAKE_JIRA = 8797
 URL = f"http://127.0.0.1:{PORT}/"
 Pg = Page
 
@@ -530,6 +531,7 @@ def part_data_trust(pg: Pg, tmp: Path) -> None:
 
 def PARTS(tmp):  # noqa: N802
     every = ((part_screen, ()), (part_cache_dashboard, ()), (part_sql, ()), (part_tools, ()), (part_quality_lists, ()), (part_data_trust, (tmp,)), (part_manual, ()))
+    every = (*every, (part_jira, ()), (part_replay, ()))
     only = os.environ.get("IMAGENS_SO")
     return [e for e in every if not only or e[0].__name__ in only.split(",")]
 
@@ -545,6 +547,64 @@ def part_manual(pg: Pg) -> None:
     pg.wait_for_selector(".manual-ring")
     pg.wait_for_timeout(300)
     shot(pg, "manual")
+
+
+def part_jira(pg: Pg) -> None:
+    pg.click("#viewSwitch .segment[data-view=data]")
+    pg.wait_for_selector(".dv-list")
+    pg.locator(".dv-list-head button").click()
+    pg.wait_for_timeout(150)
+    pg.get_by_text("Conectar ao Jira", exact=True).first.click()
+    pg.wait_for_selector(".jira-steps")
+    pg.get_by_label("Endereço do Jira").fill("empresa.atlassian.net")
+    pg.locator(".jira-form input[type=email]").fill("ana@exemplo.com")
+    pg.locator(".jira-form input[type=password]").fill("token-comum")
+    pg.get_by_role("button", name="Testar", exact=True).click()
+    pg.wait_for_selector(".jira-ok")
+    pg.wait_for_timeout(300)
+    shot(pg, "jira-conexao")
+    pg.get_by_role("button", name="Salvar", exact=True).click()
+    pg.wait_for_function("() => window.__S.store.jiraConnections.length === 1")
+    pg.wait_for_timeout(500)
+    pg.locator(".dv-list-head button").click()
+    pg.wait_for_timeout(150)
+    pg.get_by_text("Nova consulta do Jira", exact=True).first.click()
+    pg.wait_for_selector(".jira-tables")
+    pg.get_by_placeholder("Ex.: Demandas do time de Dados").fill("Demandas do time")
+    pg.locator(".jira-chips .value-chip", has_text="DEMO").first.click()
+    pg.wait_for_selector(".jira-grid table")
+    pg.wait_for_timeout(500)
+    shot(pg, "jira-consulta")
+
+
+def part_replay(pg: Pg) -> None:
+    pg.evaluate("async () => { const m = await import('/static/js/manual.js'); await m.tryExample('replay'); }")
+    pg.wait_for_function("() => window.__S.store.workflow.id === 'exemplo_replay'")
+    pg.wait_for_function("() => window.__S.store.execution && !window.__S.store.running && Object.keys(window.__S.store.execution.node_results).length >= 10", timeout=60000)
+    pg.click("#viewSwitch .segment[data-view=dashboard]")
+    pg.wait_for_selector(".replay-bar", timeout=15000)
+    pg.locator(".replay-bar input[type=range]").evaluate("(el) => { el.value = 6; el.dispatchEvent(new Event('input', {bubbles: true})); }")
+    pg.wait_for_timeout(700)
+    shot(pg, "replay-dash")
+    pg.locator(".dash-item[data-id=v_c2] button[title='Baixar GIF deste gráfico']").click()
+    pg.wait_for_selector("dialog[open] .replay-gif-grid")
+    pg.wait_for_timeout(300)
+    shot(pg.locator("dialog[open]"), "replay-gif")
+    pg.locator("dialog[open] .dialog-footer button", has_text="Cancelar").click()
+    pg.wait_for_timeout(200)
+    pg.locator(".replay-bar button", has_text="Guardar cena").click()
+    pg.wait_for_selector("dialog[open] input[aria-label='Título da cena']")
+    pg.fill("dialog[open] input[aria-label='Título da cena']", "O andamento virou o gargalo")
+    pg.fill("dialog[open] textarea", "Em julho, as demandas em andamento passaram de 70 dias paradas, em média.")
+    pg.locator("dialog[open] select").select_option("v_c2")
+    pg.locator("dialog[open] .dialog-footer button", has_text="Salvar").click()
+    pg.wait_for_timeout(5200)  # o aviso some
+    pg.locator(".replay-bar button", has_text="Cenas (1)").click()
+    pg.wait_for_selector("dialog[open] .story-list li")
+    pg.locator("dialog[open] .dialog-footer button", has_text="Apresentar").click()
+    pg.wait_for_selector(".story .dash-page")
+    pg.wait_for_timeout(500)
+    shot(pg, "replay-historia")
 
 
 def run_part(browser: Any, theme: str, part: Callable[..., None], *args: Any) -> None:
@@ -563,9 +623,10 @@ def generate(theme: str) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="prodata-imagens-") as folder:
         tmp = Path(folder)
-        env = {**os.environ, "PRODATA_PORT": str(PORT), "PRODATA_STORAGE_DIR": str(tmp / "dados"), "PRODATA_SECRETS_BACKEND": "memory"}
+        env = {**os.environ, "PRODATA_PORT": str(PORT), "PRODATA_STORAGE_DIR": str(tmp / "dados"), "PRODATA_SECRETS_BACKEND": "memory", "PRODATA_JIRA_TEST_BASE": f"http://127.0.0.1:{FAKE_JIRA}"}
         uv = shutil.which("uv") or "uv"
         server = subprocess.Popen([uv, "run", "prodata"], cwd=ROOT, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
+        fake = subprocess.Popen([sys.executable, str(ROOT / "tests/jira_fake.py"), str(FAKE_JIRA), "40"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)  # noqa: S603
         try:
             for _ in range(90):
                 try:
@@ -580,6 +641,7 @@ def generate(theme: str) -> None:
                 browser.close()
         finally:
             subprocess.run(["taskkill", "/T", "/F", "/PID", str(server.pid)], capture_output=True, check=False)  # noqa: S603, S607
+            fake.terminate()
     for leftover in OUT.glob("_*.png"):
         leftover.unlink()
 

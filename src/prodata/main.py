@@ -22,6 +22,7 @@ from prodata.api.routes import routers
 from prodata.config import Settings
 from prodata.connectors import ConnectionStore, KeyringSecretStore, MemorySecretStore, SecretStore
 from prodata.connectors.api_store import ApiStore
+from prodata.connectors.jira_store import JiraStore
 from prodata.connectors.queries import QueryStore
 from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
@@ -30,7 +31,13 @@ from prodata.ingestion import DatasetStore
 from prodata.nodes import REGISTRY
 from prodata.samples.apis import refresh_example_docs, seed_example_apis
 from prodata.samples.datasets import ensure_sample_datasets
-from prodata.samples.workflows import DEMO_V3_NODES, DEMO_WORKFLOW_ID, add_api_section, demo_workflow
+from prodata.samples.workflows import (
+    DEMO_V3_NODES,
+    DEMO_WORKFLOW_ID,
+    add_api_section,
+    add_replay_section,
+    demo_workflow,
+)
 from prodata.services.audit import setup_audit
 from prodata.services.constants import ConstantStore
 from prodata.services.trust import TrustRegistry
@@ -53,6 +60,7 @@ def build_services(settings: Settings) -> Services:
     connections = ConnectionStore(settings.connections_file, secrets)
     queries = QueryStore(settings.queries_file)
     apis = ApiStore(settings.apis_file, secrets)
+    jira = JiraStore(settings.storage_dir / "jira", secrets)
     trust = TrustRegistry(settings.storage_dir / "confianca.json")
     constants = ConstantStore(settings.storage_dir / "constantes.json")
     # Na atualização para a 0.6, o que já estava na biblioteca começa confiável (RF-2825).
@@ -64,8 +72,11 @@ def build_services(settings: Settings) -> Services:
             seed_example_apis(apis)
         else:
             saved = workflows.get(DEMO_WORKFLOW_ID).model_dump(mode="json", by_alias=True)
-            if add_api_section(saved):
+            with_api = add_api_section(saved)
+            if with_api or add_replay_section(saved):
+                add_replay_section(saved)
                 workflows.save(Workflow.model_validate(saved))
+            if with_api:
                 seed_example_apis(apis)
         refresh_example_docs(apis)
         if workflows.exists(DEMO_WORKFLOW_ID):
@@ -74,11 +85,12 @@ def build_services(settings: Settings) -> Services:
         settings=settings,
         datasets=datasets,
         cache=cache,
-        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries, apis, constants),
+        runner=WorkflowRunner(cache, datasets, settings.exports_dir, connections, queries, apis, constants, jira),
         workflows=workflows,
         connections=connections,
         queries=queries,
         apis=apis,
+        jira=jira,
         trust=trust,
         usage=UsageIndex(settings.workflows_dir),
         constants=constants,

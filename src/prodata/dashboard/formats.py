@@ -123,6 +123,9 @@ class ChartFormat(CardFormat):
     suffix: str = Field(
         "", max_length=10, title="Sufixo", json_schema_extra=ui(group=LABELS, placeholder="%")
     )
+    animate: bool = Field(
+        True, title="Animar na linha do tempo", description="Desligado, os valores mudam de uma vez.", json_schema_extra=ui(group=LABELS)
+    )
     show_legend: bool = Field(True, title="Mostrar legenda", json_schema_extra=ui(group=LABELS))
     legend_position: Literal["top", "bottom"] = Field(
         "top",

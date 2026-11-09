@@ -1,7 +1,8 @@
 // Cartões do dashboard (spec 014): gráfico, KPI, Venn, tabela e elementos livres.
 // Sem dependência do fluxo aberto: os mesmos cartões desenham a página do programa e a do HTML exportado (spec 021).
 
-import { gaugeChart, renderChart, sparkline, withTooltip } from './charts.js';
+import { withTooltip } from './chart_kit.js';
+import { gaugeChart, renderChart, sparkline } from './charts.js';
 import { isClickChart, isCrossChart } from './dash_filters.js';
 import { button, fmt, h } from './dom.js';
 import { icon } from './icons.js';
@@ -105,6 +106,8 @@ const SUBTITLES = {
   pareto: (w) => `Participação de cada ${w.x_column} e acumulado`,
   scatter: (w) => `${w.y_column} × ${w.x_column}`,
   funnel: (w) => `Etapas de ${w.x_column}`,
+  bubble: (w) => `${w.y_column} × ${w.x_value} por ${w.x_column}`,
+  sankey: (w) => `${w.x_column} → ${w.series_column}`,
 };
 
 /** Linhas da tabela equivalente a cada visual (modo tabela: o dado nunca depende só do gráfico). */
@@ -118,6 +121,12 @@ function tableData(w) {
   if (w.chart_type === 'scatter') {
     const s = w.points?.[0]?.s !== undefined;
     return { head: [...(s ? [w.series_column] : []), w.x_column, w.y_column], rows: (w.points || []).slice(0, 300).map((p) => [...(s ? [p.s] : []), fmt.number(p.x), fmt.number(p.y)]) };
+  }
+  if (w.chart_type === 'bubble') {
+    return { head: [w.x_column, w.x_value, w.y_column, w.size_column || 'linhas'], rows: (w.points || []).map((p) => [p.label, fmt.number(p.x), fmt.number(p.y), fmt.number(p.size)]) };
+  }
+  if (w.chart_type === 'sankey') {
+    return { head: [w.x_column, w.series_column, w.y_column || 'contagem'], rows: (w.links || []).map((l) => [l.source, l.target, fmt.number(l.value)]) };
   }
   if (w.series_names?.length) {
     return { head: [w.x_column, ...w.series_names, 'Total'], rows: w.series.map((c) => [c.label, ...w.series_names.map((n) => fmt.number(c.values[n] || 0)), fmt.number(c.value)]) };
@@ -146,7 +155,8 @@ function relabel(w, labels) {
   }
   if (w.series_names) out.series_names = w.series_names.map(rename);
   if (w.sets) out.sets = w.sets.map((set) => ({ ...set, name: rename(set.name) }));
-  if (w.points) out.points = w.points.map((pt) => (pt.s === undefined ? pt : { ...pt, s: rename(pt.s) }));
+  if (w.points) out.points = w.points.map((pt) => ({ ...pt, ...(pt.s !== undefined && { s: rename(pt.s) }), ...(pt.label !== undefined && { label: rename(pt.label) }) }));
+  if (w.links) out.links = w.links.map((l) => ({ ...l, source: rename(l.source), target: rename(l.target) }));
   return out;
 }
 
@@ -173,7 +183,7 @@ export function chartCard(original, { width, height = 260, className = '', actio
       button({ icon: asTable ? 'chart' : 'table', title: asTable ? 'Ver gráfico' : 'Ver tabela', size: 'sm', variant: 'ghost',
         onClick: () => { if (asTable) tableMode.delete(w.node_id); else tableMode.add(w.node_id); redraw(); } }))));
 
-  const empty = w.widget_type === 'venn' ? !w.union : !(w.series?.length || w.points?.length);
+  const empty = w.widget_type === 'venn' ? !w.union : !(w.series?.length || w.points?.length || w.links?.length);
   if (empty) {
     card.append(h('div', { class: 'empty' }, 'Sem dados para exibir.'));
   } else if (asTable) {

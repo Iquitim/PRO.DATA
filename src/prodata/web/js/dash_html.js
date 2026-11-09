@@ -112,7 +112,7 @@ export async function exportHtml(displayed) {
   const missing = d.items.filter((i) => i.kind === 'visual' && !displayed[i.node_id]).length;
   let info;
   try {
-    info = d.filters?.length ? await api.dashboardExportData(store.workflow) : null;
+    info = d.filters?.length || d.timeline?.column ? await api.dashboardExportData(store.workflow) : null;
   } catch (err) {
     toastError(err, 'Não foi possível preparar o HTML');
     return;
@@ -153,12 +153,13 @@ export async function exportHtml(displayed) {
   const payload = {
     ...snapshot(widgetsByNode()),
     filters: d.filters, options: info.options, nodes: info.nodes, columns: info.columns, fixed_filters: '',
+    timeline: d.timeline?.column ? d.timeline : null, scenes: d.timeline?.column ? d.scenes : [],
   };
   const box = openDialog({
     title: 'Baixar como HTML',
     size: 'md',
     body: h('div', { class: 'stack-sm' },
-      h('p', {}, 'O arquivo abre em qualquer navegador e os filtros continuam funcionando, sem internet.'),
+      h('p', {}, d.timeline?.column ? 'O arquivo abre em qualquer navegador e a linha do tempo, a história e os filtros continuam funcionando, sem internet.' : 'O arquivo abre em qualquer navegador e os filtros continuam funcionando, sem internet.'),
       h('div', { class: 'dash-html-warn' },
         h('strong', {}, 'Os dados vão dentro do arquivo'),
         h('p', {}, `${fmt.int(info.rows)} linhas e ${fmt.int(info.column_names.length)} colunas, cerca de ${size(info.bytes)}. Quem receber pode ver tudo isso, mesmo o que estiver filtrado fora.`),

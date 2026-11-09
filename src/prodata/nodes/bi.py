@@ -17,13 +17,14 @@ from pydantic import Field
 from prodata.engine.sql.fragment import Fragment, SqlContext, lit, q, sql_for
 from prodata.forms import ui
 from prodata.nodes.base import NodeContext, NodeOutput, ToolConfig, tool
+from prodata.nodes.bi_motion import bubble, sankey
 
 ChartAgg = Literal["sum", "mean", "count", "min", "max"]
 _AGG_LABELS = {"sum": "Soma", "mean": "Média", "count": "Contagem", "min": "Mínimo", "max": "Máximo"}
 
 ChartType = Literal[
     "bar", "hbar", "line", "donut", "stacked", "grouped", "stacked100", "area", "area_stacked",
-    "pareto", "funnel", "scatter",
+    "pareto", "funnel", "scatter", "race", "bubble", "sankey",
 ]  # fmt: skip
 _CHART_LABELS = {
     "bar": "Colunas",
@@ -38,7 +39,12 @@ _CHART_LABELS = {
     "pareto": "Pareto",
     "funnel": "Funil",
     "scatter": "Dispersão",
+    "race": "Corrida de barras",
+    "bubble": "Bolhas",
+    "sankey": "Sankey (fluxos)",
 }
+# Sempre do maior para o menor, e sem somar o resto: a posição é a informação.
+RANKED_CHARTS = ("pareto", "race")
 # Gráficos com segunda dimensão (uma série por valor da coluna de série).
 SERIES_CHARTS = ["stacked", "grouped", "stacked100", "line", "area", "area_stacked"]
 MAX_SERIES = 8
@@ -58,8 +64,17 @@ class ChartConfig(ToolConfig):
     series_column: str = Field(
         "",
         title="Série (2ª dimensão)",
-        description="Opcional: uma cor por valor desta coluna (até 8; as demais viram 'Outras').",
-        json_schema_extra=ui(widget="column", show_if={"chart_type": [*SERIES_CHARTS, "scatter"]}),
+        description="Opcional: uma cor por valor desta coluna (até 8; as demais viram 'Outras'). No Sankey, é o destino.",
+        json_schema_extra=ui(widget="column", show_if={"chart_type": [*SERIES_CHARTS, "scatter", "sankey"]}),
+    )
+    x_value_column: str = Field(
+        "", title="Valor do eixo X", json_schema_extra=ui(widget="column", show_if={"chart_type": ["bubble"]})
+    )
+    size_column: str = Field(
+        "",
+        title="Tamanho da bolha",
+        description="Opcional. Sem ela, o tamanho é a quantidade de linhas.",
+        json_schema_extra=ui(widget="column", show_if={"chart_type": ["bubble"]}),
     )
     sort: Literal["value_desc", "value_asc", "label"] = Field(
         "value_desc",
@@ -95,17 +110,17 @@ def _label(col: str) -> pl.Expr:
 
 
 def _rows(grouped: pl.DataFrame, cfg: ChartConfig) -> list[tuple[str, float]]:
-    if cfg.sort == "label" and cfg.chart_type != "pareto":
+    if cfg.sort == "label" and cfg.chart_type not in RANKED_CHARTS:
         grouped = grouped.sort("label")
     else:
-        descending = cfg.sort != "value_asc" or cfg.chart_type == "pareto"
+        descending = cfg.sort != "value_asc" or cfg.chart_type in RANKED_CHARTS
         grouped = grouped.sort("value", descending=descending, nulls_last=True)
     return [(str(label), float(v or 0)) for label, v in grouped.select("label", "value").rows()]
 
 
 def _limit(rows: list[tuple[str, float]], cfg: ChartConfig) -> list[dict[str, Any]]:
     series = [{"label": label, "value": round(v, 4)} for label, v in rows[: cfg.max_items]]
-    if len(rows) > cfg.max_items and cfg.agg in ("sum", "count"):
+    if len(rows) > cfg.max_items and cfg.agg in ("sum", "count") and cfg.chart_type != "race":
         series.append({"label": "Outros", "value": round(sum(v for _, v in rows[cfg.max_items :]), 4)})
     return series
 
@@ -163,6 +178,18 @@ def _scatter(df: pl.DataFrame, cfg: ChartConfig) -> dict[str, Any]:
     return {"points": points.to_dicts(), "point_count": total, "sampled": total > MAX_POINTS}
 
 
+def _check_motion(df: pl.DataFrame, cfg: ChartConfig) -> None:
+    if cfg.chart_type == "bubble":
+        if cfg.agg == "count":
+            raise ValueError("As bolhas usam Soma, Média, Mínimo ou Máximo. Troque a agregação.")
+        if cfg.x_value_column not in df.columns:
+            raise ValueError("Escolha o valor do eixo X da bolha.")
+        if cfg.size_column and cfg.size_column not in df.columns:
+            raise ValueError(f"Coluna de tamanho não encontrada: {cfg.size_column}")
+    if cfg.chart_type == "sankey" and not cfg.series_column:
+        raise ValueError("No Sankey, escolha a coluna de destino em Série.")
+
+
 @tool(
     type="bi.chart",
     name="Chart",
@@ -177,8 +204,9 @@ def chart(ctx: NodeContext, cfg: ChartConfig) -> NodeOutput:
     df = ctx.input()
     if cfg.x_column not in df.columns:
         raise ValueError("Escolha a coluna de categoria (eixo X).")
-    if (cfg.agg != "count" or cfg.chart_type == "scatter") and cfg.y_column not in df.columns:
+    if (cfg.agg != "count" or cfg.chart_type in ("scatter", "bubble")) and cfg.y_column not in df.columns:
         raise ValueError("Escolha a coluna de valor (eixo Y).")
+    _check_motion(df, cfg)
     if cfg.series_column and cfg.series_column not in df.columns:
         raise ValueError(f"Coluna de série não encontrada: {cfg.series_column}")
 
@@ -195,6 +223,14 @@ def chart(ctx: NodeContext, cfg: ChartConfig) -> NodeOutput:
     }
     if cfg.chart_type == "scatter":
         widget.update(_scatter(df, cfg), agg="none", y_column=cfg.y_column)
+    elif cfg.chart_type == "bubble":
+        widget.update(
+            bubble(df, cfg.x_column, cfg.x_value_column, cfg.y_column, cfg.size_column, cfg.agg, cfg.max_items),
+            x_value=cfg.x_value_column,
+            size_column=cfg.size_column,
+        )
+    elif cfg.chart_type == "sankey":
+        widget.update(sankey(df, cfg.x_column, cfg.series_column, cfg.y_column, cfg.agg))
     elif cfg.series_column and cfg.chart_type in SERIES_CHARTS:
         widget["series"], widget["series_names"] = _multi_series(df, cfg)
     else:
@@ -665,23 +701,30 @@ def _passthrough(ctx: SqlContext, explain: str, visual: str) -> dict[str, Fragme
 @sql_for("bi.chart")
 def chart_sql(ctx: SqlContext, cfg: ChartConfig) -> dict[str, Fragment]:
     block = q(ctx.input().block)
-    needs_y = cfg.agg != "count" or cfg.chart_type == "scatter"
+    needs_y = cfg.agg != "count" or cfg.chart_type in ("scatter", "bubble")
     _need(
         ctx,
         cfg.x_column,
         *([cfg.y_column] if needs_y else []),
         *([cfg.series_column] if cfg.series_column else []),
+        *([cfg.x_value_column] if cfg.chart_type == "bubble" else []),
+        *([cfg.size_column] if cfg.chart_type == "bubble" and cfg.size_column else []),
     )
     x = q(cfg.x_column)
+    if cfg.chart_type == "bubble":
+        fn = _SQL_AGG[cfg.agg]
+        size = f"{fn}({q(cfg.size_column)})" if cfg.size_column else "count(*)"
+        select = f"SELECT {x}, {fn}({q(cfg.x_value_column)}) AS eixo_x, {fn}({q(cfg.y_column)}) AS eixo_y, {size} AS tamanho"
+        return _passthrough(ctx, cfg.title, f"{select}\nFROM {block}\nGROUP BY {x}\nORDER BY tamanho DESC, {x}")
     if cfg.chart_type == "scatter":
         return _passthrough(ctx, cfg.title, f"SELECT {x}, {q(cfg.y_column)}\nFROM {block}")
     value = "count(*)" if cfg.agg == "count" else f"{_SQL_AGG[cfg.agg]}({q(cfg.y_column)})"
-    series = [q(cfg.series_column)] if cfg.series_column and cfg.chart_type in SERIES_CHARTS else []
+    series = [q(cfg.series_column)] if cfg.series_column and (cfg.chart_type in SERIES_CHARTS or cfg.chart_type == "sankey") else []
     groups = ", ".join([x, *series])
     order = (
         groups
-        if cfg.sort == "label" and cfg.chart_type != "pareto"
-        else f"valor {'ASC' if cfg.sort == 'value_asc' and cfg.chart_type != 'pareto' else 'DESC'}, {groups}"
+        if cfg.sort == "label" and cfg.chart_type not in RANKED_CHARTS
+        else f"valor {'ASC' if cfg.sort == 'value_asc' and cfg.chart_type not in RANKED_CHARTS else 'DESC'}, {groups}"
     )
     return _passthrough(
         ctx,

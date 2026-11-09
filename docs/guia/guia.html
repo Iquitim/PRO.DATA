@@ -165,7 +165,7 @@
     <div class="rule"></div>
     <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
     <div class="shot"><img src="../../src/prodata/web/manual/img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.6.1 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.7.0 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -185,7 +185,7 @@
     <tr><td>Enviar um print do gráfico</td><td>Dashboard em imagem ou em HTML, com filtros que funcionam no arquivo</td></tr>
   </table>
   <div class="stat-row">
-    <div class="stat"><b>31</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
+    <div class="stat"><b>32</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
     <div class="stat"><b>1</b><span>clique para refazer o processo inteiro com dados novos</span></div>
     <div class="stat"><b>100%</b><span>do processamento no seu computador, sem nuvem</span></div>
@@ -242,7 +242,7 @@
   <div class="eyebrow">2 · Primeiros passos</div>
   <h2>Conhecendo a tela</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="executar">Mostrar o Executar</button><button type="button" class="manual-only m-act" data-show="tema">Mostrar o botão de tema</button></div>
-  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 12).</p>
+  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 14).</p>
   <figure>
     <div class="frame">
       <img src="../../src/prodata/web/manual/img/overview.png" alt="Tela principal do PRO.DATA">
@@ -271,6 +271,7 @@
   <p>A tela fala português. Os nomes das ferramentas (Filter, Join, Summarize…) e das funções de fórmula (<code>IIF</code>, <code>Trim</code>, <code>Today</code>…) ficam em inglês, como no Alteryx: quem vem de lá se acha, e as fórmulas escritas continuam valendo. A explicação de cada uma é sempre em português.</p>
   <h3>Ajuda sem sair do programa</h3>
   <p>O botão <strong>?</strong> ou a tecla <kbd>F1</kbd> abre este guia ao lado do trabalho, já sugerindo o capítulo do que você está fazendo. Para ler com mais espaço, expanda o Manual pelo botão ao lado do X ou arraste a borda esquerda. Nele, <strong>Mostrar onde fica</strong> acende na tela o botão citado, e <strong>Experimentar</strong> abre um exemplo numa aba nova, sem mexer no seu fluxo.</p>
+  <p>No começo do Manual ficam as <strong>lições guiadas</strong>: quatro exercícios curtos, cada um num fluxo próprio. Cada passo acende onde agir e avança sozinho quando a ação acontece. Dá para sair a qualquer momento, e o programa lembra o que você concluiu.</p>
   <p><kbd>Ctrl</kbd>+<kbd>K</kbd> abre a busca: digite o que quer fazer, como <em>juntar</em> ou <em>ordenar</em>, e ela acha a ferramenta, a ação, a caixa do fluxo, a fonte ou o capítulo. Enter escolhe.</p>
   <figure>
     <div class="frame"><img src="../../src/prodata/web/manual/img/manual.png" alt="O Manual aberto ao lado do fluxo, com o botão Constantes aceso na tela"></div>
@@ -421,12 +422,49 @@
   <div class="try"><strong>Experimente</strong><ol><li>No exemplo, clique em <strong>Executar</strong>: a etapa <em>5 · API pública do IBGE</em> busca os estados e os municípios de cada um. Abrir o fluxo não chama a internet; sem rede, só essa etapa dá erro.</li><li>Clique na caixa <em>Municípios por estado</em> e passe o mouse num valor do esquema para ver o caminho dele.</li></ol></div>
 </section>
 
+<!-- ================================================================ JIRA -->
+<section class="chapter">
+  <div class="eyebrow">6 · Jira</div>
+  <h2>Dados do Jira, sem escrever JQL</h2>
+  <p class="intro">O PRO.DATA lê demandas, histórico e comentários do Jira Cloud e transforma tudo em tabelas. Ele só lê: nenhuma chamada altera o seu Jira.</p>
+  <div class="goal"><b>Ao final:</b> <span>você conecta o Jira com um token de leitura, monta uma consulta e leva a tabela para o fluxo.</span></div>
+  <h3>Conectar</h3>
+  <div class="steps">
+    <div class="step"><div><h4>Diga qual é o seu Jira</h4><p>Na vista <strong>Dados</strong>, em <strong>Adicionar &gt; Conectar ao Jira</strong>, cole o endereço de qualquer página do seu Jira.</p></div></div>
+    <div class="step"><div><h4>Crie um token de leitura</h4><p><strong>Criar meu token</strong> abre a página da Atlassian no navegador. Escolha criar um token com escopos e marque só as permissões de leitura, como <code>read:jira-work</code> e <code>read:jira-user</code>.</p></div></div>
+    <div class="step"><div><h4>Cole e teste</h4><p>Informe o e-mail da conta e o token. O teste mostra quem conectou e quantos projetos essa conta enxerga.</p></div></div>
+  </div>
+  <figure class="m80">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/jira-conexao.png" alt="Conexão com o Jira em três passos"></div>
+    <figcaption>Nada é cadastrado no Jira para o PRO.DATA funcionar. O token fica no cofre do Windows e nunca vai para fluxos, arquivos ou registros.</figcaption>
+  </figure>
+  <p>Um token comum também funciona, mas ele poderia alterar dados em outro programa. Por isso o PRO.DATA avisa e recomenda o token com escopo.</p>
+  <h3>Montar a consulta</h3>
+  <p>Em <strong>Adicionar &gt; Nova consulta do Jira</strong>, escolha o que trazer e de quais projetos. O filtro em JQL é montado sozinho e aparece na tela. Quem preferir pode escrever o JQL à mão.</p>
+  <table>
+    <tr><th>Tabela</th><th>Uma linha por</th><th>Para quê</th></tr>
+    <tr><td class="tool">Demandas</td><td>Demanda</td><td>Status, tipo, responsável, datas e campos personalizados que você marcar</td></tr>
+    <tr><td class="tool">Histórico de alterações</td><td>Mudança de um campo</td><td>Saber quando cada status mudou. É a entrada da caixa Estado por período</td></tr>
+    <tr><td class="tool">Comentários</td><td>Comentário</td><td>Costumam ter nomes e dados pessoais: traga só se precisar</td></tr>
+  </table>
+  <figure class="m80">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/jira-consulta.png" alt="Consulta do Jira com projetos, filtros e prévia"></div>
+    <figcaption>A consulta vira uma fonte: arraste para o canvas e ela aparece no Input Data, como um arquivo.</figcaption>
+  </figure>
+  <h3>Só o que mudou</h3>
+  <p>A primeira execução traz tudo e guarda uma cópia local. As seguintes buscam só o que mudou desde a última leitura, com folga de segurança. Se a carga cair no meio, a próxima continua de onde parou, e o limite de chamadas do Jira é respeitado.</p>
+  <div class="avoid"><h4>Quando reler tudo</h4><p>Demandas excluídas no Jira não aparecem na busca por alteração. Na página da consulta, <strong>Reler tudo</strong> refaz a carga inteira, e <strong>Apagar o guardado</strong> remove a cópia local.</p></div>
+  <h3>Do evento à foto de cada período</h3>
+  <p>O Jira guarda mudanças; muitas análises precisam de fotos: como cada demanda estava no fim de cada mês. A caixa <strong>Estado por período</strong> faz essa passagem para qualquer tabela de eventos. Na entrada <strong>I</strong> vão os itens; na <strong>E</strong>, os eventos. Com o histórico do Jira, use <code>campo</code> igual a <code>status</code>.</p>
+  <p>O que os eventos não explicam fica <strong>sem histórico</strong>. O valor de hoje nunca é usado para preencher o passado, a menos que a demanda nunca tenha mudado e você escolha a coluna de estado atual.</p>
+</section>
+
 <!-- ================================================================ 5. FLUXO -->
 <section class="chapter">
-  <div class="eyebrow">6 · Ferramentas</div>
+  <div class="eyebrow">7 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_ferramentas">Mostrar onde fica</button></div>
-  <p class="intro">31 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <p class="intro">32 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
     <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
@@ -440,7 +478,7 @@
     <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
     <tr><td class="tool">Formula</td><td>Cria colunas calculadas ou altera colunas existentes (SE/ENTÃO, texto, matemática, datas).</td></tr>
     <tr><td class="tool">Multi-Row Formula</td><td>Olha outras linhas, com receitas prontas: preencher para baixo, diferença, variação %, valor anterior, próximo valor e "mudou?". Tem o próprio <strong>Ordenar por</strong>.</td></tr>
-    <tr><td class="tool">Data Quality</td><td>Confere regras prontas (não vazio, sem duplicados, CPF, CNPJ, e-mail, faixa de número, data, lista de valores ou uma fórmula sua) e separa o que passou (P) do que falhou (F), com o motivo de cada falha. Veja o capítulo 7.</td></tr>
+    <tr><td class="tool">Data Quality</td><td>Confere regras prontas (não vazio, sem duplicados, CPF, CNPJ, e-mail, faixa de número, data, lista de valores ou uma fórmula sua) e separa o que passou (P) do que falhou (F), com o motivo de cada falha. Veja o capítulo 8.</td></tr>
     <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
     <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
     <tr><td class="tool">Sort · Sample</td><td>Ordena por uma ou mais colunas (o <em>order by</em>); tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
@@ -450,6 +488,7 @@
     <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R. Dá para escolher se o J mantém as chaves dos dois lados, só a da esquerda ou só a da direita, e escolher, renomear, converter e reordenar as colunas do J ali mesmo, como num Select. O Configurar mostra quantas linhas saem em cada uma.</td></tr>
     <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, moda, desvio padrão, contagens, mínimo e máximo. Só oferece o que serve para o tipo da coluna: texto não soma. O Configurar mostra um esquema do antes e depois.</td></tr>
     <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
+    <tr><td class="tool">Estado por período</td><td>Transforma eventos em fotos: uma linha por item e por dia, semana ou mês, com o estado no fim de cada período e há quantos dias está nele. O Configurar desenha o antes e o depois.</td></tr>
     <tr><td class="tool">Cross Tab · Transpose</td><td>Tabela dinâmica (valores de uma coluna viram colunas) e o inverso (colunas viram linhas). O Configurar desenha o antes e o depois com os seus dados.</td></tr>
     <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
     <tr><td class="tool">SQL</td><td>Para quem conhece SQL: consulta livre sobre os dados do fluxo.</td></tr>
@@ -542,7 +581,7 @@
 
 <!-- ================================================================ 7. DATA QUALITY -->
 <section class="chapter">
-  <div class="eyebrow">7 · Qualidade</div>
+  <div class="eyebrow">8 · Qualidade</div>
   <h2>Dados que dá para confiar</h2>
   <p class="intro">Um CPF inválido, um setor em branco ou um estado fora da lista chegam ao relatório sem ninguém ver. A ferramenta <strong>Data Quality</strong> confere regras antes de o dado seguir e separa o que passou do que falhou, com o motivo.</p>
   <div class="goal"><b>Ao final:</b> <span>você sabe montar regras de qualidade sem escrever fórmulas e decidir o que fazer com as linhas que falharam.</span></div>
@@ -603,7 +642,7 @@
 
 <!-- ================================================================ 6. RESULTADOS -->
 <section class="chapter">
-  <div class="eyebrow">8 · Análise</div>
+  <div class="eyebrow">9 · Análise</div>
   <h2>Explorando os resultados</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="aba_resultado">Mostrar a tabela</button><button type="button" class="manual-only m-act" data-show="filtros_resultado">Mostrar os filtros</button></div>
   <p class="intro">Cada caixa guarda o resultado da última execução. Clique nela — ou em uma de suas saídas — e a tabela mostra os dados correspondentes.</p>
@@ -629,7 +668,7 @@
 
 <!-- ================================================================ 7. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">9 · Apresentação</div>
+  <div class="eyebrow">10 · Apresentação</div>
   <h2>Indicadores e visuais</h2>
   <p class="intro">Os números nascem dentro do fluxo: as caixas de BI calculam e o Dashboard mostra. Quando os dados mudam, basta executar de novo.</p>
   <table>
@@ -670,7 +709,7 @@
 
 <!-- ================================================================ 8. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">10 · Apresentação</div>
+  <div class="eyebrow">11 · Apresentação</div>
   <h2>Montando o dashboard</h2>
   <p class="intro">O fluxo define <strong>o que</strong> mostrar; o dashboard define <strong>onde e como</strong>. Mudar cores ou posições não executa nada de novo.</p>
   <div class="goal"><b>Ao final:</b> <span>você monta a página, filtra e entrega em imagem ou em um arquivo que abre em qualquer navegador.</span></div>
@@ -722,9 +761,57 @@
   <div class="try"><strong>Experimente</strong><ol><li>Abra o <strong>Dashboard</strong>, clique em <strong>Adicionar filtro</strong> e escolha <code>uf</code>.</li><li>Marque SP: os visuais com a coluna mudam na hora, sem executar o fluxo.</li><li>Clique em <strong>Baixar</strong>, depois em <strong>Baixar HTML</strong>, e abra o arquivo: o filtro continua funcionando.</li></ol></div>
 </section>
 
+<!-- ================================================================ REPLAY -->
+<section class="chapter">
+  <div class="eyebrow">12 · Replay</div>
+  <h2>Linha do tempo e história</h2>
+  <p class="intro">O dashboard pode andar no tempo. Os visuais acompanham a reprodução sem executar o fluxo, com o mesmo cálculo do resto do programa.</p>
+  <div class="goal"><b>Ao final:</b> <span>você reproduz o dashboard, encontra os momentos que importam, gera um GIF de um gráfico e conta o que viu em cenas.</span></div>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-try="replay">Abrir um exemplo pronto</button></div>
+  <figure>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/replay-dash.png" alt="Dashboard com a linha do tempo, corrida de barras e Sankey"></div>
+    <figcaption>O exemplo do programa, com dados fictícios: envelhecimento do backlog e tempo parado em cada status.</figcaption>
+  </figure>
+  <h3>Ligar a linha do tempo</h3>
+  <p>No dashboard, clique em <strong>Linha do tempo</strong> e diga qual coluna é a data. A lista traz as colunas que chegam aos visuais, com exemplos dos valores e quais visuais vão acompanhar. Vale coluna de data ou texto como <code>2026-05</code> e <code>29/10/2026</code>. A escolha fica salva no fluxo. Depois, defina o passo: dia, semana ou mês. Reproduza, pause, troque a velocidade ou arraste para qualquer momento. Filtros continuam valendo.</p>
+  <table>
+    <tr><th>Modo</th><th>O que mostra</th><th>Quando usar</th></tr>
+    <tr><td class="tool">Acumulado</td><td>Tudo o que veio até aquele momento</td><td>Vendas, entregas, eventos que se somam</td></tr>
+    <tr><td class="tool">Só no período</td><td>Só o que aconteceu naquele período</td><td>Fotos, como as do Estado por período, que não podem ser somadas</td></tr>
+  </table>
+  <p>Visual cuja tabela não tem a coluna fica parado e ganha a marca <strong>Parado</strong>. O botão de tabela na barra abre os registros daquele momento.</p>
+  <h3>Gráficos feitos para o tempo</h3>
+  <div class="grid-3">
+    <div class="card"><h4>Corrida de barras</h4><p>Categorias trocando de posição, como projetos ou status. Nunca use para comparar pessoas: o PRO.DATA não traz esse exemplo.</p></div>
+    <div class="card"><h4>Bolhas</h4><p>Uma bolha por categoria, com posição em dois valores e tamanho em um terceiro.</p></div>
+    <div class="card"><h4>Sankey</h4><p>Quanto passa de cada origem para cada destino, como de um status para outro.</p></div>
+  </div>
+  <p>Barras, linhas, áreas e dispersão também têm transição. Cada gráfico pode desligar a animação no painel Formato. Se o Windows estiver pedindo menos movimento, os valores mudam sem transição.</p>
+  <h3>Destaques</h3>
+  <p>Pontos sobre a linha do tempo marcam picos, viradas de tendência e valores fora do padrão do primeiro visual que acompanha o tempo. Clique num ponto e o critério aparece, por exemplo: <em>2,3 desvios acima da média das últimas 8 marcações</em>.</p>
+  <h3>GIF de um gráfico</h3>
+  <div class="two-col side-figure">
+    <div>
+      <p>O botão de filme, no canto do gráfico, gera um GIF só daquele visual. Escolha período, duração, tamanho e quadros por segundo, e veja a estimativa antes de gerar.</p>
+      <p>O GIF não tem senha. Em <strong>Confidencial</strong> ele pede confirmação; em <strong>Restrito</strong> fica bloqueado. Toda imagem sai com a faixa do rótulo.</p>
+    </div>
+    <figure>
+      <div class="frame"><img src="../../src/prodata/web/manual/img/replay-gif.png" alt="Opções do GIF com o tamanho estimado"></div>
+      <figcaption>Os limites aparecem na tela antes de gerar.</figcaption>
+    </figure>
+  </div>
+  <h3>Contar uma história</h3>
+  <p>Pare num momento e clique em <strong>Guardar cena</strong>: ela lembra o momento, os filtros e o visual em destaque, com título e anotação. Em <strong>Cenas</strong>, reordene e clique em <strong>Apresentar</strong>. De cada cena dá para voltar à caixa de origem.</p>
+  <figure class="m80">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/replay-historia.png" alt="Apresentação de uma cena com um visual em destaque"></div>
+    <figcaption>Na apresentação, o visual escolhido fica em destaque e as setas do teclado trocam de cena.</figcaption>
+  </figure>
+  <p>O <strong>HTML</strong> exportado leva a linha do tempo, os destaques e a história, com filtros, senha e rótulo como sempre. O arquivo inclui as colunas usadas pelos visuais, e o diálogo mostra quais são antes de gerar.</p>
+</section>
+
 <!-- ================================================================ 10. SQL -->
 <section class="chapter">
-  <div class="eyebrow">11 · Do fluxo ao SQL</div>
+  <div class="eyebrow">13 · Do fluxo ao SQL</div>
   <h2>Levando a lógica para o banco</h2>
   <p class="intro">O PRO.DATA é onde você constrói rápido e experimenta. A aba <strong>SQL</strong>, ao lado de Designer e Dashboard, mostra o que foi construído escrito em SQL e confere se o código dá o mesmo resultado, para que levar a lógica ao lake seja uma revisão, não uma reescrita.</p>
   <figure class="m80">
@@ -764,7 +851,7 @@
 </section>
 
 <section class="chapter">
-  <div class="eyebrow">12 · Organização</div>
+  <div class="eyebrow">14 · Organização</div>
   <h2>Organização e personalização</h2>
   <h3>Etapas</h3>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="etapa">Mostrar onde fica</button></div>
@@ -806,7 +893,7 @@
 
 <!-- ================================================================ 9. SEGURANÇA -->
 <section class="chapter">
-  <div class="eyebrow">13 · Confiança</div>
+  <div class="eyebrow">15 · Confiança</div>
   <h2>Segurança e privacidade</h2>
   <div class="grid-3">
     <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador e funciona offline. A única saída para a rede é a que você cadastra: bancos e APIs. O programa não envia nada por conta própria.</p></div>
@@ -833,12 +920,12 @@
 
 <!-- ================================================================ 10. INSTALAÇÃO -->
 <section class="chapter">
-  <div class="eyebrow">14 · Comece agora</div>
+  <div class="eyebrow">16 · Comece agora</div>
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.6.1-setup.exe</code> (162 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.6.1-portable.zip</code> (245 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.0-setup.exe</code> (164 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.0-portable.zip</code> (247 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -851,7 +938,7 @@
   </table>
   <h3>Primeira execução</h3>
   <div class="steps">
-    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 15): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
+    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 17): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
     <div class="step"><div><h4>Explore o exemplo</h4><p>O fluxo de demonstração já vem pronto. Clique em <strong>Executar</strong>, clique nas caixas, abra o Dashboard e siga os quadros <strong>Experimente</strong> deste guia.</p></div></div>
     <div class="step"><div><h4>Comece o seu</h4><p>Siga o capítulo 3 com um arquivo seu: envie na vista Dados e arraste para o canvas.</p></div></div>
   </div>
@@ -859,21 +946,22 @@
 
 <!-- ================================================================ 11. ESCOPO E LIMITAÇÕES -->
 <section class="chapter">
-  <div class="eyebrow">15 · Transparência</div>
+  <div class="eyebrow">17 · Transparência</div>
   <h2>Escopo e limitações</h2>
   <p class="intro">O que esta versão faz, o que não faz e onde ela tem limites — para você decidir com clareza.</p>
   <div class="two-col">
     <div>
       <h3>Incluído nesta versão</h3>
       <ul class="scope-in">
-        <li>Fluxos visuais com 31 ferramentas</li>
+        <li>Fluxos visuais com 32 ferramentas</li>
         <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
         <li>Consultas a PostgreSQL e SQL Server</li>
         <li>APIs em JSON, CSV ou XML, com paginação e uma chamada por linha</li>
         <li>Exportação nesses formatos, em qualquer pasta</li>
         <li>Vista Dados com mapa de uso, constantes, Data Quality e abertura protegida</li>
         <li>Abas, copiar/colar, fórmulas com autocompletar, perfil e filtros</li>
-        <li>Dashboard em canvas com filtros na página, 15 tipos de visual, imagem PNG e HTML</li>
+        <li>Dashboard com filtros, 18 tipos de visual, linha do tempo, história, PNG, GIF por gráfico e HTML</li>
+        <li>Leitura do Jira Cloud com token e lições guiadas no Manual</li>
         <li>Modelos de ML, execução incremental e ponto de cache</li>
         <li>Aba SQL: o fluxo em SQL do DuckDB, por saída, conferido com o resultado</li>
         <li>Aplicativo de desktop para Windows, que funciona offline (exceto as fontes em rede que você cadastrar)</li>
@@ -888,6 +976,7 @@
         <li>Gravar dados de volta no banco ou publicar no lake (o PRO.DATA gera o código; quem publica é o time de dados)</li>
         <li>SQL nos dialetos do Microsoft Fabric (Spark SQL e T-SQL), previsto para uma próxima versão</li>
         <li>Outros bancos (MySQL, Oracle) e fontes na nuvem</li>
+        <li>Escrever no Jira, Jira Data Center e GIF da página inteira</li>
         <li>Versões para macOS e Linux</li>
         <li>Atualização automática do programa</li>
         <li>Publicar dashboards num servidor</li>
@@ -902,13 +991,13 @@
     <tr><td class="tool">Volume de dados</td><td>As tabelas são carregadas inteiras na memória do computador. O limite prático depende da RAM disponível; bases muito grandes (dezenas de milhões de linhas) ainda não foram validadas e podem exigir uma máquina com mais memória.</td></tr>
     <tr><td class="tool">Modelos de ML</td><td>Ficam em memória e são treinados novamente quando o programa é reaberto (sem impacto no resultado, só no tempo da primeira execução).</td></tr>
     <tr><td class="tool">Aviso do Windows</td><td>O instalador ainda não é assinado digitalmente; por isso o SmartScreen mostra "Editor desconhecido" na primeira execução.</td></tr>
-    <tr><td class="tool">Visuais com muitos dados</td><td>A dispersão desenha até 2.000 pontos e avisa; gráficos mostram até 50 categorias e 8 séries, com o resto em "Outros". No Venn de 3 grupos, os círculos são ilustrativos.</td></tr>
+    <tr><td class="tool">Visuais com muitos dados</td><td>A dispersão desenha até 2.000 pontos e avisa; gráficos mostram até 50 categorias e 8 séries. No Venn de 3 grupos, os círculos são ilustrativos.</td></tr>
   </table>
 </section>
 
 <!-- ================================================================ 12. ATALHOS E FAQ -->
 <section class="chapter">
-  <div class="eyebrow">16 · Referência rápida</div>
+  <div class="eyebrow">18 · Referência rápida</div>
   <h2>Atalhos e perguntas frequentes</h2>
   <h3>Atalhos de teclado</h3>
   <table>
@@ -934,8 +1023,8 @@
   <div class="avoid"><h4>A exportação vai apagar o arquivo de ontem?</h4><p>Não sem perguntar. Se o arquivo de saída já existe, ao clicar em Executar o PRO.DATA pergunta: substituir, criar um novo com data e hora no nome, ou (no Excel) adicionar a planilha. Dá para lembrar a escolha na caixa. Ao abrir o programa, essas exportações esperam o seu Executar.</p></div>
   <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
   <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na vista Dados. As constantes vão junto: as do fluxo, e o valor das compartilhadas que ele usa.</p></div>
-  <div class="avoid"><h4>Abri um fluxo e ele não executa. Por quê?</h4><p>Ele veio de fora e abriu em modo protegido (capítulo 13). Confira na faixa o que ele lê, calcula e grava, e clique em <strong>Confiar e executar</strong>.</p></div>
-  <div class="avoid"><h4>Minha API interna foi recusada. E agora?</h4><p>Peça à TI para incluir o servidor na lista de APIs internas (capítulo 13). APIs públicas não precisam de nada.</p></div>
+  <div class="avoid"><h4>Abri um fluxo e ele não executa. Por quê?</h4><p>Ele veio de fora e abriu em modo protegido (capítulo 15). Confira na faixa o que ele lê, calcula e grava, e clique em <strong>Confiar e executar</strong>.</p></div>
+  <div class="avoid"><h4>Minha API interna foi recusada. E agora?</h4><p>Peça à TI para incluir o servidor na lista de APIs internas (capítulo 15). APIs públicas não precisam de nada.</p></div>
   <div class="avoid"><h4>Posso pedir ajuda a uma IA sobre um fluxo?</h4><p>Sim. Envie o arquivo <code>.prodata.json</code> junto com o <code>contexto-ia.md</code>, publicado com cada versão. Ele ensina a IA a mexer no fluxo; depois, é só salvar a resposta e abrir no programa. Confira o resultado, e lembre que o fluxo mostra nomes de colunas e fórmulas, além dos dados digitados em Text Input.</p></div>
   <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, <strong>Baixar imagem</strong> gera um PNG em alta resolução, pronto para o e-mail ou a apresentação. <strong>Baixar HTML</strong> gera um arquivo que abre em qualquer navegador, com os filtros funcionando; a tela avisa quais dados vão dentro dele.</p></div>
   <div class="avoid"><h4>Desinstalar apaga meus fluxos?</h4><p>Não. Fluxos, arquivos e conexões ficam na sua pasta de dados e continuam lá para uma futura reinstalação.</p></div>

@@ -60,6 +60,8 @@ def test_port_is_stable_with_fallback() -> None:
 def test_generated_name_is_always_sql_or_zip() -> None:
     assert desktop.generated_name("fluxo.sql") == "fluxo.sql"
     assert desktop.generated_name("fluxo.ZIP") == "fluxo.zip"
+    assert desktop.generated_name("Tempo parado.GIF") == "Tempo parado.gif"
+    assert ".gif" in desktop._GENERATED_FILTERS
     assert desktop.generated_name("../../etc/passwd") == "passwd.sql"
     assert desktop.generated_name('a<b>:"c.exe') == "a b c.exe.sql"
     assert desktop.generated_name("...") == "fluxo.sql"

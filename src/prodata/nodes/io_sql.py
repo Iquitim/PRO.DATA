@@ -133,6 +133,8 @@ def _csv_extras(name: str, path: Path, opts: ReadOptions, schema: pl.Schema) -> 
 def input_data_sql(ctx: SqlContext, cfg: InputDataConfig) -> dict[str, Fragment]:
     if not cfg.dataset:
         raise ValueError("Escolha uma fonte no campo 'Fonte'.")
+    if cfg.dataset.startswith("jira:"):
+        return {"out": _database_source(ctx, "Consulta Jira", cfg.limit, "do Jira", "do Jira")}
     api_id = source_api_id(cfg.dataset)
     if api_id is not None:
         assert ctx.apis is not None

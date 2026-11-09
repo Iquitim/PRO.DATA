@@ -62,6 +62,7 @@ class NodeContext:
     report: Callable[[str], None] = lambda _text: None
     # Constantes que a caixa usa (spec 028), já com o valor: a API lê as dela nos parâmetros fixos.
     constants: dict[str, Any] = field(default_factory=dict)
+    jira: Any = None  # JiraStore (spec 030)
 
     def input(self, port: str = "in") -> pl.DataFrame:
         if port not in self.inputs:

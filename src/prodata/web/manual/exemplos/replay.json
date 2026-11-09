@@ -1,0 +1,1853 @@
+{
+ "id": "exemplo_replay",
+ "name": "Exemplo: backlog no tempo",
+ "description": "Exemplo do Manual, com dados fictícios. Mexa à vontade: nada aqui altera os seus fluxos.",
+ "containers": [],
+ "nodes": [
+  {
+   "id": "d",
+   "type": "io.text_input",
+   "label": "Demandas (fictícias)",
+   "x": 60,
+   "y": 60,
+   "config": {
+    "table": {
+     "columns": [
+      "chave",
+      "tipo",
+      "criado_em",
+      "time"
+     ],
+     "rows": [
+      [
+       "DEMO-101",
+       "Tarefa",
+       "2026-05-23 13:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-102",
+       "História",
+       "2026-05-18 12:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-103",
+       "Tarefa",
+       "2026-08-05 14:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-104",
+       "História",
+       "2026-06-17 17:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-105",
+       "História",
+       "2026-03-26 10:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-106",
+       "Bug",
+       "2026-03-31 17:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-107",
+       "Bug",
+       "2026-01-31 16:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-108",
+       "Tarefa",
+       "2026-03-18 15:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-109",
+       "Bug",
+       "2026-06-23 15:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-110",
+       "Bug",
+       "2026-02-22 10:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-111",
+       "Bug",
+       "2026-05-26 13:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-112",
+       "Tarefa",
+       "2026-03-13 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-113",
+       "História",
+       "2026-03-31 09:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-114",
+       "Bug",
+       "2026-06-10 09:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-115",
+       "Bug",
+       "2026-04-06 16:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-116",
+       "Bug",
+       "2026-02-23 12:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-117",
+       "História",
+       "2026-05-17 14:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-118",
+       "Bug",
+       "2026-05-17 17:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-119",
+       "Bug",
+       "2026-06-07 12:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-120",
+       "Bug",
+       "2026-03-20 09:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-121",
+       "Tarefa",
+       "2026-07-23 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-122",
+       "Bug",
+       "2026-02-08 10:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-123",
+       "Tarefa",
+       "2026-04-27 14:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-124",
+       "Bug",
+       "2026-03-26 11:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-125",
+       "Tarefa",
+       "2026-07-30 10:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-126",
+       "Tarefa",
+       "2026-06-25 11:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-127",
+       "Tarefa",
+       "2026-02-14 16:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-128",
+       "História",
+       "2026-03-31 13:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-129",
+       "Tarefa",
+       "2026-07-03 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-130",
+       "Bug",
+       "2026-01-23 10:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-131",
+       "História",
+       "2026-08-07 12:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-132",
+       "História",
+       "2026-03-03 13:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-133",
+       "Tarefa",
+       "2026-04-03 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-134",
+       "Tarefa",
+       "2026-03-03 11:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-135",
+       "História",
+       "2026-05-15 17:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-136",
+       "História",
+       "2026-02-04 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-137",
+       "História",
+       "2026-06-16 15:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-138",
+       "Tarefa",
+       "2026-03-09 17:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-139",
+       "Bug",
+       "2026-05-06 11:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-140",
+       "Bug",
+       "2026-03-27 13:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-141",
+       "Bug",
+       "2026-02-08 10:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-142",
+       "História",
+       "2026-04-11 14:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-143",
+       "Bug",
+       "2026-04-17 16:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-144",
+       "Tarefa",
+       "2026-05-20 15:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-145",
+       "Bug",
+       "2026-01-07 17:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-146",
+       "Bug",
+       "2026-07-02 11:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-147",
+       "Tarefa",
+       "2026-02-09 11:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-148",
+       "História",
+       "2026-06-02 10:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-149",
+       "Tarefa",
+       "2026-04-01 17:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-150",
+       "História",
+       "2026-04-28 12:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-151",
+       "Bug",
+       "2026-07-03 17:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-152",
+       "História",
+       "2026-01-21 13:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-153",
+       "Bug",
+       "2026-06-20 11:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-154",
+       "Tarefa",
+       "2026-03-19 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-155",
+       "Bug",
+       "2026-07-25 16:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-156",
+       "Bug",
+       "2026-07-20 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-157",
+       "História",
+       "2026-03-21 14:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-158",
+       "Tarefa",
+       "2026-05-03 10:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-159",
+       "Bug",
+       "2026-06-22 11:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-160",
+       "Bug",
+       "2026-03-29 13:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-161",
+       "Bug",
+       "2026-06-16 12:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-162",
+       "História",
+       "2026-07-26 17:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-163",
+       "Bug",
+       "2026-02-14 15:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-164",
+       "Bug",
+       "2026-07-16 09:00:00",
+       "Plataforma"
+      ],
+      [
+       "DEMO-165",
+       "História",
+       "2026-03-28 11:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-166",
+       "Tarefa",
+       "2026-03-15 09:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-167",
+       "Tarefa",
+       "2026-04-14 16:00:00",
+       "Atendimento"
+      ],
+      [
+       "DEMO-168",
+       "História",
+       "2026-03-12 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-169",
+       "História",
+       "2026-06-09 16:00:00",
+       "Dados"
+      ],
+      [
+       "DEMO-170",
+       "Tarefa",
+       "2026-07-22 14:00:00",
+       "Atendimento"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "id": "e",
+   "type": "io.text_input",
+   "label": "Mudanças de status (fictícias)",
+   "x": 60,
+   "y": 240,
+   "config": {
+    "table": {
+     "columns": [
+      "chave",
+      "quando",
+      "de",
+      "para"
+     ],
+     "rows": [
+      [
+       "DEMO-145",
+       "2026-01-18 16:07:06",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-152",
+       "2026-01-28 15:07:45",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-136",
+       "2026-02-05 20:00:00",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-145",
+       "2026-02-06 02:05:30",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-152",
+       "2026-02-09 20:45:59",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-130",
+       "2026-02-12 21:22:10",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-107",
+       "2026-02-16 17:10:28",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-122",
+       "2026-02-20 02:12:54",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-152",
+       "2026-02-21 23:51:34",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-127",
+       "2026-02-24 02:26:07",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-147",
+       "2026-02-25 00:49:09",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-136",
+       "2026-02-25 22:52:53",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-145",
+       "2026-02-27 18:15:20",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-136",
+       "2026-03-03 10:59:18",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-122",
+       "2026-03-04 19:39:58",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-163",
+       "2026-03-06 18:58:13",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-134",
+       "2026-03-08 06:39:14",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-110",
+       "2026-03-09 03:50:30",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-107",
+       "2026-03-11 20:05:33",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-141",
+       "2026-03-12 21:32:31",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-127",
+       "2026-03-18 04:07:50",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-122",
+       "2026-03-19 19:29:37",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-108",
+       "2026-03-19 20:00:00",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-134",
+       "2026-03-20 04:33:18",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-116",
+       "2026-03-21 20:14:17",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-163",
+       "2026-03-24 01:39:06",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-138",
+       "2026-03-26 20:04:09",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-132",
+       "2026-03-28 00:27:09",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-168",
+       "2026-03-30 10:31:37",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-107",
+       "2026-03-30 15:42:37",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-166",
+       "2026-04-01 18:47:59",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-116",
+       "2026-04-02 16:12:19",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-112",
+       "2026-04-04 16:23:14",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-165",
+       "2026-04-06 06:53:30",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-120",
+       "2026-04-08 02:21:16",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-108",
+       "2026-04-08 02:52:11",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-154",
+       "2026-04-08 09:17:14",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-124",
+       "2026-04-08 14:30:54",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-163",
+       "2026-04-08 23:42:37",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-160",
+       "2026-04-09 19:33:53",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-136",
+       "2026-04-10 02:05:38",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-163",
+       "2026-04-10 22:43:54",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-105",
+       "2026-04-11 06:49:10",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-149",
+       "2026-04-13 14:32:46",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-112",
+       "2026-04-14 06:33:01",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-141",
+       "2026-04-14 14:40:49",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-128",
+       "2026-04-14 21:33:17",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-157",
+       "2026-04-15 07:56:33",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-133",
+       "2026-04-15 16:24:32",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-127",
+       "2026-04-15 18:29:47",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-108",
+       "2026-04-16 09:37:55",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-157",
+       "2026-04-16 09:54:21",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-124",
+       "2026-04-16 20:57:53",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-132",
+       "2026-04-17 02:35:01",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-134",
+       "2026-04-18 19:03:29",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-168",
+       "2026-04-19 08:37:47",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-160",
+       "2026-04-22 02:01:18",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-154",
+       "2026-04-22 15:19:25",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-120",
+       "2026-04-23 17:50:32",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-149",
+       "2026-04-23 19:34:13",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-165",
+       "2026-04-23 21:13:56",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-115",
+       "2026-04-23 23:30:51",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-167",
+       "2026-04-23 23:42:13",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-106",
+       "2026-04-25 12:28:31",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-166",
+       "2026-04-28 15:04:05",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-140",
+       "2026-05-01 12:45:02",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-143",
+       "2026-05-02 01:15:42",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-105",
+       "2026-05-02 23:25:55",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-124",
+       "2026-05-07 04:05:14",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-140",
+       "2026-05-07 18:25:03",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-142",
+       "2026-05-08 05:05:38",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-123",
+       "2026-05-08 16:39:56",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-128",
+       "2026-05-08 19:58:56",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-115",
+       "2026-05-10 10:54:45",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-113",
+       "2026-05-10 15:57:35",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-157",
+       "2026-05-11 03:08:06",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-168",
+       "2026-05-11 03:35:56",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-139",
+       "2026-05-11 16:37:57",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-142",
+       "2026-05-12 08:17:17",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-141",
+       "2026-05-12 20:27:27",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-143",
+       "2026-05-17 16:22:56",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-140",
+       "2026-05-18 05:40:26",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-167",
+       "2026-05-19 00:46:11",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-118",
+       "2026-05-19 05:44:05",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-158",
+       "2026-05-19 21:47:06",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-150",
+       "2026-05-21 02:06:40",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-166",
+       "2026-05-21 17:46:54",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-142",
+       "2026-05-23 13:03:49",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-167",
+       "2026-05-25 23:42:59",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-113",
+       "2026-05-27 06:47:59",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-143",
+       "2026-05-27 08:30:44",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-123",
+       "2026-05-27 23:17:36",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-118",
+       "2026-05-30 04:37:57",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-105",
+       "2026-05-30 20:12:46",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-150",
+       "2026-06-01 18:17:49",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-134",
+       "2026-06-03 13:37:23",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-117",
+       "2026-06-06 05:17:20",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-102",
+       "2026-06-06 12:23:12",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-144",
+       "2026-06-10 01:09:56",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-101",
+       "2026-06-11 11:22:45",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-113",
+       "2026-06-12 09:30:17",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-107",
+       "2026-06-12 11:43:02",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-118",
+       "2026-06-12 14:46:08",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-135",
+       "2026-06-12 17:22:50",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-148",
+       "2026-06-15 01:31:12",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-158",
+       "2026-06-15 03:05:28",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-114",
+       "2026-06-16 15:49:01",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-119",
+       "2026-06-19 06:55:22",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-111",
+       "2026-06-21 00:18:47",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-158",
+       "2026-06-22 17:52:17",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-152",
+       "2026-06-22 20:10:33",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-150",
+       "2026-06-23 07:58:04",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-169",
+       "2026-06-23 18:52:08",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-123",
+       "2026-06-25 09:06:03",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-161",
+       "2026-06-25 12:26:04",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-135",
+       "2026-06-26 03:00:36",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-102",
+       "2026-06-27 02:36:22",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-101",
+       "2026-06-27 06:32:33",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-145",
+       "2026-06-29 00:45:22",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-169",
+       "2026-07-01 08:53:17",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-109",
+       "2026-07-02 08:09:53",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-148",
+       "2026-07-02 18:24:11",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-117",
+       "2026-07-03 10:08:20",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-135",
+       "2026-07-04 09:09:12",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-161",
+       "2026-07-04 13:01:50",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-104",
+       "2026-07-05 12:50:57",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-148",
+       "2026-07-07 11:57:08",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-119",
+       "2026-07-08 03:30:55",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-105",
+       "2026-07-09 04:32:30",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-111",
+       "2026-07-09 07:05:16",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-127",
+       "2026-07-10 17:02:43",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-146",
+       "2026-07-11 20:50:52",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-150",
+       "2026-07-13 01:02:48",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-159",
+       "2026-07-14 04:00:29",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-137",
+       "2026-07-14 11:27:20",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-101",
+       "2026-07-15 17:45:46",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-143",
+       "2026-07-16 01:58:49",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-109",
+       "2026-07-16 13:29:23",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-126",
+       "2026-07-17 04:22:01",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-161",
+       "2026-07-19 09:07:31",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-129",
+       "2026-07-20 23:41:32",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-146",
+       "2026-07-23 09:45:46",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-169",
+       "2026-07-24 16:28:36",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-167",
+       "2026-07-26 08:43:47",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-104",
+       "2026-07-26 22:26:26",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-153",
+       "2026-07-27 07:17:26",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-151",
+       "2026-07-27 13:19:24",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-111",
+       "2026-07-30 05:23:46",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-140",
+       "2026-07-30 05:48:43",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-156",
+       "2026-07-30 07:59:28",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-119",
+       "2026-07-31 07:29:00",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-146",
+       "2026-08-02 03:58:35",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-126",
+       "2026-08-05 14:26:30",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-109",
+       "2026-08-06 05:07:33",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-137",
+       "2026-08-06 16:20:55",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-155",
+       "2026-08-06 19:37:07",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-124",
+       "2026-08-08 00:48:38",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-170",
+       "2026-08-08 22:40:16",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-129",
+       "2026-08-09 05:20:08",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-155",
+       "2026-08-10 23:15:45",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-103",
+       "2026-08-11 10:51:11",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-164",
+       "2026-08-11 20:02:29",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-159",
+       "2026-08-12 09:53:11",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-121",
+       "2026-08-12 17:13:17",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-125",
+       "2026-08-14 17:22:36",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-170",
+       "2026-08-15 11:34:08",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-118",
+       "2026-08-16 20:14:33",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-104",
+       "2026-08-17 15:11:46",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-131",
+       "2026-08-19 04:38:53",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-156",
+       "2026-08-19 23:13:05",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-162",
+       "2026-08-20 05:19:20",
+       "Novo",
+       "Em análise"
+      ],
+      [
+       "DEMO-126",
+       "2026-08-20 06:03:22",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-156",
+       "2026-08-22 00:15:13",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-111",
+       "2026-08-22 05:47:36",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-142",
+       "2026-08-23 11:31:45",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-123",
+       "2026-08-26 23:01:02",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-103",
+       "2026-08-27 15:15:57",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-135",
+       "2026-08-29 15:56:06",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-121",
+       "2026-08-29 18:10:37",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-169",
+       "2026-08-30 18:36:27",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-155",
+       "2026-09-02 04:43:52",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-113",
+       "2026-09-02 20:31:32",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-125",
+       "2026-09-04 03:35:41",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-109",
+       "2026-09-04 04:00:35",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-161",
+       "2026-09-08 13:15:16",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-162",
+       "2026-09-13 20:03:43",
+       "Em análise",
+       "Em andamento"
+      ],
+      [
+       "DEMO-126",
+       "2026-09-18 06:06:10",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-103",
+       "2026-09-24 11:07:00",
+       "Em andamento",
+       "Em revisão"
+      ],
+      [
+       "DEMO-104",
+       "2026-09-25 16:02:54",
+       "Em revisão",
+       "Concluído"
+      ],
+      [
+       "DEMO-121",
+       "2026-09-26 09:34:36",
+       "Em andamento",
+       "Em revisão"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "id": "p",
+   "type": "transform.period_state",
+   "label": "Foto por mês",
+   "x": 340,
+   "y": 140,
+   "config": {
+    "item_key": "chave",
+    "created": "criado_em",
+    "keep": [
+     "tipo",
+     "time"
+    ],
+    "event_key": "chave",
+    "when": "quando",
+    "new_state": "para",
+    "old_state": "de",
+    "period": "month",
+    "until": "last_event"
+   }
+  },
+  {
+   "id": "a",
+   "type": "prep.filter",
+   "label": "Só em aberto",
+   "x": 600,
+   "y": 140,
+   "config": {
+    "mode": "expression",
+    "expression": "[estado] != 'Concluído'"
+   }
+  },
+  {
+   "id": "f",
+   "type": "prep.formula",
+   "label": "Faixa de idade",
+   "x": 860,
+   "y": 60,
+   "config": {
+    "formulas": [
+     {
+      "target": "new",
+      "column": "faixa_de_idade",
+      "type": "String",
+      "expression": "IF [dias_desde_criacao] <= 30 THEN \"0 a 30 dias\" ELSEIF [dias_desde_criacao] <= 60 THEN \"31 a 60 dias\" ELSEIF [dias_desde_criacao] <= 90 THEN \"61 a 90 dias\" ELSE \"mais de 90 dias\" ENDIF"
+     }
+    ]
+   }
+  },
+  {
+   "id": "k",
+   "type": "bi.kpi_card",
+   "label": "Em aberto",
+   "x": 1120,
+   "y": -60,
+   "config": {
+    "title": "Demandas em aberto",
+    "metric": "count"
+   }
+  },
+  {
+   "id": "c1",
+   "type": "bi.chart",
+   "label": "Envelhecimento",
+   "x": 1120,
+   "y": 60,
+   "config": {
+    "title": "Envelhecimento do backlog",
+    "chart_type": "bar",
+    "x_column": "faixa_de_idade",
+    "agg": "count",
+    "sort": "label"
+   }
+  },
+  {
+   "id": "c2",
+   "type": "bi.chart",
+   "label": "Tempo parado",
+   "x": 860,
+   "y": 220,
+   "config": {
+    "title": "Tempo parado em cada status (dias, média)",
+    "chart_type": "race",
+    "x_column": "estado",
+    "y_column": "dias_no_estado",
+    "agg": "mean"
+   }
+  },
+  {
+   "id": "m",
+   "type": "prep.formula",
+   "label": "Mês do evento",
+   "x": 340,
+   "y": 340,
+   "config": {
+    "formulas": [
+     {
+      "target": "new",
+      "column": "periodo",
+      "type": "Date",
+      "expression": "[quando]"
+     }
+    ]
+   }
+  },
+  {
+   "id": "c3",
+   "type": "bi.chart",
+   "label": "Passagens",
+   "x": 600,
+   "y": 340,
+   "config": {
+    "title": "Passagens entre status",
+    "chart_type": "sankey",
+    "x_column": "de",
+    "series_column": "para",
+    "agg": "count"
+   }
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "d",
+   "sourceHandle": "out",
+   "target": "p",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "e",
+   "sourceHandle": "out",
+   "target": "p",
+   "targetHandle": "E"
+  },
+  {
+   "id": "e3",
+   "source": "p",
+   "sourceHandle": "out",
+   "target": "a",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e4",
+   "source": "a",
+   "sourceHandle": "T",
+   "target": "f",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e5",
+   "source": "f",
+   "sourceHandle": "out",
+   "target": "k",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e6",
+   "source": "f",
+   "sourceHandle": "out",
+   "target": "c1",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e7",
+   "source": "a",
+   "sourceHandle": "T",
+   "target": "c2",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e8",
+   "source": "e",
+   "sourceHandle": "out",
+   "target": "m",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e9",
+   "source": "m",
+   "sourceHandle": "out",
+   "target": "c3",
+   "targetHandle": "in"
+  }
+ ],
+ "dashboard": {
+  "page": {
+   "size": "16:9",
+   "height": 900,
+   "background": ""
+  },
+  "filters": [],
+  "timeline": {
+   "column": "periodo",
+   "step": "month",
+   "mode": "period",
+   "speed": 1
+  },
+  "scenes": [],
+  "confidentiality": "interno",
+  "hidden": [],
+  "items": [
+   {
+    "id": "v_k",
+    "kind": "visual",
+    "node_id": "k",
+    "x": 16,
+    "y": 16,
+    "w": 380,
+    "h": 150,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "v_c1",
+    "kind": "visual",
+    "node_id": "c1",
+    "x": 16,
+    "y": 182,
+    "w": 780,
+    "h": 330,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "v_c2",
+    "kind": "visual",
+    "node_id": "c2",
+    "x": 812,
+    "y": 16,
+    "w": 772,
+    "h": 496,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "v_c3",
+    "kind": "visual",
+    "node_id": "c3",
+    "x": 16,
+    "y": 528,
+    "w": 1568,
+    "h": 330,
+    "format": {},
+    "content": ""
+   }
+  ]
+ }
+}

@@ -1,6 +1,6 @@
 # PRO.DATA: contexto para assistentes de IA
 
-Versão do programa: 0.6.1. Este arquivo é gerado a partir do código.
+Versão do programa: 0.7.0. Este arquivo é gerado a partir do código.
 
 Você está ajudando alguém que usa o PRO.DATA, um programa de Windows para montar fluxos visuais de dados, parecido com o Alteryx. A pessoa pode enviar um fluxo (arquivo `.prodata.json`) e pedir para explicar, corrigir ou mudar. Use este documento para responder com um fluxo que abre e executa de primeira.
 
@@ -190,10 +190,14 @@ Se você escrever a fórmula da Multi-Row à mão, use `"recipe": "custom"`. Com
 
 ## Dashboard
 
+Fontes do Jira usam `io.input_data` com `dataset` igual a `jira:<id da consulta>`, e a consulta é cadastrada no programa, nunca no arquivo.
+
 As caixas `bi.chart`, `bi.kpi_card`, `bi.venn` e `bi.table` publicam visuais. Não é preciso escrever o `dashboard` para uma caixa de BI nova: deixe como está ou `null`, e a interface monta o layout. Só mexa nele se a pessoa pedir.
 
 ```text
 Dashboard: page{size (16:9, a4-landscape, a4-portrait, free), height, background}, filters[], confidentiality, items[], hidden[]
+Linha:     timeline{column, step (day, week, month), mode (cumulative, period), speed}
+Cena:      scenes[]{id, title, note, moment (AAAA-MM-DD), filters[], item_id}
 Filtro:    id, column, label, kind (list, number, date), selected[], min, max
 Item:      id, kind (visual, text, image, shape), node_id (caixa de BI), x, y, w, h, format{}, content
 Rótulos:   publico, interno, confidencial, restrito
@@ -580,6 +584,25 @@ Entradas: `T` (Destino), `S` (Fonte). Saídas: `out` (Saída).
 
 - `prefix` ("s_"): Prefixo para colunas repetidas da fonte [S]
 
+#### `transform.period_state`: Estado por período
+
+Transforma eventos em fotos: uma linha por item e por período, com o estado de cada item no fim dele.
+
+Entradas: `in` (Itens), `E` (Eventos). Saídas: `out` (Saída).
+
+- `item_key` (""): Identificador do item [I] [nome de coluna]
+- `created` (""): Data de criação do item [I] [nome de coluna]. Opcional. Sem ela, o item aparece a partir do primeiro evento
+- `current_state` (""): Estado atual do item [I] [nome de coluna]. Opcional. Só para item que nunca mudou: se não houve evento, ele sempre esteve nesse estado
+- `keep` ([]): Colunas do item para manter [lista de colunas]
+- `event_key` (""): Identificador do item [E] [nome de coluna]
+- `when` (""): Quando aconteceu [E] [nome de coluna]
+- `new_state` (""): Estado depois do evento [E] [nome de coluna]
+- `old_state` (""): Estado antes do evento [E] [nome de coluna]. Opcional, mas recomendado: é o que diz como o item estava antes do primeiro evento
+- `only_column` (""): Usar só eventos em que a coluna [E] [nome de coluna]. Opcional. No histórico do Jira, escolha campo
+- `only_value` (""): tem o valor. No histórico do Jira, status
+- `period` ("week"): Período. Opções: `day`, `week`, `month`
+- `until` ("last_event"): Até quando. Opções: `last_event`, `today`
+
 #### `transform.join`: Join
 
 Junta [L] e [R] pelas chaves. Saídas: [L] só na esquerda, [J] combinados, [R] só na direita.
@@ -636,11 +659,13 @@ Agrega os dados e publica um gráfico no Dashboard: colunas, linhas, rosca, empi
 Entradas: `in` (Entrada). Saídas: `out` (Saída).
 
 - `title` ("Novo gráfico"): Título
-- `chart_type` ("bar"): Tipo. Opções: `bar`, `hbar`, `line`, `donut`, `stacked`, `grouped`, `stacked100`, `area`, `area_stacked`, `pareto`, `funnel`, `scatter`
+- `chart_type` ("bar"): Tipo. Opções: `bar`, `hbar`, `line`, `donut`, `stacked`, `grouped`, `stacked100`, `area`, `area_stacked`, `pareto`, `funnel`, `scatter`, `race`, `bubble`, `sankey`
 - `x_column` (""): Categoria (eixo X) [nome de coluna]
 - `y_column` (""): Valor (eixo Y) [nome de coluna]. Aparece se `agg` em sum, mean, min, max
 - `agg` ("sum"): Agregação. Opções: `sum`, `mean`, `count`, `min`, `max`
-- `series_column` (""): Série (2ª dimensão) [nome de coluna]. Aparece se `chart_type` em stacked, grouped, stacked100, line, area, area_stacked, scatter. Opcional: uma cor por valor desta coluna (até 8; as demais viram 'Outras')
+- `series_column` (""): Série (2ª dimensão) [nome de coluna]. Aparece se `chart_type` em stacked, grouped, stacked100, line, area, area_stacked, scatter, sankey. Opcional: uma cor por valor desta coluna (até 8; as demais viram 'Outras'). No Sankey, é o destino
+- `x_value_column` (""): Valor do eixo X [nome de coluna]. Aparece se `chart_type` em bubble
+- `size_column` (""): Tamanho da bolha [nome de coluna]. Aparece se `chart_type` em bubble. Opcional. Sem ela, o tamanho é a quantidade de linhas
 - `sort` ("value_desc"): Ordenação. Opções: `value_desc`, `value_asc`, `label`. O Pareto sempre ordena do maior para o menor
 - `max_items` (12): Máximo de categorias. De 2 a 50
 - `pareto_threshold` (80.0): Linha de corte do Pareto (%). De 1 a 99. Aparece se `chart_type` em pareto

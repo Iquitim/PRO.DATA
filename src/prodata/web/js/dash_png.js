@@ -33,16 +33,16 @@ export async function exportPage() {
 }
 
 /** Faixa da imagem: o rótulo, sempre, e os filtros ativos. */
-function exportStrip() {
+function exportStrip(note) {
   const level = dash().confidentiality || 'interno';
   const recorte = activeFiltersText(dash().filters);
   return h('p', { class: ['dash-export-filters', 'label-bar', `label-${level}`] },
-    `Classificação: ${LABELS[level]}${recorte ? ` · Filtros: ${recorte}` : ''}`);
+    `Classificação: ${LABELS[level]}${note ? ` · ${note}` : ''}${recorte ? ` · Filtros: ${recorte}` : ''}`);
 }
 
 /** A página é posicionada de forma absoluta: fica numa caixa própria, abaixo da faixa, para não cobri-la. */
-function withStrip(content, width, height) {
-  return h('div', { style: { width: `${width}px` } }, exportStrip(),
+export function withStrip(content, width, height, note = page.stripNote?.()) {
+  return h('div', { style: { width: `${width}px` } }, exportStrip(note),
     h('div', { style: { position: 'relative', width: `${width}px`, height: `${height}px` } }, content));
 }
 

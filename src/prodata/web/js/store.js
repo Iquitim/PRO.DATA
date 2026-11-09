@@ -14,6 +14,8 @@ export const store = {
   connections: [],
   queries: [], // consultas de banco da aba Dados (spec 009)
   apis: [],
+  jiraConnections: [],
+  jiraQueries: [],
   constants: [], // constantes compartilhadas, da vista Dados (spec 028)
   workflow: null,
   filePath: null, // arquivo .prodata.json fora da biblioteca, quando aberto/salvo por "Salvar como"
@@ -271,6 +273,7 @@ function mergeExecution(previous, report) {
 /** Prefixo das fontes do Input Data que são consultas de banco (spec 009). */
 export const QUERY_PREFIX = 'sql:';
 export const API_PREFIX = 'api:';
+export const JIRA_PREFIX = 'jira:';
 const API_PLACEHOLDER = /\{([^{}"':\r\n]+)\}/g;
 /** Colunas que uma API pede, como {sigla}: sem elas, ela precisa do API Loop. */
 export function placeholdersOf(d) {
@@ -283,10 +286,14 @@ export const apiOf = (source) => (source?.startsWith(API_PREFIX)
 export const queryOf = (source) => (source?.startsWith(QUERY_PREFIX)
   ? store.queries.find((q) => q.id === source.slice(QUERY_PREFIX.length)) || null : null);
 
+export const jiraOf = (source) => (source?.startsWith(JIRA_PREFIX)
+  ? store.jiraQueries.find((q) => q.id === source.slice(JIRA_PREFIX.length)) || null : null);
+
 /** Nome amigável de uma fonte: nome da consulta ou arquivo sem extensão. */
 export function sourceLabel(source) {
   if (source?.startsWith(QUERY_PREFIX)) return queryOf(source)?.name || 'Consulta de banco';
   if (source?.startsWith(API_PREFIX)) return apiOf(source)?.name || 'API';
+  if (source?.startsWith(JIRA_PREFIX)) return jiraOf(source)?.name || 'Jira';
   return (source || '').replace(/\.[^.]+$/, '');
 }
 

@@ -9,10 +9,16 @@ from pathlib import Path
 MODULES = (
     "icons.js",
     "dom.js",
+    "chart_kit.js",
+    "charts_motion.js",
     "charts.js",
     "dash_filters.js",
     "dash_cards.js",
     "dash_compute.js",
+    "dash_highlights.js",
+    "dash_replay.js",
+    "dash_timeline.js",
+    "dash_story.js",
     "dash_crypt.js",
     "dash_viewer.js",
 )

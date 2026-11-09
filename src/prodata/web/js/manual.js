@@ -4,6 +4,7 @@
 import { h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import { revealPanel } from './layout.js';
+import { finishedLessons, LESSONS, startLesson } from './lessons.js';
 import { CONTEXT, TARGETS } from './manual_targets.js';
 import { node, on, store, toolOf } from './store.js';
 import { toast, toastError } from './ui.js';
@@ -142,7 +143,7 @@ function showTool(type) {
   }, 80);
 }
 
-async function tryExample(name) {
+export async function tryExample(name) {
   try {
     const workflow = await fetch(`/static/manual/exemplos/${name}.json`).then((r) => r.json());
     await actions.openExample(workflow);
@@ -173,8 +174,19 @@ function homeView() {
   const { chapter, where } = suggested();
   return [
     chapter ? h('button', { type: 'button', class: 'manual-here', onclick: () => openChapter(chapter) }, h('small', {}, where), h('b', {}, chapter.title)) : null,
+    lessonsBlock(),
     ...data.chapters.map(chapterRow),
   ].filter(Boolean);
+}
+
+function lessonsBlock() {
+  const finished = finishedLessons();
+  return h('section', { class: 'manual-lessons', 'aria-label': 'Lições guiadas' },
+    h('h3', {}, 'Lições guiadas'),
+    LESSONS.map((lesson) => h('button', {
+      type: 'button', class: 'manual-lesson', dataset: { lesson: lesson.id },
+      onclick: () => { closeManual(); startLesson(lesson.id, actions); },
+    }, icon(finished.includes(lesson.id) ? 'check-circle' : 'play', 14), h('span', {}, h('b', {}, lesson.title), h('small', {}, lesson.about)))));
 }
 
 function searchSections(text) {

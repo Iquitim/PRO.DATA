@@ -28,6 +28,7 @@ export const CONTEXT = {
     'prep.data_quality': 'Dados que dá para confiar',
     'io.api_loop': 'Dados de APIs, sem programar',
     'io.input_data': 'Trazendo dados',
+    'transform.period_state': 'Dados do Jira, sem escrever JQL',
     'bi.chart': 'Indicadores e visuais',
     'bi.kpi_card': 'Indicadores e visuais',
     'bi.venn': 'Indicadores e visuais',

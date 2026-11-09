@@ -220,7 +220,7 @@ _PNG_FILTER = "Imagem PNG (*.png)"
 _DATA_FILTER = "Planilhas e dados (*.csv;*.txt;*.tsv;*.tab;*.xlsx;*.xlsm;*.xls;*.xlsb;*.parquet;*.pq;*.json;*.jsonl;*.ndjson;*.arrow;*.feather)"
 _SQL_FILTER = "Código SQL (*.sql)"
 _ZIP_FILTER = "Arquivo compactado (*.zip)"
-_GENERATED_FILTERS = {".sql": _SQL_FILTER, ".zip": _ZIP_FILTER, ".html": "Página da web (*.html)"}
+_GENERATED_FILTERS = {".sql": _SQL_FILTER, ".zip": _ZIP_FILTER, ".html": "Página da web (*.html)", ".gif": "Imagem GIF (*.gif)"}
 _GENERATED_MAX_BYTES = 64 * 1024 * 1024
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PNG_MAX_BYTES = 64 * 1024 * 1024
@@ -307,12 +307,12 @@ def web_link(url: str) -> str | None:
 
 
 def generated_name(name: str) -> str:
-    """Nome saneado, sempre terminando em .sql, .zip ou .html (constituição IV)."""
+    """Nome saneado, sempre terminando em .sql, .zip, .html ou .gif (constituição IV)."""
     stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", Path(name.replace("\\", "/")).name)
     stem = re.sub(r"\s+", " ", stem).strip(" .")
-    found = re.search(r"\.(sql|zip|html)$", stem, flags=re.IGNORECASE)
+    found = re.search(r"\.(sql|zip|html|gif)$", stem, flags=re.IGNORECASE)
     extension = found.group(1).lower() if found else "sql"
-    stem = re.sub(r"\.(sql|zip|html)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
+    stem = re.sub(r"\.(sql|zip|html|gif)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
     return f"{stem or 'fluxo'}.{extension}"
 
 

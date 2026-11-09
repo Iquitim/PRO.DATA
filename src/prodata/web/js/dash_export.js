@@ -52,6 +52,44 @@ function themeVars() {
 
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
+/** O elemento como imagem SVG, com o CSS embutido: o navegador desenha sem buscar nada. */
+async function picture(el, width, height, css, background) {
+  const html = new XMLSerializer().serializeToString(el);
+  const svgText = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`
+    + `<style>${css.replace(/<\/style/gi, '')}</style>`
+    + `<foreignObject x="0" y="0" width="${width}" height="${height}">`
+    + `<div xmlns="http://www.w3.org/1999/xhtml" style="${themeVars().replace(/"/g, "'")};width:${width}px;height:${height}px;background:${background}">${html}</div>`
+    + '</foreignObject></svg>';
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+  await img.decode();
+  return img;
+}
+
+/**
+ * Para desenhar muitos quadros: reaproveita o CSS e devolve os pixels de cada um.
+ * Fica fora da tela e no tamanho real; `scale` só muda o tamanho do resultado.
+ */
+export async function frameMaker(width, height, { scale = 1, background = '#ffffff' } = {}) {
+  await document.fonts.ready;
+  const css = await collectCss();
+  const host = document.createElement('div');
+  host.style.cssText = `position:fixed;left:-100000px;top:0;width:${width}px;height:${height}px;overflow:hidden;`;
+  document.body.append(host);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  return async (el) => {
+    host.replaceChildren(el);
+    const img = await picture(el, width, height, css, background);
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  };
+}
+
 /**
  * Desenha `el` (montado fora da tela, no tamanho real) e devolve um data URI PNG.
  * `background`: cor de fundo da imagem (a página ou o cartão).
@@ -65,15 +103,7 @@ export async function renderPng(el, width, height, { scale = 2, background = '' 
     await document.fonts.ready;
     await nextFrame();
     const css = await collectCss();
-    const html = new XMLSerializer().serializeToString(el);
-    const svgText = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">`
-      + `<style>${css.replace(/<\/style/gi, '')}</style>`
-      + `<foreignObject x="0" y="0" width="${width}" height="${height}">`
-      + `<div xmlns="http://www.w3.org/1999/xhtml" style="${themeVars().replace(/"/g, "'")};width:${width}px;height:${height}px;background:${background}">${html}</div>`
-      + '</foreignObject></svg>';
-    const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
-    await img.decode();
+    const img = await picture(el, width, height, css, background);
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);

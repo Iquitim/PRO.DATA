@@ -16,7 +16,7 @@ import { renderFields } from './fields.js';
 import { formatOf, openPreview } from './datasets.js';
 import { icon } from './icons.js';
 import {
-  API_PREFIX, apiOf, mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
+  API_PREFIX, apiOf, JIRA_PREFIX, mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
 } from './store.js';
 import { showMenu, toast, toastError } from './ui.js';
 
@@ -262,15 +262,18 @@ function nodeContext(n) {
 function sourceContext(n, spec) {
   const cfg = n.config;
   const isApi = Boolean(cfg.dataset?.startsWith(API_PREFIX));
-  const isQuery = isApi || Boolean(cfg.dataset?.startsWith(QUERY_PREFIX));
+  const isJira = Boolean(cfg.dataset?.startsWith(JIRA_PREFIX));
+  const isQuery = isApi || isJira || Boolean(cfg.dataset?.startsWith(QUERY_PREFIX));
   const ctx = {
     queries: store.queries,
     apis: store.apis,
+    jira: store.jiraQueries,
     needsLoop: (a) => placeholdersOf(a).length > 0,
     isQuery,
     fileOptions: !isQuery,
     onNewQuery: () => openQueryEditor({ onSaved: (saved) => setSource(n, `${QUERY_PREFIX}${saved.id}`) }),
   };
+  if (isJira) return ctx; // o cadastro fica na vista Dados
   if (isApi) {
     const a = apiOf(cfg.dataset);
     ctx.onPreview = () => a && openApiEditor({ source: a, onSaved: () => {} });

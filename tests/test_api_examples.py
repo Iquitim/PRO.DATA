@@ -24,7 +24,7 @@ from prodata.samples.apis import (
     refresh_example_docs,
     seed_example_apis,
 )
-from prodata.samples.workflows import DEMO_WORKFLOW_ID, add_api_section, demo_workflow
+from prodata.samples.workflows import DEMO_WORKFLOW_ID, RACE_NODE, add_api_section, demo_workflow
 
 API_NODES = {"n_api_estados", "n_api_municipios", "n_api_contagem", "n_api_join", "n_api_chart"}
 
@@ -90,6 +90,19 @@ def test_dashboard_page_does_not_depend_on_the_api() -> None:
     dashboard = demo_workflow()["dashboard"]
     assert "n_api_chart" in dashboard["hidden"]
     assert not any(i.get("node_id") == "n_api_chart" for i in dashboard["items"])
+
+
+def test_saved_demo_receives_the_race_and_the_timeline(settings: Settings) -> None:
+    services = build_services(settings)
+    old = demo_workflow()
+    old["nodes"] = [n for n in old["nodes"] if n["id"] != RACE_NODE]
+    old["edges"] = [e for e in old["edges"] if e["id"] != "e_race"]
+    old["dashboard"]["items"] = [i for i in old["dashboard"]["items"] if i.get("node_id") != RACE_NODE]
+    old["dashboard"]["timeline"] = {}
+    services.workflows.save(Workflow.model_validate(old))
+    upgraded = build_services(settings).workflows.get(DEMO_WORKFLOW_ID)
+    assert upgraded.node(RACE_NODE).config["chart_type"] == "race"
+    assert upgraded.dashboard is not None and upgraded.dashboard.timeline.column == "competencia"
 
 
 def test_hold_is_an_option_of_any_api(tmp_path: Path, runner: WorkflowRunner) -> None:

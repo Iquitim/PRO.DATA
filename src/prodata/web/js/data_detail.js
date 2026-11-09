@@ -1,5 +1,6 @@
 // Detalhe de uma fonte na vista Dados (spec 028, RF-2803..2804, RF-2810): visão geral, cadastro, uso e explicação.
 
+import { addJiraNode, jiraConnectionEditor, jiraQueryEditor, removeJiraConnection, removeJiraQuery } from './jira_ui.js';
 import { tableSkeleton } from './skeleton.js';
 import { api } from './api.js';
 import { addApiNode, apiEditor, removeApi } from './apis.js';
@@ -18,11 +19,15 @@ const TONES = { ok: 'check', warn: 'alert', err: 'alert', info: 'link' };
 const HOW = {
   file: [['Arquivo', 'vendas.xlsx'], ['Tabela', 'linhas e colunas']],
   query: [['Banco', 'conexão'], ['Consulta', 'SELECT …'], ['Tabela', 'linhas e colunas']],
+  jira: [['Jira', 'projetos e filtros'], ['Consulta', 'sem escrever JQL'], ['Tabela', 'só o que mudou']],
+  jiraconn: [['Token', 'só leitura, no cofre'], ['Consultas', 'uma ou mais'], ['Fluxos', 'Input Data']],
   api: [['Pedido', 'GET /estados'], ['Resposta', '[{"sigla":"SP"…'], ['Tabela', 'linhas e colunas']],
   conn: [['Conexão', 'servidor e senha'], ['Consultas', 'uma ou mais'], ['Fluxos', 'Input Data']],
   const: [['Constante', '[#mes_referencia]'], ['Caixas', 'Formula, Filter…'], ['Execução', 'usa o valor de agora']],
 };
 const HOW_TEXT = {
+  jira: 'A consulta lê demandas, histórico ou comentários do Jira, sem alterar nada, e vira uma tabela no Input Data. A primeira carga traz tudo; as seguintes, só o que mudou. Se cair no meio, continua de onde parou.',
+  jiraconn: 'A conexão guarda o endereço do Jira e, no cofre do Windows, o e-mail e o token. O PRO.DATA só faz leituras, e o Jira só mostra o que a sua conta pode ver.',
   file: 'Um arquivo enviado vira uma cópia guardada no PRO.DATA. Um arquivo vinculado é lido onde está, sempre na versão mais nova.',
   query: 'A consulta pergunta ao banco, só para ler, e a resposta vira uma tabela no Input Data. A senha fica no cofre do Windows.',
   api: 'O PRO.DATA faz o pedido, recebe a resposta e transforma a lista que ela traz numa tabela. Com uma variável, como {sigla}, entra no fluxo como API Loop.',
@@ -94,6 +99,8 @@ function editorPane(source, ctx) {
   const host = { close: () => ctx.refresh(), reopen: (opts) => ctx.mountEditor(source.kind, opts) };
   const done = (saved) => ctx.afterSave(source.kind, saved);
   const editor = source.kind === 'api' ? apiEditor({ source: source.raw, onSaved: done }, host)
+    : source.kind === 'jira' ? jiraQueryEditor({ query: source.raw, onSaved: done }, host)
+    : source.kind === 'jiraconn' ? jiraConnectionEditor(source.raw, { onSaved: done }, host)
     : source.kind === 'query' ? queryEditor({ query: source.raw, onSaved: done }, host)
       : source.kind === 'const' ? constantEditor(source.raw, { uses: usesOf(source), onSaved: done }, host)
         : connectionEditor(source.raw, { onSaved: done }, host);
@@ -122,6 +129,14 @@ function actionsFor(source, ctx) {
     const: [
       button({ icon: 'trash', label: 'Excluir', variant: 'ghost',
         onClick: () => ctx.remove(source, async () => { await api.deleteConstant(source.id); await refreshConstants(); }) }),
+    ],
+    jira: [
+      button({ icon: 'plus', label: 'Adicionar ao fluxo', onClick: add(() => addJiraNode(source.raw)) }),
+      button({ icon: 'trash', label: 'Excluir', variant: 'ghost', onClick: () => ctx.remove(source, () => removeJiraQuery(source.raw)) }),
+    ],
+    jiraconn: [
+      button({ icon: 'plus', label: 'Nova consulta', onClick: () => ctx.newSource('jira', { connectionId: source.id }) }),
+      button({ icon: 'trash', label: 'Excluir', variant: 'ghost', onClick: () => ctx.remove(source, () => removeJiraConnection(source.raw)) }),
     ],
     conn: [
       button({ icon: 'plus', label: 'Nova consulta', onClick: () => ctx.newSource('query', { connectionId: source.id }) }),

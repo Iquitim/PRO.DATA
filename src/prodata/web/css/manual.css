@@ -65,3 +65,19 @@ body.manual-open [data-resize="right"], body.manual-open #slot-right { visibilit
 .manual-text .m-tool { color: var(--accent); border-bottom: 1px dotted var(--accent); cursor: pointer; }
 .manual-ring { position: fixed; z-index: 1100; border: 2px solid var(--focus); border-radius: 8px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--focus) 28%, transparent); pointer-events: none; }
 .manual-ring-tip { position: fixed; z-index: 1101; padding: 5px 10px; border-radius: var(--radius); background: var(--text); color: var(--surface); font-size: var(--fs-xs); white-space: nowrap; pointer-events: none; }
+
+/* Lições guiadas (spec 030) */
+.manual-lessons { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.manual-lessons h3 { margin: 0 0 4px; padding: 0 8px; color: var(--text-2); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.manual-lesson { display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: var(--radius); background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.manual-lesson:hover { background: var(--surface-3); }
+.manual-lesson svg { flex: none; margin-top: 3px; color: var(--accent); }
+.manual-lesson b { display: block; font-weight: 600; }
+.manual-lesson small { display: block; color: var(--text-2); font-size: var(--fs-xs); }
+.lesson-card { position: fixed; left: 16px; bottom: 44px; z-index: 880; width: 340px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--accent); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
+.lesson-count { color: var(--text-2); font-size: var(--fs-xs); }
+.lesson-text { margin: 4px 0 10px; font-size: var(--fs-md); }
+.lesson-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.lesson-ring { position: fixed; z-index: 870; border: 2px solid var(--accent); border-radius: var(--radius); pointer-events: none; animation: lesson-pulse 1.4s ease-in-out infinite; }
+@keyframes lesson-pulse { 50% { box-shadow: 0 0 0 5px var(--accent-weak); } }
+@media (prefers-reduced-motion: reduce) { .lesson-ring { animation: none; } }

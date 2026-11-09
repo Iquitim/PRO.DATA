@@ -90,6 +90,18 @@ def filter_options(tables: list[pl.DataFrame]) -> list[dict[str, Any]]:
     ]
 
 
+def _looks_like_dates(values: list[str]) -> bool:
+    """Texto como 2026-05 ou 29/10/2026 serve para a linha do tempo, com as mesmas regras do KPI."""
+    sample = [v for v in values[:MAX_OPTIONS] if v != EMPTY_LABEL]
+    if not sample:
+        return False
+    try:
+        as_date(pl.Series(sample, dtype=pl.String))
+    except ValueError:
+        return False
+    return True
+
+
 def _describe(entry: dict[str, Any]) -> dict[str, Any]:
     parts: list[pl.Series] = entry.pop("_parts")
     if entry["kind"] == "list":
@@ -97,7 +109,7 @@ def _describe(entry: dict[str, Any]) -> dict[str, Any]:
         for part in parts:
             seen.update(part.cast(pl.String).fill_null(EMPTY_LABEL).unique().to_list())
         values = sorted(seen)
-        return {**entry, "values": values[:MAX_OPTIONS], "truncated": len(values) > MAX_OPTIONS}
+        return {**entry, "values": values[:MAX_OPTIONS], "truncated": len(values) > MAX_OPTIONS, "date_like": _looks_like_dates(values)}
     if entry["kind"] == "number":
         numbers = [p.cast(pl.Float64, strict=False) for p in parts]
         lows = [v for n in numbers if (v := n.min()) is not None and math.isfinite(v)]  # type: ignore[arg-type]
@@ -120,7 +132,7 @@ def used_columns(tool: str, config: Any, df: pl.DataFrame, filters: list[DashFil
     """Só o que o visual e os filtros precisam: o restante da tabela não entra no arquivo."""
     match config:
         case ChartConfig():
-            names = [config.x_column, config.y_column, config.series_column]
+            names = [config.x_column, config.y_column, config.series_column, config.x_value_column, config.size_column]
         case KpiConfig():
             names = [config.column, config.date_column]
         case VennConfig():

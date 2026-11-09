@@ -148,7 +148,7 @@ def summary(workflow: Workflow, names: dict[str, str]) -> list[dict[str, Any]]:
         item: dict[str, Any] | None = None
         if node.type == "io.input_data":
             source = str(cfg.get("dataset") or "")
-            kind = "api" if source.startswith("api:") else "query" if source.startswith("sql:") else "file"
+            kind = "api" if source.startswith(("api:", "jira:")) else "query" if source.startswith("sql:") else "file"
             known = names.get(source, source)
             missing = kind != "file" and source not in names
             item = {"kind": kind, "detail": known or "sem fonte escolhida", "missing": missing}

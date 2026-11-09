@@ -4,6 +4,7 @@
   que mudaram nessas versões, escritas do jeito antigo.
 - `data/fluxo_0_6_0.prodata.json`: o mesmo, mais o que entrou na 0.6.0: Data Quality (com a lista da entrada L),
   constantes do fluxo e um valor compartilhado guardado no arquivo.
+- `data/fluxo_0_6_1.prodata.json`: o mesmo fluxo, com o resultado gravado pela 0.6.1 (referência da spec 030).
 
 O resultado esperado de cada saída fica em `data/<fluxo>_resultados.json`, como uma impressão digital das linhas.
 Para gravar o esperado de novo, só quando uma mudança de resultado for intencional:
@@ -20,7 +21,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 DATA = Path(__file__).resolve().parent / "data"
-VERSIONS = ["0_5_9", "0_6_0"]
+VERSIONS = ["0_5_9", "0_6_0", "0_6_1"]
 # O treino de ML usa uma semente fixa, mas a ordem interna das árvores pode variar entre máquinas.
 SKIP = {"n_trainer", "n_pred"}
 

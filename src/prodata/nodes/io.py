@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 
 import polars as pl
 from pydantic import BaseModel, Field
 
-from prodata.connectors import sql
+from prodata.connectors import jira_read, sql
 from prodata.connectors.api import read_api
 from prodata.connectors.api_loop import run_loop
 from prodata.connectors.api_model import source_api_id
+from prodata.connectors.jira_model import source_jira_id
 from prodata.connectors.queries import read_definition, source_query_id
 from prodata.domain.labels import (
     DEFAULT_LABEL,
@@ -38,6 +39,9 @@ from prodata.services.audit import log_export
 # ------------------------------------------------------------------ Input Data
 
 
+JIRA_FULL_DAYS = 30
+
+
 class InputDataConfig(ReadOptions, ToolConfig):
     dataset: str = Field(
         "",
@@ -51,6 +55,10 @@ class InputDataConfig(ReadOptions, ToolConfig):
 def _source_signature(ctx: NodeContext, cfg: InputDataConfig) -> str:
     if not cfg.dataset:
         return ""
+    jira_id = source_jira_id(cfg.dataset)
+    if jira_id is not None:
+        # Cada execução pergunta ao Jira o que mudou: o guardado local evita refazer a carga inteira.
+        return "" if ctx.jira is None else f"j{ctx.jira.query(jira_id).digest()}t{time.time_ns()}"
     api_id = source_api_id(cfg.dataset)
     if api_id is not None:
         if ctx.apis is None:
@@ -71,6 +79,8 @@ def _source_signature(ctx: NodeContext, cfg: InputDataConfig) -> str:
 def _source_annotation(cfg: InputDataConfig) -> str:
     if not cfg.dataset:
         return "Escolha uma fonte"
+    if source_jira_id(cfg.dataset):
+        return "Jira"
     if source_api_id(cfg.dataset):
         return "API"
     return "Consulta de banco" if source_query_id(cfg.dataset) else cfg.dataset
@@ -78,6 +88,8 @@ def _source_annotation(cfg: InputDataConfig) -> str:
 
 def _source_on_request(ctx: NodeContext, cfg: InputDataConfig) -> str | None:
     """Um POST pode gravar do outro lado: não roda só porque o fluxo foi aberto."""
+    if source_jira_id(cfg.dataset):
+        return "Esta caixa só busca no Jira quando você clica em Executar."
     api_id = source_api_id(cfg.dataset)
     if api_id is None or ctx.apis is None:
         return None
@@ -103,6 +115,8 @@ def _source_on_request(ctx: NodeContext, cfg: InputDataConfig) -> str | None:
 def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
     if not cfg.dataset:
         raise ValueError("Escolha uma fonte no campo 'Fonte'.")
+    if source_jira_id(cfg.dataset) is not None:
+        return _read_jira(ctx, cfg)
     api_id = source_api_id(cfg.dataset)
     if api_id is not None:
         if ctx.apis is None:
@@ -133,6 +147,18 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
     if info.linked_path:
         extra["source_linked"] = info.linked_path
     return NodeOutput(tables={"out": df}, extra=extra)
+
+
+def _read_jira(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
+    if ctx.jira is None:
+        raise ValueError("O Jira não está disponível neste ambiente.")
+    query = ctx.jira.query(source_jira_id(cfg.dataset))
+    frame, info = jira_read.load(query, ctx.jira, report=ctx.report)
+    extra: dict[str, Any] = {"source": query.name, "source_read_at": _now(), "jira_calls": info["calls"], "jira_incremental": info["incremental"]}
+    full_at = info.get("full_at")
+    if full_at and datetime.now(UTC) - datetime.fromisoformat(full_at) > timedelta(days=JIRA_FULL_DAYS):
+        extra["warnings"] = [f"A última releitura completa foi há mais de {JIRA_FULL_DAYS} dias: o que foi excluído no Jira ainda aparece aqui. Faça a releitura na vista Dados."]
+    return NodeOutput(tables={"out": frame.head(cfg.limit) if cfg.limit else frame}, extra=extra)
 
 
 def _with_constants(api: Any, ctx: NodeContext) -> Any:

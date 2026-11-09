@@ -5,15 +5,16 @@
 //   ctx: { columns(port) → [{name,type}], format, sheets, datasets, errorField, validate(expr, port) }
 
 import { api } from './api.js';
-import { button, debounce, fmt, h } from './dom.js';
+import { button, debounce, h } from './dom.js';
 import { icon } from './icons.js';
 import { labelPicker } from './label_picker.js';
 import { RECIPES } from './multirow_recipes.js';
 import { qualityRulesField } from './quality_ui.js';
 import { allowedValuesField } from './quality_values.js';
+import { columnValues, renameLabels } from './fields_values.js';
 import { formulaEditor } from './formula_editor.js';
 import { openLargeFormula } from './formula_large.js';
-import { API_PREFIX, QUERY_PREFIX, store } from './store.js';
+import { API_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
 import { typeLabel, typeName } from './types.js';
 
 
@@ -283,8 +284,9 @@ function dataset(field, value, set, ctx, id) {
   const files = ctx.datasets || [];
   const queries = ctx.queries || [];
   const apis = (ctx.apis || []).filter((a) => !ctx.needsLoop?.(a));
+  const jira = ctx.jira || [];
   const known = files.some((d) => d.name === value) || queries.some((q) => `${QUERY_PREFIX}${q.id}` === value)
-    || apis.some((a) => `${API_PREFIX}${a.id}` === value);
+    || apis.some((a) => `${API_PREFIX}${a.id}` === value) || jira.some((q) => `${JIRA_PREFIX}${q.id}` === value);
   return h('div', { class: 'row' },
     h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
       h('option', { value: '' }, files.length || queries.length || apis.length ? 'Escolha uma fonte…' : 'Nenhuma fonte cadastrada na vista Dados'),
@@ -294,6 +296,8 @@ function dataset(field, value, set, ctx, id) {
         queries.map((q) => h('option', { value: `${QUERY_PREFIX}${q.id}`, selected: `${QUERY_PREFIX}${q.id}` === value }, q.name))) : null,
       apis.length ? h('optgroup', { label: 'APIs' },
         apis.map((a) => h('option', { value: `${API_PREFIX}${a.id}`, selected: `${API_PREFIX}${a.id}` === value }, a.name))) : null,
+      jira.length ? h('optgroup', { label: 'Jira' },
+        jira.map((q) => h('option', { value: `${JIRA_PREFIX}${q.id}`, selected: `${JIRA_PREFIX}${q.id}` === value }, q.name))) : null,
       value && !known ? h('option', { value, selected: true }, `${value} (não encontrado)`) : null),
     ctx.onPreview ? button({ icon: ctx.isQuery ? 'edit' : 'eye', title: ctx.isQuery ? 'Editar a fonte e ver prévia' : 'Pré-visualizar e ajustar leitura', disabled: !known, onClick: ctx.onPreview }) : null,
     ctx.onNewQuery ? button({ icon: 'plus', title: 'Nova consulta de banco', onClick: ctx.onNewQuery }) : null);
@@ -684,94 +688,6 @@ function categoryColors(field, value, set, ctx) {
 }
 
 // ------------------------------------------------------------------ valores de uma coluna (spec 015)
-
-/**
- * Marca valores que existem numa coluna da entrada (ex.: grupos do Venn), até `max_items`.
- * A coluna vem do campo `field.source`; sem execução, cai para digitação livre.
- */
-function columnValues(field, value, set, ctx, id, values) {
-  const selected = Array.isArray(value) ? [...value] : [];
-  const max = field.max_items || Infinity;
-  const column = values?.[field.source];
-  if (!column) return h('p', { class: 'field-help' }, 'Escolha antes a coluna do grupo.');
-  const wrap = h('div', { class: 'value-picker' }, h('p', { class: 'field-help' }, 'Carregando os valores…'));
-  const toggle = (v) => set(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
-  const full = () => selected.length >= max;
-  const chip = (v) => {
-    const on = selected.includes(v.value);
-    return h('button', {
-      type: 'button', class: ['value-chip', on && 'on'], 'aria-pressed': String(on), disabled: !on && full(),
-      title: !on && full() ? `Máximo de ${max}: desmarque um para trocar` : null,
-      onclick: () => toggle(v.value),
-    }, icon(on ? 'check' : 'plus', 12), h('span', { class: 'ellipsis' }, v.value), h('span', { class: 'muted' }, fmt.int(v.count)));
-  };
-  const draw = (data) => {
-    const known = new Set(data.values.map((v) => v.value));
-    // Coluna com muitos valores (spec 017): provavelmente um identificador. Mostra só os mais frequentes
-    // e busca no servidor, para não despejar milhares de opções na tela.
-    const many = data.distinct > MANY_VALUES;
-    const list = h('div', { class: 'value-list', role: 'group', 'aria-label': field.title });
-    const note = h('p', { class: 'field-help' });
-    const fill = (rows, label) => { list.replaceChildren(...rows.map(chip)); note.textContent = label; };
-    const top = () => fill(data.values.slice(0, many ? TOP_WHEN_MANY : 200),
-      many ? `Mostrando os ${TOP_WHEN_MANY} mais frequentes. Busque para achar outros.` : '');
-    top();
-    const search = (needle) => {
-      if (!needle) { top(); return; }
-      if (!many && !data.truncated) {
-        const found = data.values.filter((v) => v.value.toLowerCase().includes(needle.toLowerCase()));
-        fill(found.slice(0, 200), found.length ? '' : 'Nenhum valor encontrado.');
-        return;
-      }
-      ctx.values(column, null, needle)
-        .then((res) => fill(res.values.slice(0, 50), res.matches > 50
-          ? `${fmt.int(res.matches)} valores encontrados; mostrando 50. Refine a busca.`
-          : res.matches ? '' : 'Nenhum valor encontrado.'))
-        .catch(() => fill([], 'Não foi possível buscar agora.'));
-    };
-    const lost = selected.filter((v) => !known.has(v) && !many);
-    wrap.replaceChildren(...[ // replaceChildren() nativo escreveria "null" para os itens ausentes
-      h('div', { class: 'value-head' },
-        h('span', {}, `${selected.length} de ${max === Infinity ? data.distinct : max} marcados`),
-        h('span', { class: 'muted' }, `${fmt.int(data.distinct)} valores em [${column}]`)),
-      many ? h('p', { class: 'field-warn' }, icon('alert', 13),
-        ` [${column}] tem ${fmt.int(data.distinct)} valores diferentes: parece um identificador, não um grupo. `
-        + 'O Venn compara 2 ou 3 grupos — prefira uma coluna com poucos valores (produto, segmento). Se for esta mesmo, busque o valor.') : null,
-      selected.length ? h('div', { class: 'chips' }, selected.map((v) => h('span', { class: ['chip', lost.includes(v) && 'invalid'], title: lost.includes(v) ? 'Não existe mais nesta coluna' : null },
-        lost.includes(v) ? `${v} (não encontrado)` : v,
-        h('button', { type: 'button', class: 'chip-x', 'aria-label': `Remover ${v}`, onclick: () => toggle(v) }, icon('x', 12))))) : null,
-      many || data.values.length > 12
-        ? h('input', { id, class: 'input', type: 'search', placeholder: 'Buscar valor…', oninput: debounce((e) => search(e.target.value.trim()), 250) })
-        : null,
-      list,
-      note,
-    ].filter(Boolean));
-  };
-  const manual = () => wrap.replaceChildren(
-    h('p', { class: 'field-help' }, 'Execute o fluxo para escolher os valores numa lista. Enquanto isso, digite:'),
-    tags(field, value, set, ctx, id));
-  (ctx.values ? ctx.values(column) : Promise.reject()).then(draw).catch(manual);
-  return wrap;
-}
-
-const MANY_VALUES = 50;
-const TOP_WHEN_MANY = 15;
-
-/** Nomes exibidos: uma linha por série, categoria ou conjunto do visual (ctx.categories). Vazio = original. */
-function renameLabels(field, value, set, ctx) {
-  const map = { ...(value || {}) };
-  const cats = ctx.categories || [];
-  if (!cats.length) return h('p', { class: 'field-help' }, 'Execute o fluxo para listar os nomes.');
-  return h('div', { class: 'rename-labels' }, cats.slice(0, 60).map((cat) => h('label', { class: 'rename-row' },
-    h('span', { class: 'ellipsis muted', title: cat }, cat),
-    h('input', {
-      class: 'input', value: map[cat] || '', placeholder: cat, 'aria-label': `Nome exibido para ${cat}`,
-      oninput: (e) => {
-        if (e.target.value.trim()) map[cat] = e.target.value; else delete map[cat];
-        set({ ...map });
-      },
-    }))));
-}
 
 const WIDGETS = {
   color, optional_number: optionalNumber, category_colors: categoryColors, column_values: columnValues,

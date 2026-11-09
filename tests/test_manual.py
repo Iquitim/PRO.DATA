@@ -44,7 +44,7 @@ def test_manual_is_generated_from_the_guide() -> None:
 
 
 def test_every_chapter_has_a_title_and_text(manual: dict[str, Any]) -> None:
-    assert len(manual["chapters"]) == 17
+    assert len(manual["chapters"]) == 19
     for chapter in manual["chapters"]:
         assert chapter["title"] and chapter["html"] and chapter["sections"], chapter["id"]
 
@@ -97,3 +97,10 @@ def test_examples_exist_and_run(manual: dict[str, Any], client: TestClient) -> N
             k: v.get("error") for k, v in report.json()["node_results"].items() if v["status"] != "executed"
         }
         assert not bad, (name, bad)
+
+
+def test_guide_cover_shows_the_current_version() -> None:
+    from prodata import __version__
+
+    guide = (Path(__file__).resolve().parents[1] / "docs/guia/guia.html").read_text(encoding="utf-8")
+    assert f"Versão {__version__} ·" in guide

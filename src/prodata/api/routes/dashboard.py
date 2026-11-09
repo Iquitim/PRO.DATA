@@ -112,7 +112,11 @@ def _widget(services: Services, node: Node, table: pl.DataFrame) -> dict[str, An
 
 @router.post("/filter-options")
 def dashboard_filter_options(req: WorkflowRequest, services: ServicesDep) -> list[dict[str, Any]]:
-    return filter_options([t for _, t in _visual_nodes(services, req.workflow)])
+    visuals = _visual_nodes(services, req.workflow)
+    options = filter_options([t for _, t in visuals])
+    for option in options:
+        option["node_ids"] = [n.id for n, t in visuals if option["column"] in t.columns]
+    return options
 
 
 @router.post("/filtered")
@@ -134,6 +138,10 @@ def dashboard_filtered(req: WorkflowRequest, services: ServicesDep) -> dict[str,
 def dashboard_export_data(req: WorkflowRequest, services: ServicesDep) -> dict[str, Any]:
     """O que o HTML precisa para os filtros funcionarem sozinhos: só as colunas usadas e só dos visuais filtráveis."""
     filters = _filters(req.workflow)
+    # A coluna da linha do tempo também vai: é ela que escolhe as linhas de cada momento.
+    dashboard = req.workflow.dashboard
+    if dashboard is not None and dashboard.timeline.column:
+        filters = [*filters, DashFilter(id="linha_do_tempo", column=dashboard.timeline.column, kind="date")]
     wanted = {f.column for f in filters}
     visuals = _visual_nodes(services, req.workflow)
     tables = ExportTables()
@@ -174,7 +182,7 @@ def dashboard_viewer() -> Response:
 
 
 class ExportLog(BaseModel):
-    kind: str = Field(pattern=r"^(PNG|HTML)$")
+    kind: str = Field(pattern=r"^(PNG|GIF|HTML)$")
     file: str = Field(max_length=300)
     label: Confidentiality
     rows: int | None = None

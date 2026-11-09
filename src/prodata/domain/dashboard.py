@@ -79,9 +79,31 @@ class DashFilter(BaseModel):
     max: float | str | None = None
 
 
+class DashTimeline(BaseModel):
+    """Linha do tempo (spec 030): vazia enquanto ninguém escolhe a coluna de data."""
+
+    column: str = ""
+    step: Literal["day", "week", "month"] = "month"
+    mode: Literal["cumulative", "period"] = "cumulative"
+    speed: float = Field(1.0, ge=0.25, le=4.0)
+
+
+class DashScene(BaseModel):
+    """Cena da história (RF-3061): momento, filtros e visual em destaque."""
+
+    id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    title: str = Field("", max_length=200)
+    note: str = Field("", max_length=2000)
+    moment: str | None = None
+    filters: list[DashFilter] = Field(default_factory=list, max_length=30)
+    item_id: str | None = None
+
+
 class Dashboard(BaseModel):
     page: DashPage = Field(default_factory=DashPage)
     filters: list[DashFilter] = Field(default_factory=list, max_length=30)
+    timeline: DashTimeline = Field(default_factory=DashTimeline)
+    scenes: list[DashScene] = Field(default_factory=list, max_length=60)
     confidentiality: Confidentiality = DEFAULT_LABEL
     items: list[DashItem] = Field(default_factory=list)  # ordem = camada (o último fica por cima)
     hidden: list[str] = Field(default_factory=list)  # caixas de BI fora da página (RF-1407)
@@ -98,6 +120,10 @@ class Dashboard(BaseModel):
         """Esquece visuais de caixas que não existem mais no fluxo (spec 010, RF-1406)."""
         self.items = [i for i in self.items if i.kind != "visual" or i.node_id in node_ids]
         self.hidden = [n for n in dict.fromkeys(self.hidden) if n in node_ids]
+        kept = {i.id for i in self.items}
+        for scene in self.scenes:
+            if scene.item_id not in kept:
+                scene.item_id = None
 
 
 def check_image(data_uri: str) -> None:

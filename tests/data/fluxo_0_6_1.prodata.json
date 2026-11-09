@@ -1,0 +1,1206 @@
+{
+ "id": "compat_0_6_0",
+ "name": "Compatibilidade 0.6.0",
+ "description": "Limpeza, filtro, junção L/J/R, metas regionais (CSV ';' em CP1252), BI e modelo de inadimplência.",
+ "containers": [
+  {
+   "id": "c_prep",
+   "title": "1 · Ingestão e preparação",
+   "description": "",
+   "color": "#3b82f6",
+   "opacity": 0.05,
+   "disabled": false,
+   "x": 20.0,
+   "y": 20.0,
+   "width": 972.0,
+   "height": 260.0
+  },
+  {
+   "id": "c_bi",
+   "title": "2 · Junção, metas e indicadores",
+   "description": "",
+   "color": "#8b5cf6",
+   "opacity": 0.05,
+   "disabled": false,
+   "x": 1010.0,
+   "y": 20.0,
+   "width": 1222.0,
+   "height": 420.0
+  },
+  {
+   "id": "c_ml",
+   "title": "3 · Modelo de inadimplência",
+   "description": "",
+   "color": "#06b6d4",
+   "opacity": 0.05,
+   "disabled": false,
+   "x": 1010.0,
+   "y": 460.0,
+   "width": 1222.0,
+   "height": 140.0
+  },
+  {
+   "id": "c_vendas",
+   "title": "4 · Vendas no dashboard",
+   "description": "",
+   "color": "#f59e0b",
+   "opacity": 0.05,
+   "disabled": false,
+   "x": 20.0,
+   "y": 300.0,
+   "width": 972.0,
+   "height": 300.0
+  },
+  {
+   "id": "c_api",
+   "title": "5 · API pública do IBGE",
+   "description": "Chama a internet só ao clicar em Executar. Abra cada caixa para ver como funciona.",
+   "color": "#10b981",
+   "opacity": 0.05,
+   "disabled": false,
+   "x": 20.0,
+   "y": 620.0,
+   "width": 2212.0,
+   "height": 170.0
+  }
+ ],
+ "nodes": [
+  {
+   "id": "n_clientes",
+   "type": "io.input_data",
+   "label": "Clientes",
+   "x": 40.0,
+   "y": 70.0,
+   "config": {
+    "dataset": "clientes_enterprise.csv"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_vendas",
+   "type": "io.input_data",
+   "label": "Transações",
+   "x": 40.0,
+   "y": 190.0,
+   "config": {
+    "dataset": "transacoes_vendas.csv"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_cleanse",
+   "type": "prep.cleanse",
+   "label": "Limpeza",
+   "x": 288.0,
+   "y": 70.0,
+   "config": {
+    "columns": [
+     "setor"
+    ],
+    "replace_null_string": true,
+    "string_default": "Não informado"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_formula",
+   "type": "prep.formula",
+   "label": "ARR e tier",
+   "x": 536.0,
+   "y": 70.0,
+   "config": {
+    "formulas": [
+     {
+      "column": "receita_anual",
+      "type": "Float64",
+      "expression": "Round([mrr_mensal] * 12, 2)"
+     },
+     {
+      "column": "tier",
+      "type": "String",
+      "expression": "IF [mrr_mensal] >= 6000 THEN 'Diamond' ELSEIF [mrr_mensal] >= 3000 THEN 'Gold' ELSE 'Silver' ENDIF"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_filter",
+   "type": "prep.filter",
+   "label": "Ativos",
+   "x": 784.0,
+   "y": 70.0,
+   "config": {
+    "mode": "expression",
+    "expression": "[status] != 'INATIVO' AND [mrr_mensal] >= 1000"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_sum_vendas",
+   "type": "transform.summarize",
+   "label": "Vendas por cliente",
+   "x": 536.0,
+   "y": 190.0,
+   "config": {
+    "group_by": [
+     "id_cliente"
+    ],
+    "aggregations": [
+     {
+      "column": "valor_bruto",
+      "agg": "sum",
+      "alias": "total_compras"
+     },
+     {
+      "column": "quantidade_licencas",
+      "agg": "sum",
+      "alias": "total_licencas"
+     },
+     {
+      "column": "id_transacao",
+      "agg": "count",
+      "alias": "qtd_pedidos"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_join",
+   "type": "transform.join",
+   "label": "Clientes × vendas",
+   "x": 1032.0,
+   "y": 125.0,
+   "config": {
+    "right_prefix": "v_",
+    "keys": [
+     {
+      "left": "id_cliente",
+      "right": "id_cliente"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_sum_uf",
+   "type": "transform.summarize",
+   "label": "MRR por UF",
+   "x": 1280.0,
+   "y": 65.0,
+   "config": {
+    "group_by": [
+     "uf"
+    ],
+    "aggregations": [
+     {
+      "column": "mrr_mensal",
+      "agg": "sum",
+      "alias": "total_mrr"
+     },
+     {
+      "column": "id_cliente",
+      "agg": "count",
+      "alias": "clientes"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_metas",
+   "type": "io.input_data",
+   "label": "Metas regionais",
+   "x": 1280.0,
+   "y": 165.0,
+   "config": {
+    "dataset": "metas_regionais_br.csv"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_join_metas",
+   "type": "transform.join",
+   "label": "UF × metas",
+   "x": 1528.0,
+   "y": 100.0,
+   "config": {
+    "keys": [
+     {
+      "left": "uf",
+      "right": "uf"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_atingimento",
+   "type": "prep.formula",
+   "label": "Atingimento",
+   "x": 1776.0,
+   "y": 108.0,
+   "config": {
+    "formulas": [
+     {
+      "column": "atingimento_pct",
+      "type": "Float64",
+      "expression": "Round([total_mrr] / [meta_mrr] * 100, 1)"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_chart_uf",
+   "type": "bi.chart",
+   "label": "Gráfico por UF",
+   "x": 2024.0,
+   "y": 108.0,
+   "config": {
+    "title": "Atingimento da meta de MRR por UF (%)",
+    "chart_type": "bar",
+    "x_column": "uf",
+    "y_column": "atingimento_pct",
+    "agg": "max",
+    "sort": "value_desc"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_kpi",
+   "type": "bi.kpi_card",
+   "label": "ARR ativo",
+   "x": 1280.0,
+   "y": 270.0,
+   "config": {
+    "title": "ARR dos clientes ativos",
+    "column": "receita_anual",
+    "metric": "sum",
+    "prefix": "R$ "
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_chart_seg",
+   "type": "bi.chart",
+   "label": "MRR por segmento",
+   "x": 1280.0,
+   "y": 360.0,
+   "config": {
+    "title": "MRR por segmento",
+    "chart_type": "donut",
+    "x_column": "segmento",
+    "y_column": "mrr_mensal",
+    "agg": "sum"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_pareto",
+   "type": "bi.chart",
+   "label": "Pareto por UF",
+   "x": 1528.0,
+   "y": 300.0,
+   "config": {
+    "title": "Pareto do MRR por UF",
+    "chart_type": "pareto",
+    "x_column": "uf",
+    "y_column": "mrr_mensal",
+    "agg": "sum"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_kpi_mes",
+   "type": "bi.kpi_card",
+   "label": "Faturamento do mês",
+   "x": 288.0,
+   "y": 350.0,
+   "config": {
+    "title": "Faturamento do mês",
+    "column": "valor_bruto",
+    "metric": "sum",
+    "prefix": "R$ ",
+    "compare": "previous",
+    "date_column": "competencia",
+    "period": "month",
+    "sparkline": true
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_stacked",
+   "type": "bi.chart",
+   "label": "Vendas por mês",
+   "x": 536.0,
+   "y": 350.0,
+   "config": {
+    "title": "Faturamento mensal por produto",
+    "chart_type": "stacked",
+    "x_column": "competencia",
+    "y_column": "valor_bruto",
+    "series_column": "produto",
+    "agg": "sum",
+    "sort": "label"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_venn",
+   "type": "bi.venn",
+   "label": "Produtos por cliente",
+   "x": 288.0,
+   "y": 480.0,
+   "config": {
+    "title": "Clientes por produto contratado",
+    "key_column": "id_cliente",
+    "group_column": "produto",
+    "groups": [
+     "Cloud",
+     "AutoML",
+     "BI Pro"
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_trainer",
+   "type": "ml.automl_trainer",
+   "label": "Treino",
+   "x": 1280.0,
+   "y": 510.0,
+   "config": {
+    "target_column": "inadimplente",
+    "feature_columns": [
+     "mrr_mensal",
+     "meses_contrato",
+     "nps",
+     "total_compras",
+     "total_licencas",
+     "segmento",
+     "uf"
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_predictor",
+   "type": "ml.predictor",
+   "label": "Score de risco",
+   "x": 1528.0,
+   "y": 510.0,
+   "config": {
+    "prediction_column": "risco_inadimplencia",
+    "probability_column": "confianca_pct"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_output",
+   "type": "io.output_data",
+   "label": "Exportar",
+   "x": 1776.0,
+   "y": 510.0,
+   "config": {
+    "filename": "clientes_pontuados",
+    "format": "parquet"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_api_estados",
+   "type": "io.input_data",
+   "label": "Estados (IBGE)",
+   "x": 40.0,
+   "y": 690.0,
+   "config": {
+    "dataset": "api:exemplo_ibge_estados"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_api_municipios",
+   "type": "io.api_loop",
+   "label": "Municípios por estado",
+   "x": 288.0,
+   "y": 690.0,
+   "config": {
+    "source": "exemplo_ibge_municipios",
+    "columns": {
+     "sigla": "sigla"
+    },
+    "reuse": true
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_api_contagem",
+   "type": "transform.summarize",
+   "label": "Conta municípios",
+   "x": 536.0,
+   "y": 690.0,
+   "config": {
+    "group_by": [
+     "sigla",
+     "nome",
+     "regiao.nome"
+    ],
+    "aggregations": [
+     {
+      "column": "municipio-id",
+      "agg": "count",
+      "alias": "municipios"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_api_join",
+   "type": "transform.join",
+   "label": "Clientes × IBGE",
+   "x": 1280.0,
+   "y": 690.0,
+   "config": {
+    "keys": [
+     {
+      "left": "uf",
+      "right": "sigla"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "n_api_chart",
+   "type": "bi.chart",
+   "label": "MRR por região",
+   "x": 1528.0,
+   "y": 690.0,
+   "config": {
+    "title": "MRR por região do Brasil",
+    "chart_type": "bar",
+    "x_column": "regiao.nome",
+    "y_column": "mrr_mensal",
+    "agg": "sum"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "x_mr1",
+   "type": "prep.multirow",
+   "x": 100,
+   "y": 3000,
+   "config": {
+    "target": "new",
+    "column": "ant",
+    "type": "Auto",
+    "expression": "[Row-1:mrr_mensal]",
+    "group_by": [
+     "uf"
+    ],
+    "missing": "null"
+   }
+  },
+  {
+   "id": "x_mr2",
+   "type": "prep.multirow",
+   "x": 300,
+   "y": 3000,
+   "config": {
+    "target": "existing",
+    "existing": "setor",
+    "column": "nova_coluna",
+    "type": "Auto",
+    "expression": "IF IsNull([setor]) THEN [Row-1:setor] ELSE [setor] ENDIF",
+    "group_by": [],
+    "missing": "null"
+   }
+  },
+  {
+   "id": "x_mr3",
+   "type": "prep.multirow",
+   "x": 500,
+   "y": 3000,
+   "config": {
+    "target": "new",
+    "column": "dif",
+    "type": "Auto",
+    "expression": "[mrr_mensal] - [Row-2:mrr_mensal]",
+    "group_by": [],
+    "missing": "empty"
+   }
+  },
+  {
+   "id": "x_sum",
+   "type": "transform.summarize",
+   "x": 700,
+   "y": 3000,
+   "config": {
+    "group_by": [
+     "uf"
+    ],
+    "aggregations": [
+     {
+      "column": "mrr_mensal",
+      "agg": "sum",
+      "name": "t"
+     },
+     {
+      "column": "mrr_mensal",
+      "agg": "median",
+      "name": "m"
+     },
+     {
+      "column": "segmento",
+      "agg": "n_unique",
+      "name": "u"
+     },
+     {
+      "column": "segmento",
+      "agg": "mode",
+      "name": "mo"
+     }
+    ]
+   }
+  },
+  {
+   "id": "x_sql",
+   "type": "transform.sql_query",
+   "x": 900,
+   "y": 3000,
+   "config": {
+    "sql": "SELECT uf, sum(mrr_mensal) AS t FROM input_1 GROUP BY uf ORDER BY uf"
+   }
+  },
+  {
+   "id": "x_for",
+   "type": "prep.formula",
+   "x": 1100,
+   "y": 3000,
+   "config": {
+    "formulas": [
+     {
+      "target": "new",
+      "column": "c",
+      "type": "Auto",
+      "expression": "IF [mrr_mensal] > 3000 THEN 'alto' ELSE Concat('baixo-', [uf]) ENDIF"
+     }
+    ]
+   }
+  },
+  {
+   "id": "x_srt",
+   "type": "prep.sort",
+   "x": 1300,
+   "y": 3000,
+   "config": {
+    "sorts": [
+     {
+      "column": "mrr_mensal",
+      "descending": true
+     },
+     {
+      "column": "uf",
+      "descending": false
+     }
+    ]
+   }
+  },
+  {
+   "id": "x_out",
+   "type": "io.output_data",
+   "x": 1500,
+   "y": 3000,
+   "config": {
+    "filename": "compat",
+    "format": "excel",
+    "if_exists": "replace",
+    "sheet_name": "Dados"
+   }
+  },
+  {
+   "id": "y_flt",
+   "type": "prep.filter",
+   "label": "MRR acima da meta",
+   "x": 300,
+   "y": 1400,
+   "config": {
+    "mode": "simple",
+    "column": "mrr_mensal",
+    "operator": ">=",
+    "value": "[#meta_minima]"
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "y_cst",
+   "type": "prep.formula",
+   "label": "Vendas do mês",
+   "x": 300,
+   "y": 1500,
+   "config": {
+    "formulas": [
+     {
+      "target": "new",
+      "column": "no_mes",
+      "type": "Auto",
+      "expression": "IF [competencia] = [#mes_ref] THEN 'no mês' ELSE 'antes' ENDIF"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "y_dq1",
+   "type": "prep.data_quality",
+   "label": "Clientes válidos",
+   "x": 300,
+   "y": 1600,
+   "config": {
+    "rules": [
+     {
+      "kind": "not_empty",
+      "column": "setor"
+     },
+     {
+      "kind": "unique",
+      "column": "id_cliente"
+     },
+     {
+      "kind": "number_range",
+      "column": "nps",
+      "min": 3,
+      "max": 10
+     },
+     {
+      "kind": "allowed",
+      "column": "uf",
+      "values": [
+       "SP",
+       "RJ",
+       "MG"
+      ]
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "y_ufs",
+   "type": "io.text_input",
+   "label": "UFs atendidas",
+   "x": 100,
+   "y": 1700,
+   "config": {
+    "table": {
+     "columns": [
+      "sigla"
+     ],
+     "rows": [
+      [
+       "SP"
+      ],
+      [
+       "PR"
+      ],
+      [
+       ""
+      ],
+      [
+       "sc"
+      ]
+     ]
+    }
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  },
+  {
+   "id": "y_dq2",
+   "type": "prep.data_quality",
+   "label": "UF atendida",
+   "x": 300,
+   "y": 1700,
+   "config": {
+    "rules": [
+     {
+      "kind": "allowed",
+      "column": "uf",
+      "values_from": "table",
+      "list_column": "sigla"
+     }
+    ]
+   },
+   "disabled": false,
+   "cache_point": false,
+   "cache_refresh": "changes"
+  }
+ ],
+ "edges": [
+  {
+   "id": "e1",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "n_cleanse",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e2",
+   "source": "n_cleanse",
+   "sourceHandle": "out",
+   "target": "n_formula",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e3",
+   "source": "n_formula",
+   "sourceHandle": "out",
+   "target": "n_filter",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e4",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_sum_vendas",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e5",
+   "source": "n_filter",
+   "sourceHandle": "T",
+   "target": "n_join",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e6",
+   "source": "n_sum_vendas",
+   "sourceHandle": "out",
+   "target": "n_join",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e7",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_sum_uf",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e8",
+   "source": "n_sum_uf",
+   "sourceHandle": "out",
+   "target": "n_join_metas",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e9",
+   "source": "n_metas",
+   "sourceHandle": "out",
+   "target": "n_join_metas",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e10",
+   "source": "n_join_metas",
+   "sourceHandle": "J",
+   "target": "n_atingimento",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e11",
+   "source": "n_atingimento",
+   "sourceHandle": "out",
+   "target": "n_chart_uf",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e12",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_kpi",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e13",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_chart_seg",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e14",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_trainer",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e15",
+   "source": "n_trainer",
+   "sourceHandle": "M",
+   "target": "n_predictor",
+   "targetHandle": "M"
+  },
+  {
+   "id": "e16",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_predictor",
+   "targetHandle": "D"
+  },
+  {
+   "id": "e17",
+   "source": "n_predictor",
+   "sourceHandle": "out",
+   "target": "n_output",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e18",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_pareto",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e19",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_kpi_mes",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e20",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_stacked",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e21",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "n_venn",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_api1",
+   "source": "n_api_estados",
+   "sourceHandle": "out",
+   "target": "n_api_municipios",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_api2",
+   "source": "n_api_municipios",
+   "sourceHandle": "out",
+   "target": "n_api_contagem",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_api3",
+   "source": "n_join",
+   "sourceHandle": "J",
+   "target": "n_api_join",
+   "targetHandle": "L"
+  },
+  {
+   "id": "e_api4",
+   "source": "n_api_contagem",
+   "sourceHandle": "out",
+   "target": "n_api_join",
+   "targetHandle": "R"
+  },
+  {
+   "id": "e_api5",
+   "source": "n_api_join",
+   "sourceHandle": "J",
+   "target": "n_api_chart",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_mr1",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_mr1",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_mr2",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_mr2",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_mr3",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_mr3",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_sum",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_sum",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_sql",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_sql",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_for",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_for",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_srt",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_srt",
+   "targetHandle": "in"
+  },
+  {
+   "id": "e_x_out",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "x_out",
+   "targetHandle": "in"
+  },
+  {
+   "id": "y1",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "y_flt",
+   "targetHandle": "in"
+  },
+  {
+   "id": "y2",
+   "source": "n_vendas",
+   "sourceHandle": "out",
+   "target": "y_cst",
+   "targetHandle": "in"
+  },
+  {
+   "id": "y3",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "y_dq1",
+   "targetHandle": "in"
+  },
+  {
+   "id": "y4",
+   "source": "n_clientes",
+   "sourceHandle": "out",
+   "target": "y_dq2",
+   "targetHandle": "in"
+  },
+  {
+   "id": "y5",
+   "source": "y_ufs",
+   "sourceHandle": "out",
+   "target": "y_dq2",
+   "targetHandle": "L"
+  }
+ ],
+ "dashboard": {
+  "page": {
+   "size": "a4-landscape",
+   "height": 900,
+   "background": ""
+  },
+  "filters": [],
+  "items": [
+   {
+    "id": "d_title",
+    "kind": "text",
+    "node_id": null,
+    "x": 40,
+    "y": 32,
+    "w": 1200,
+    "h": 56,
+    "format": {
+     "size": 30,
+     "bold": true,
+     "vertical": "middle"
+    },
+    "content": "Pipeline 360° de clientes"
+   },
+   {
+    "id": "d_logo",
+    "kind": "image",
+    "node_id": null,
+    "x": 1488,
+    "y": 24,
+    "w": 72,
+    "h": 88,
+    "format": {},
+    "content": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTEuMjcgMjQwLjc1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6Izk1NzkzYzt9LmNscy0ye2ZpbGw6IzIzMWYyMDt9LmNscy0ze2ZpbGw6IzA0MzE1NDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPm1haW4tbG9nbzwvdGl0bGU+PGcgaWQ9IkNhbWFkYV8yIiBkYXRhLW5hbWU9IkNhbWFkYSAyIj48ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIj48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0zNCwxMTUuMDl2LTUyYzguNTIsMywxNi4yLDMuOCwyOC41MSw0YTUyLjM0LDUyLjM0LDAsMCwxLDIyLjM0LDQuODRjNCwxLjgzLDcuNzEsNC40MSwxMCw4LjY5LDIuMzItNC4yOCw2LTYuODYsMTAtOC42OUE1Mi4zNSw1Mi4zNSwwLDAsMSwxMjcuMyw2N2MxMi4zMS0uMTUsMjEuMjYtMS4wNywyOS43OS00VjgyLjIzWm00NS44OCw4Mi4yOHMtMjUuNzYtMTguNjItMzguMjUtMjguN2MtOC40LTYuMzYtNy42My0xMi41My03LjYzLTIzLjgzTDc5Ljg5LDEzMi43Wm0zMC42MywwVjEyNC41Nmw0Ni43Mi0xMi40M2MtLjEzLDQyLjE1LS4xOCwzNS42LS4yNCw0MC40OC0uMTQsMTAuMjYtNC4yOSwxMi41MS05LjU4LDE3LjE3QzE0Mi43NSwxNzMuODksMTE3LjUxLDE5Mi4yMiwxMTAuNTIsMTk3LjM3WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTE0NC4yNiwxMTEuMzlWODkuNzZMMTU3LDg2LjM0djMuNDFMMTQ4LjU5LDkydjUuMzNsNy43Mi0yLjA2djMuNGwtNy43MiwyLjA3djYuMDdsOC41LTIuMjdWMTA4Wm0tMTA1LjQ5LDEwVjEyOGwxLjUyLS40YzIuMTctLjU4LDQuMTItMS44MSw0LjEyLTQuMzNzLTEuODktMi44Ny00LjEyLTIuMjdabS00LjM0LDE5LjM4VjExOS4xOGw1LjQ5LTEuNDdjNC43MS0xLjI2LDktMS4wNiw5LDQuMTJzLTMuNjksNy44OC04LjMzLDkuMTJsLTEuODQuNDl2OC4yMVptMjAuMy0yMy42NVYxMjNsMS40Mi0uMzhjMi4xNC0uNTcsNC41OS0xLjU0LDQuNTktNC4yNHMtMi40Mi0yLjE3LTQuNTktMS41OVptLTQuMzQsMTkuMzhWMTE0LjkxbDQuNjgtMS4yNmM0LjY0LTEuMjQsMTAuMTktMi44OCwxMC4xOSwzLjEyQTYuOSw2LjksMCwwLDEsNjAuOCwxMjNjMS4xNy0uMTYsMS44Ni44NCwyLjMsMS42OGwzLjQ3LDcuNTMtNC44NSwxLjMtMi42LTYuMDZjLS42Mi0xLjQ0LTEuMTctMS45Mi0zLTEuNDNsLTEuMzkuMzh2OVptMTctMTUuNDNjMC02LjY0LDMuNzItMTIuMTIsMTAuNi0xNHMxMC42LDEuNzQsMTAuNiw4LjI4Uzg0LjgxLDEyNy42OSw3OCwxMjkuNTIsNjcuMzYsMTI3Ljc1LDY3LjM2LDEyMS4xMVptNC41Mi0xLjIxYzAsMy45LDEuNjUsNy40LDYuMDgsNi4yMVM4NCwxMjAuNTUsODQsMTE2LjY0cy0xLjc3LTcuMjQtNi4wOC02LjA4UzcxLjg4LDExNi4wOSw3MS44OCwxMTkuOVptMjMuMyw0LjY0VjEwNi4zMUw4OSwxMDh2LTMuNDFsMTYuNzMtNC40OHYzLjQxbC02LjE5LDEuNjZ2MTguMjJabTEyLTMuMjNWOTkuNjhMMTIwLDk2LjI2djMuNDFsLTguNDIsMi4yNXY1LjM0bDcuNzEtMi4wN3YzLjQxbC03LjcxLDIuMDd2Ni4wN2w4LjQ5LTIuMjh2My40MlptMzMuMTEtMzBMMTQwLDk1LjA3YTEzLjM3LDEzLjM3LDAsMCwwLTUuNTcuMzQsMTAuMiwxMC4yLDAsMCwwLTcuODUsOS45NGMwLDQuNCwyLjc0LDcsNy4zNSw1Ljc1YTE0LjUzLDE0LjUzLDAsMCwwLDIuODYtMS4wN3YtNS42NGwtNC41OSwxLjIzdi0zLjQxTDE0MSw5OS44N3YxMS42NGEzMy40NSwzMy40NSwwLDAsMS03LDNjLTcsMS44Ny0xMS44Ny0uMzMtMTEuODctNy42NFMxMjYuNjIsOTQuMSwxMzQsOTIuMTRBMjAuOTIsMjAuOTIsMCwwLDEsMTQwLjMyLDkxLjM0WiIvPjxwYXRoIGNsYXNzPSJjbHMtMyIgZD0iTTk1LjY0LDc0LjYxYy0yLjE4LTUuODMtMTUuNTItMTAuMzgtMjYuMi0xMS04LjQ3LS41LTE3Ljc5LS4zOC0yNi45NC0yLjQ3LTQuNDUtMS03LjY1LTIuOC0xMS45NC00LjE1LS4xMSw2Mi0uMjQsODMuODEtLjI0LDkzLC4xMyw0LjI5LjEzLDguMDksMS4yMywxMS42NCwxLjM1LDQuNjYsNC4xMyw3LjIzLDgsMTAuMTcsMTkuNzUsMTUuMTEsNTYuMTMsNDEuODksNTYuMTMsNDEuODlzMzYuMzYtMjYuNzgsNTYuMTEtNDEuODljMy44NC0yLjk0LDYuNjItNS41MSw4LTEwLjE3LDEuMS0zLjU1LDEuMS03LjM1LDEuMjItMTEuNjQsMC05LjE5LS4xMi0zMS0uMjUtOTMtNC4yOCwxLjM1LTcuNDcsMy4xMy0xMS45Miw0LjE1LTkuMTUsMi4wOS0xOC40NywyLTI2LjkzLDIuNDdDMTExLjE1LDY0LjIzLDk3LjgsNjguNzgsOTUuNjQsNzQuNjFaTTEwNy4xNCwxM2MtMi4yOS0uNDQtNC40LTEuMjItNS0yLjYzYTMuNDksMy40OSwwLDAsMC0uNTksMy41NkMxMDIuNCwxNC4xOSwxMDQuNDMsMTQuMSwxMDcuMTQsMTNaTTgzLjY3LDBoLjg2Yy43NCwzLjMxLDEuNjQsNS4xOSw1LjUxLDcuMjMsMi44NywxLjUsOS4yNS0uNjIsMTUuMzIsMSwxLjkxLjUsNC4yNSwxLjE4LDQuNjUsMy40NS42My41NCwyLjI0LjYxLDMuNDUuODFhMTIuNTQsMTIuNTQsMCwwLDEsMy43OSwxYzMsMS4yNiwzLjY3LDQuMTYsNC4xNiw4LjU3LTMuMTQtMS4xNy05LjgzLjQtMTAuNTMuNjItMi42LjgxLTMuMDksMy40My0zLjQ0LDUuMjctMiwxMC43NywxMC4yNywyMi44OCwyOC41LDIxLjJBNTcsNTcsMCwwLDAsMTU4LjA4LDQzYzQuNTctMi4zNywxNy4yNy0xMi4xMiwxNy42OS0yMC45MkEzLjM4LDMuMzgsMCwwLDAsMTcxLDE4Ljc0Yy0xLjcyLjc0LTIuNTcsMi4zMy00LjE1LDMuODFhMTEuMjMsMTEuMjMsMCwwLDEtOS44LDIuNTgsMTAuODcsMTAuODcsMCwwLDEtNy4zMS0xMy43YzIuMjEtNywxMC4zOC03LDE2Ljg0LTYuMTYsMy40Ni40OCwxNi43OSwzLjU1LDIxLjA4LjYxQTguNDksOC40OSwwLDAsMCwxOTEuMjcsMFYxNTVjMCwyMS44Mi03LjQ0LDI3LjkxLTE1LjI1LDM0LDAsMC0yNS43NywyMC40MS0zNC40NywyNy4wNWwtOS43LTcsMjUuNTMtMjAuMjdjMTYuMzQtMTMsMjItMTMuOCwyMi0zNS4xM1Y0Mi4xNWwtNi40MSw1LjkyczAsMjAuNjMuMTEsOTUuNDhjLS4wOSwxNC40MSwwLDIzLjYtNC4xNSwyNy42Ny0zLjQ0LDMuMzgtMTMsMTEuMDgtNDcuNzYsMzguNGwxNC41NywxMS4xNS0xMC4xNyw4TDExMSwyMTcuNTlsLTUuMTUsNCwxNC42MiwxMS4xNC0xMC4wOCw4LTE0LjctMTEuMTctMTQuNywxMS4xNy0xMC4wOS04LDE0LjYxLTExLjE0LTUuMTQtNEw2NS43NCwyMjguNzNsLTEwLjE2LTgsMTQuNTctMTEuMTVjLTM0LjgtMjcuMzItNDQuMzMtMzUtNDcuNzctMzguNC00LjEyLTQuMDctNC4wNi0xMy4yNi00LjE1LTI3LjY3LjEyLTc0Ljg1LjEyLTk1LjQ4LjEyLTk1LjQ4bC02LjQxLTUuOTJWMTUzLjY4YzAsMjEuMzMsNS42LDIyLjEyLDIyLDM1LjEzbDI1LjUzLDIwLjI3LTkuNyw3QzQxLDIwOS40NCwxNS4yNSwxODksMTUuMjUsMTg5LDcuNDQsMTgyLjksMCwxNzYuODEsMCwxNTVWMEE4LjQ1LDguNDUsMCwwLDAsMy42MSw1Ljg4YzQuMjksMi45NCwxNy42My0uMTMsMjEuMDctLjYxLDYuNDYtLjg5LDE0LjY0LS44MiwxNi44NCw2LjE2YTEwLjg2LDEwLjg2LDAsMCwxLTcuMywxMy43LDExLjIzLDExLjIzLDAsMCwxLTkuOC0yLjU4Yy0xLjU4LTEuNDgtMi40My0zLjA3LTQuMTQtMy44MWEzLjM4LDMuMzgsMCwwLDAtNC43OCwzLjMxYy40Miw4LjgsMTIuMTQsMTcuOCwxNi4zOCwyMC42OWEzNS42MiwzNS42MiwwLDAsMCwxNiw2LjFDODIuNjcsNTIuNyw4My40NCw2LjM1LDgzLjY3LDBaIi8+PC9nPjwvZz48L3N2Zz4="
+   },
+   {
+    "id": "d_n_kpi",
+    "kind": "visual",
+    "node_id": "n_kpi",
+    "x": 40,
+    "y": 128,
+    "w": 752,
+    "h": 160,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "d_n_kpi_mes",
+    "kind": "visual",
+    "node_id": "n_kpi_mes",
+    "x": 808,
+    "y": 128,
+    "w": 752,
+    "h": 160,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "d_n_stacked",
+    "kind": "visual",
+    "node_id": "n_stacked",
+    "x": 40,
+    "y": 304,
+    "w": 496,
+    "h": 384,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "d_n_pareto",
+    "kind": "visual",
+    "node_id": "n_pareto",
+    "x": 552,
+    "y": 304,
+    "w": 496,
+    "h": 384,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "d_n_chart_uf",
+    "kind": "visual",
+    "node_id": "n_chart_uf",
+    "x": 1064,
+    "y": 304,
+    "w": 496,
+    "h": 384,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "d_n_chart_seg",
+    "kind": "visual",
+    "node_id": "n_chart_seg",
+    "x": 40,
+    "y": 704,
+    "w": 752,
+    "h": 384,
+    "format": {},
+    "content": ""
+   },
+   {
+    "id": "d_n_venn",
+    "kind": "visual",
+    "node_id": "n_venn",
+    "x": 808,
+    "y": 704,
+    "w": 752,
+    "h": 384,
+    "format": {},
+    "content": ""
+   }
+  ],
+  "hidden": [
+   "n_api_chart"
+  ]
+ },
+ "constants": [
+  {
+   "name": "meta_minima",
+   "type": "number",
+   "value": "3000",
+   "description": "MRR mínimo"
+  }
+ ],
+ "shared_constants": {
+  "mes_ref": {
+   "type": "text",
+   "value": "2026-10"
+  }
+ }
+}

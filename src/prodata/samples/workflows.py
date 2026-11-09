@@ -15,6 +15,9 @@ DEMO_WORKFLOW_ID = "demo_pipeline_360"
 DEMO_V3_NODES = ("n_pareto", "n_venn")
 # Etapa da API pública (spec 022): quem já tem a demonstração salva a recebe sem perder o que alterou.
 API_FIRST_NODE = "n_api_estados"
+# Corrida de barras e linha do tempo (spec 030): a demonstração mostra o Replay com dados que já tem.
+RACE_NODE = "n_race"
+DEMO_TIMELINE = {"column": "competencia", "step": "month", "mode": "cumulative", "speed": 1.0}
 LOGO = Path(__file__).resolve().parents[1] / "web" / "brand" / "protege-escudo.svg"
 
 # Colunas do canvas para cartões de 188 px com 60 px de folga (spec 004, RF-403).
@@ -100,6 +103,37 @@ def api_section() -> dict[str, list[dict[str, Any]]]:
             _edge("e_api5", "n_api_join", "J", "n_api_chart"),
         ],
     }
+
+
+def _race_node(y: int = 480) -> dict[str, Any]:
+    return _node(
+        RACE_NODE,
+        "bi.chart",
+        "Corrida por produto",
+        2,
+        y,
+        title="Faturamento por produto",
+        chart_type="race",
+        x_column="produto",
+        y_column="valor_bruto",
+        agg="sum",
+    )
+
+
+def add_replay_section(workflow: dict[str, Any]) -> bool:
+    """Leva a corrida de barras e a linha do tempo a uma demonstração salva, sem cobrir o que foi movido."""
+    dashboard = workflow.get("dashboard")
+    ids = {n["id"] for n in workflow["nodes"]}
+    if RACE_NODE in ids or "n_vendas" not in ids or not dashboard or (dashboard.get("timeline") or {}).get("column"):
+        return False
+    node = _race_node()
+    taken = any(abs(n["x"] - node["x"]) < 200 and abs(n["y"] - node["y"]) < 110 for n in workflow["nodes"])
+    if taken:
+        node["y"] = max(n["y"] for n in workflow["nodes"]) + 140
+    workflow["nodes"].append(node)
+    workflow["edges"].append(_edge("e_race", "n_vendas", "out", RACE_NODE))
+    dashboard["timeline"] = DEMO_TIMELINE
+    return True
 
 
 def add_api_section(workflow: dict[str, Any]) -> bool:
@@ -310,6 +344,7 @@ def demo_workflow() -> dict[str, Any]:
                 agg="sum",
                 sort="label",
             ),
+            _race_node(),
             _node(
                 "n_venn",
                 "bi.venn",
@@ -380,6 +415,7 @@ def demo_workflow() -> dict[str, Any]:
             _edge("e19", "n_vendas", "out", "n_kpi_mes"),
             _edge("e20", "n_vendas", "out", "n_stacked"),
             _edge("e21", "n_vendas", "out", "n_venn"),
+            _edge("e_race", "n_vendas", "out", RACE_NODE),
             *section["edges"],
         ],
         "dashboard": demo_dashboard(),
@@ -396,6 +432,7 @@ def demo_dashboard() -> dict[str, Any]:
         ("n_chart_uf", VisualHint(chart_type="bar")),
         ("n_chart_seg", VisualHint(chart_type="donut")),
         ("n_venn", VisualHint(chart_type="venn")),
+        (RACE_NODE, VisualHint(chart_type="hbar")),
     ]
     title = Rect(x=40, y=32, w=1200, h=56)
     logo = Rect(x=1488, y=24, w=72, h=88)
@@ -405,6 +442,7 @@ def demo_dashboard() -> dict[str, Any]:
     logo_uri = "data:image/svg+xml;base64," + base64.b64encode(LOGO.read_bytes()).decode()
     return {
         "page": result.page.model_dump(),
+        "timeline": DEMO_TIMELINE,
         "items": [
             {
                 "id": "d_title",

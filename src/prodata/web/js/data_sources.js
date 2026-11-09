@@ -5,16 +5,19 @@ import { api } from './api.js';
 import { placeholdersOf } from './apis.js';
 import { showValue, TYPES } from './constants.js';
 import { fmt } from './dom.js';
-import { API_PREFIX, QUERY_PREFIX, store } from './store.js';
+import { API_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
 
 export const KINDS = {
   file: { title: 'Arquivos', one: 'arquivo', color: 'var(--cat-inout)', icon: 'file' },
   query: { title: 'Consultas de banco', one: 'consulta', color: 'var(--cat-transform)', icon: 'server' },
   api: { title: 'APIs', one: 'API', color: 'var(--cat-ml)', icon: 'globe' },
+  jira: { title: 'Consultas do Jira', one: 'consulta do Jira', color: 'var(--cat-transform)', icon: 'list' },
+  jiraconn: { title: 'Conexões com o Jira', one: 'conexão com o Jira', color: 'var(--cat-org)', icon: 'link' },
   conn: { title: 'Conexões com bancos', one: 'conexão', color: 'var(--cat-org)', icon: 'database' },
   const: { title: 'Constantes', one: 'constante compartilhada', color: 'var(--cat-bi)', icon: 'hash' },
 };
 
+const JIRA_TABLES = { issues: 'Demandas', history: 'Histórico', comments: 'Comentários' };
 const FORMAT_LABELS = { csv: 'CSV', excel: 'Excel', parquet: 'Parquet', json: 'JSON', ndjson: 'JSON Lines', arrow: 'Arrow' };
 const DB_LABELS = { postgres: 'PostgreSQL', sqlserver: 'SQL Server' };
 
@@ -85,6 +88,21 @@ export function allSources() {
       meta: `${hostOf(a.url)}${wants.length ? ` · variável ${wants.map((w) => `{${w}}`).join(', ')}` : ''}`,
       state: a.missing_secrets?.length ? { label: 'falta segredo', tone: 'warn' } : ok,
       draggable: !wants.length, dragValue: `${API_PREFIX}${a.id}`, loop: wants.length > 0,
+    });
+  }
+  for (const q of store.jiraQueries) {
+    const conn = store.jiraConnections.find((c) => c.id === q.connection);
+    out.push({
+      kind: 'jira', key: `jira:${q.id}`, id: q.id, usageKey: `${JIRA_PREFIX}${q.id}`, name: q.name, raw: q,
+      meta: `${JIRA_TABLES[q.table]}${q.rows !== null && q.rows !== undefined ? ` · ${fmt.int(q.rows)} linhas` : ''}`,
+      state: !conn ? { label: 'sem conexão', tone: 'err' } : !conn.has_token ? { label: 'falta token', tone: 'warn' } : q.interrupted ? { label: 'carga parada', tone: 'warn' } : ok,
+      draggable: Boolean(conn), dragValue: `${JIRA_PREFIX}${q.id}`,
+    });
+  }
+  for (const c of store.jiraConnections) {
+    out.push({
+      kind: 'jiraconn', key: `jiraconn:${c.id}`, id: c.id, usageKey: null, name: c.name, raw: c, meta: c.site,
+      state: c.has_token ? ok : { label: 'falta token', tone: 'warn' }, draggable: false,
     });
   }
   for (const c of store.connections) {

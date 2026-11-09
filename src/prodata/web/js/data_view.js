@@ -2,6 +2,7 @@
 // Gerenciar acontece só aqui; o painel lateral do Designer fica com busca e arrasto.
 
 import { apiEditor, refreshApis } from './apis.js';
+import { jiraConnectionEditor, jiraQueryEditor, refreshJira } from './jira_ui.js';
 import { connectionEditor, queryEditor, refreshConnections, refreshQueries } from './connections.js';
 import { refreshConstants } from './constants.js';
 import { constantEditor } from './constants_ui.js';
@@ -22,7 +23,7 @@ const fileInput = h('input', { type: 'file', multiple: true, hidden: true,
 const sourceByKey = (key) => allSources().find((s) => s.key === key) || null;
 
 async function afterChange() {
-  await Promise.all([refreshDatasets(), refreshQueries(), refreshApis(), refreshConnections(), refreshConstants(), refreshUsage()]).catch(() => {});
+  await Promise.all([refreshDatasets(), refreshQueries(), refreshApis(), refreshJira(), refreshConnections(), refreshConstants(), refreshUsage()]).catch(() => {});
   renderDataView();
 }
 
@@ -48,6 +49,8 @@ function addMenu(e) {
     { label: 'Nova conexão com banco', icon: 'database', onSelect: () => newSource('conn') },
     { label: 'Nova consulta de banco', icon: 'server', disabled: !store.connections.length, onSelect: () => newSource('query') },
     { label: 'Nova API', icon: 'globe', onSelect: () => newSource('api') },
+    { label: 'Conectar ao Jira', icon: 'link', onSelect: () => newSource('jiraconn') },
+    { label: 'Nova consulta do Jira', icon: 'list', disabled: !store.jiraConnections.length, onSelect: () => newSource('jira') },
     'separator',
     { label: 'Nova constante compartilhada', icon: 'hash', onSelect: () => newSource('const') },
   ]);
@@ -131,6 +134,8 @@ function creatingPane() {
   const editor = kind === 'api' ? apiEditor({ ...opts, onSaved: done }, host)
     : kind === 'query' ? queryEditor({ ...opts, onSaved: done }, host)
       : kind === 'const' ? constantEditor(null, { onSaved: done }, host)
+        : kind === 'jiraconn' ? jiraConnectionEditor(null, { onSaved: done }, host)
+          : kind === 'jira' ? jiraQueryEditor({ ...opts, onSaved: done }, host)
         : connectionEditor(null, { onSaved: done }, host);
   return h('div', { class: 'dv-detail' },
     h('header', { class: 'dv-head' },

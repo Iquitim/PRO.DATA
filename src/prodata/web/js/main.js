@@ -1,5 +1,6 @@
 // Ponto de entrada: carrega catálogo e fluxo, liga os módulos e os atalhos globais.
 
+import { refreshJira } from './jira_ui.js';
 import { duplicateNode, removeContainer, removeEdge, removeNodes } from './actions.js';
 import { api } from './api.js';
 import {
@@ -723,6 +724,7 @@ async function boot() {
     refreshConnections().catch((err) => toastError(err, 'Não foi possível listar as conexões')),
     refreshQueries().catch((err) => toastError(err, 'Não foi possível listar as consultas')),
     refreshApis().catch((err) => toastError(err, 'Não foi possível listar as APIs')),
+    refreshJira().catch((err) => toastError(err, 'Não foi possível listar as consultas do Jira')),
     refreshConstants().catch((err) => toastError(err, 'Não foi possível listar as constantes')),
   ]);
 

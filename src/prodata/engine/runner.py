@@ -100,7 +100,9 @@ class WorkflowRunner:
         queries: QueryStore | None = None,
         apis: ApiStore | None = None,
         constants: ConstantStore | None = None,
+        jira: Any = None,
     ) -> None:
+        self.jira = jira
         self.constants = constants
         self.cache = cache
         self.datasets = datasets
@@ -309,7 +311,7 @@ class WorkflowRunner:
         for upstream in sorted(graph.ancestors(workflow, node_id)):
             node = workflow.node(upstream)
             dataset = str(node.config.get("dataset") or "")
-            external = source_query_id(dataset) is not None or source_api_id(dataset) is not None
+            external = source_query_id(dataset) is not None or source_api_id(dataset) is not None or dataset.startswith("jira:")
             if node.type != "io.input_data" or not dataset or external:
                 continue
             try:
@@ -418,6 +420,7 @@ class WorkflowRunner:
             self.queries,
             self.apis,
             constants=resolution.values.get(node.id, {}) if resolution else {},
+            jira=self.jira,
         )
         if progress is not None:
             ctx.report = lambda text: progress.__setitem__("detail", text)

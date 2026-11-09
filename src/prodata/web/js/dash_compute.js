@@ -3,6 +3,8 @@
 
 const MAX_SERIES = 8;
 const MAX_POINTS = 2000;
+const RANKED = ['pareto', 'race'];
+const MAX_LINKS = 40;
 const SERIES_CHARTS = ['stacked', 'grouped', 'stacked100', 'line', 'area', 'area_stacked'];
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 const TRUE = new Set(['true', '1', 'sim', 's', 'yes', 'y', 'verdadeiro', 'x']);
@@ -31,6 +33,14 @@ export function labelOf(v, type) {
 // ------------------------------------------------------------------ tabela
 
 /** Tabela vinda do arquivo: colunas por nome, com o tipo de cada uma. */
+/** A data em AAAA-MM-DD, também quando a coluna é texto (2026-05 ou 29/10/2026). */
+export function dayText(v) {
+  const text = String(v).trim();
+  if (/^\d{4}-\d{2}$/.test(text)) return `${text}-01`;
+  const br = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return br ? `${br[3]}-${br[2]}-${br[1]}` : text.slice(0, 10);
+}
+
 export function makeTable(columns, types, height) {
   return { columns, types, height };
 }
@@ -69,7 +79,7 @@ export function applyFilters(table, filters) {
     } else {
       values.forEach((v, i) => {
         if (v === null || v === undefined) return;
-        const d = String(v).slice(0, 10);
+        const d = dayText(v);
         if ((!f.min || d >= f.min) && (!f.max || d <= f.max)) keep.push(i);
       });
     }
@@ -91,9 +101,9 @@ function aggregate(values, agg) {
 
 function ordered(pairs, cfg) {
   const rows = [...pairs];
-  if (cfg.sort === 'label' && cfg.chart_type !== 'pareto') rows.sort((a, b) => compareText(a[0], b[0]));
+  if (cfg.sort === 'label' && !RANKED.includes(cfg.chart_type)) rows.sort((a, b) => compareText(a[0], b[0]));
   else {
-    const desc = cfg.sort !== 'value_asc' || cfg.chart_type === 'pareto';
+    const desc = cfg.sort !== 'value_asc' || RANKED.includes(cfg.chart_type);
     rows.sort((a, b) => {
       if (a[1] === null) return b[1] === null ? 0 : 1;
       if (b[1] === null) return -1;
@@ -118,7 +128,7 @@ function groupValues(table, cfg) {
 
 function limited(rows, cfg) {
   const series = rows.slice(0, cfg.max_items).map(([label, v]) => ({ label, value: round(v) }));
-  if (rows.length > cfg.max_items && ['sum', 'count'].includes(cfg.agg)) {
+  if (rows.length > cfg.max_items && ['sum', 'count'].includes(cfg.agg) && cfg.chart_type !== 'race') {
     series.push({ label: 'Outros', value: round(rows.slice(cfg.max_items).reduce((acc, [, v]) => acc + v, 0)) });
   }
   return series;
@@ -191,15 +201,72 @@ function scatter(table, cfg) {
   return { points, point_count: total, sampled: total > MAX_POINTS };
 }
 
+function checkMotion(table, cfg) {
+  if (cfg.chart_type === 'bubble') {
+    if (cfg.agg === 'count') throw new Error('As bolhas usam Soma, Média, Mínimo ou Máximo. Troque a agregação.');
+    need(table, cfg.x_value_column, 'Escolha o valor do eixo X da bolha.');
+    if (cfg.size_column) need(table, cfg.size_column, `Coluna de tamanho não encontrada: ${cfg.size_column}`);
+  }
+  if (cfg.chart_type === 'sankey' && !cfg.series_column) throw new Error('No Sankey, escolha a coluna de destino em Série.');
+}
+
+function indexGroups(labels) {
+  const groups = new Map();
+  labels.forEach((label, i) => {
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(i);
+  });
+  return groups;
+}
+
+const pick = (values, indices) => indices.map((i) => values[i]);
+
+function bubble(table, cfg) {
+  const type = table.types[cfg.x_column];
+  const groups = indexGroups(table.columns[cfg.x_column].map((v) => labelOf(v, type)));
+  const valueOf = (column, indices) => (column ? aggregate(pick(table.columns[column], indices), cfg.agg) : indices.length);
+  const rows = [];
+  for (const [label, indices] of groups) {
+    const x = valueOf(cfg.x_value_column, indices);
+    const y = valueOf(cfg.y_column, indices);
+    if (x === null || y === null) continue;
+    rows.push({ label, x, y, size: valueOf(cfg.size_column, indices) ?? 0 });
+  }
+  rows.sort((a, b) => b.size - a.size || compareText(a.label, b.label));
+  return {
+    points: rows.slice(0, cfg.max_items).map((r) => ({ label: r.label, x: round(r.x), y: round(r.y), size: round(r.size) })),
+    point_count: rows.length, sampled: false,
+  };
+}
+
+function sankey(table, cfg) {
+  const sType = table.types[cfg.x_column];
+  const tType = table.types[cfg.series_column];
+  const targets = table.columns[cfg.series_column];
+  const groups = indexGroups(table.columns[cfg.x_column].map((v, i) => JSON.stringify([labelOf(v, sType), labelOf(targets[i], tType)])));
+  const rows = [];
+  for (const [key, indices] of groups) {
+    const value = cfg.agg === 'count' ? indices.length : aggregate(pick(table.columns[cfg.y_column], indices), cfg.agg);
+    if (value === null || !(value > 0)) continue;
+    const [source, target] = JSON.parse(key);
+    rows.push({ source, target, value });
+  }
+  rows.sort((a, b) => b.value - a.value || compareText(a.source, b.source) || compareText(a.target, b.target));
+  return { links: rows.slice(0, MAX_LINKS).map((r) => ({ ...r, value: round(r.value) })), link_count: rows.length };
+}
+
 function chart(table, cfg) {
   need(table, cfg.x_column, 'Escolha a coluna de categoria (eixo X).');
-  if (cfg.agg !== 'count' || cfg.chart_type === 'scatter') need(table, cfg.y_column, 'Escolha a coluna de valor (eixo Y).');
+  if (cfg.agg !== 'count' || ['scatter', 'bubble'].includes(cfg.chart_type)) need(table, cfg.y_column, 'Escolha a coluna de valor (eixo Y).');
+  checkMotion(table, cfg);
   const w = {
     widget_type: 'chart', title: cfg.title, chart_type: cfg.chart_type, x_column: cfg.x_column,
     y_column: cfg.agg !== 'count' ? cfg.y_column : '', series_column: cfg.series_column, agg: cfg.agg,
     row_count: table.height, series: [],
   };
   if (cfg.chart_type === 'scatter') return { ...w, ...scatter(table, cfg), agg: 'none', y_column: cfg.y_column };
+  if (cfg.chart_type === 'bubble') return { ...w, ...bubble(table, cfg), x_value: cfg.x_value_column, size_column: cfg.size_column };
+  if (cfg.chart_type === 'sankey') return { ...w, ...sankey(table, cfg) };
   if (cfg.series_column && SERIES_CHARTS.includes(cfg.chart_type)) return { ...w, ...multiSeries(table, cfg) };
   let series = limited(ordered(groupValues(table, cfg), cfg), cfg);
   if (cfg.chart_type === 'pareto') {

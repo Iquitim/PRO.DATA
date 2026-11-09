@@ -209,6 +209,25 @@ function join(n, cfg, left, right) {
 // ------------------------------------------------------------------ Summarize
 
 /** Antes: linhas da amostra coloridas por grupo. Depois: uma linha por grupo com cada agregação. */
+function periodState(cfg) {
+  const key = cfg.item_key || 'chave';
+  const when = cfg.when || 'quando';
+  const to = cfg.new_state || 'para';
+  const before = mini('Antes: uma linha por mudança', [{ text: key }, { text: when, kind: 'from' }, { text: to }], [
+    [{ text: 'A-1' }, { text: '20/jan', link: 'p:jan', kind: 'g0' }, { text: 'Em andamento', link: 'p:jan' }],
+    [{ text: 'A-1' }, { text: '03/mar', link: 'p:mar', kind: 'g1' }, { text: 'Concluído', link: 'p:mar' }],
+  ]);
+  const after = mini('Depois: uma foto por período', [{ text: key }, { text: 'periodo', kind: 'to' }, { text: 'estado', kind: 'to' }, { text: 'dias_no_estado', kind: 'to' }], [
+    [{ text: 'A-1' }, { text: 'jan', link: 'p:jan', kind: 'g0' }, { text: 'Em andamento', link: 'p:jan' }, { text: '11' }],
+    [{ text: 'A-1' }, { text: 'fev' }, { text: 'Em andamento' }, { text: '39' }],
+    [{ text: 'A-1' }, { text: 'mar', link: 'p:mar', kind: 'g1' }, { text: 'Concluído', link: 'p:mar' }, { text: '0' }],
+  ]);
+  return {
+    body: [before, arrow('Estado por período'), after],
+    caption: 'Cada período mostra como o item estava no fim dele, mesmo sem nenhuma mudança naquele período. O que os eventos não explicam fica "sem histórico", nunca com o valor de hoje.',
+  };
+}
+
 function summarize(cfg, rows) {
   const groups = (cfg.group_by || []).slice(0, 2);
   let aggs = (cfg.aggregations || []).filter((a) => a.column || a.agg === 'count_all').slice(0, 3);
@@ -494,6 +513,8 @@ export function explainerEl(n, spec) {
     if (spec.explainer === 'join') {
       const [l, r] = await Promise.all([sampleOf(n.id, 'L'), sampleOf(n.id, 'R')]);
       out = join(n, cfg, l, r);
+    } else if (spec.explainer === 'period_state') {
+      out = periodState(cfg);
     } else if (spec.explainer === 'quality') {
       out = qualityExplain(cfg, await sampleOf(n.id, 'in'), nodeResult(n.id), { mini });
     } else if (spec.explainer === 'multirow') {
@@ -507,7 +528,7 @@ export function explainerEl(n, spec) {
       out = ({ crosstab, transpose, summarize }[spec.explainer])(cfg, rows?.length ? rows : null);
       out.sample = Boolean(rows?.length);
     }
-    note.textContent = spec.explainer === 'join' ? '' : out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)';
+    note.textContent = ['join', 'period_state'].includes(spec.explainer) ? (spec.explainer === 'join' ? '' : 'exemplo') : out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)';
     body.replaceChildren(
       h('div', { class: spec.explainer === 'join' ? 'x-stack' : 'x-row' }, out.body),
       h('p', { class: 'x-caption' }, out.caption));

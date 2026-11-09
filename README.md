@@ -42,7 +42,12 @@ localmente.
   consome a API pública do IBGE, só depois do clique em Executar.
 - **Destinos à sua escolha**: o Output Data grava em qualquer pasta, e o fluxo
   pode ser salvo e aberto de qualquer pasta (*Salvar como…* / *Abrir arquivo…*).
-- **31 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
+- **Jira Cloud, só leitura**: conexão guiada com token de leitura, consulta sem escrever
+  JQL, demandas, histórico e comentários como tabelas, atualização só do que mudou e retomada.
+- **Replay analítico**: linha do tempo no dashboard, corrida de barras, bolhas, Sankey,
+  destaques com critério, história em cenas, GIF por gráfico e HTML com tudo isso.
+- **Lições guiadas** no Manual, cada uma num fluxo próprio.
+- **32 ferramentas** na paleta, em 5 famílias: entrada/saída, preparação (com
   Text To Columns, Record ID, Running Total, Multi-Row Formula e Data Quality), combinação e transformação (Join
   com saídas L/J/R, Cross Tab, Transpose, Append Fields, Summarize, Union, SQL via
   DuckDB), BI (Chart, KPI Card, Venn e Table) e Machine Learning (scikit-learn).
@@ -212,6 +217,7 @@ O projeto segue SDD no formato do [GitHub Spec Kit](https://github.com/github/sp
 | [026](specs/026-seguranca-e-rotulos/spec.md) | Ordenação, Summarize por tipo, rótulos, segurança de API e HTML; Multi-Row com receitas e clique no gráfico |
 | [027](specs/027-qualidade-do-codigo/spec.md) | Código dividido, limites verificados por teste e fórmulas sem acesso externo |
 | [028](specs/028-dados-e-confianca/spec.md) | Vista Dados com mapa de uso, abertura protegida, Data Quality e constantes |
+| [030](specs/030-jira-e-replay/spec.md) | Conector do Jira (só leitura), Estado por período, linha do tempo, corrida de barras, bolhas, Sankey, destaques, história, GIF por gráfico e lições guiadas. |
 | [029](specs/029-experiencia-e-idioma/spec.md) | Espaço para o fluxo, um nome para cada coisa, letra e contraste, busca Ctrl+K, `[#hoje]` e Manual dentro do programa |
 
 Para adicionar uma ferramenta, veja [docs/nova-ferramenta.md](docs/nova-ferramenta.md).
