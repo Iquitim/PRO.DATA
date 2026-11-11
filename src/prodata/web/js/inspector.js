@@ -8,7 +8,7 @@ import { api } from './api.js';
 import { cacheActions, heldBy, NODE_W, nodeHeight, selectionActions } from './canvas.js';
 import { openApiEditor, placeholdersOf } from './apis.js';
 import { connectionTables, openConnectionDialog, openQueryEditor, refreshQueries, slug } from './connections.js';
-import { chooseFolder, isDesktop, reveal } from './desktop.js';
+import { chooseDataFile, chooseFolder, isDesktop, reveal } from './desktop.js';
 import { button, debounce, fmt, h } from './dom.js';
 import { explainerEl } from './explainers.js';
 import { isGuided, recipeOf, recipePatch } from './multirow_recipes.js';
@@ -115,6 +115,11 @@ function statusBanner(n) {
       ? `Acurácia ${fmt.number(metrics.accuracy_pct)}% · F1 ${fmt.number(metrics.f1_pct)}%`
       : `R² ${fmt.number(metrics.r2, 3)} · MAE ${fmt.number(metrics.mae)}`,
     `medido em ${fmt.int(metrics.validation_rows)} linhas de validação`);
+  }
+  const model = res.extra?.ml_model;
+  if (model) {
+    const day = new Date(model.trained_at).toLocaleDateString('pt-BR');
+    extra.push(`modelo v${model.version}${model.reused ? ' guardado' : ''}, treinado em ${day} com ${fmt.int(model.rows)} linhas`);
   }
   const file = res.extra?.exported_file;
   const path = res.extra?.exported_path;
@@ -243,7 +248,12 @@ function nodeContext(n) {
     },
   };
   if (n.type === 'io.input_data') Object.assign(ctx, sourceContext(n, spec));
-  if (n.type === 'io.output_data') ctx.chooseFolder = chooseFolder;
+  if (n.type === 'io.output_data') Object.assign(ctx, { chooseFolder, chooseFile: isDesktop() ? chooseDataFile : null });
+  if (n.type === 'io.input_folder') {
+    // As opções de leitura dependem do formato: aqui ele vem da extensão do padrão (vendas_*.xlsx).
+    const ext = (/\.([a-z0-9]+)$/i.exec(n.config.pattern || '') || [])[1]?.toLowerCase();
+    Object.assign(ctx, { chooseFolder, format: store.catalog.file_formats[`.${ext}`] || 'csv' });
+  }
   if (n.type === 'io.database_input') Object.assign(ctx, databaseContext(n));
   if (n.type === 'io.api_loop') {
     Object.assign(ctx, {

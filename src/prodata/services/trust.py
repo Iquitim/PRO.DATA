@@ -133,7 +133,7 @@ class TrustRegistry:
 
 # ---------------------------------------------------------------- resumo do que o fluxo faz
 
-_FORMULA_TOOLS = {"prep.formula", "prep.filter", "prep.multirow"}
+_FORMULA_TOOLS = {"prep.formula", "prep.filter", "prep.multirow", "prep.multi_field"}
 
 
 def summary(workflow: Workflow, names: dict[str, str]) -> list[dict[str, Any]]:
@@ -167,6 +167,22 @@ def summary(workflow: Workflow, names: dict[str, str]) -> list[dict[str, Any]]:
             }
         elif node.type == "io.database_input":
             item = {"kind": "query", "detail": "consulta escrita na caixa", "missing": False}
+        elif node.type == "io.input_folder":
+            # Spec 033: quem recebe o fluxo precisa ver de qual pasta do computador ele lê.
+            item = {
+                "kind": "folder",
+                "detail": f"{cfg.get('pattern') or '*'} em {cfg.get('folder') or 'pasta não escolhida'}",
+                "missing": False,
+            }
+        elif node.type == "flow.subflow":
+            key = f"flow:{cfg.get('workflow') or ''}"
+            item = {
+                "kind": "subflow",
+                "detail": names.get(key, str(cfg.get("workflow") or "sem fluxo escolhido")),
+                "missing": bool(cfg.get("workflow")) and key not in names,
+            }
+        elif node.type == "prep.regex":
+            item = {"kind": "formula", "detail": str(cfg.get("pattern") or "")[:120], "missing": False}
         elif node.type == "transform.sql_query":
             item = {
                 "kind": "sql",
@@ -184,9 +200,10 @@ def summary(workflow: Workflow, names: dict[str, str]) -> list[dict[str, Any]]:
             item = {"kind": "formula", "detail": " ".join(text.split())[:120], "missing": False}
         elif node.type == "io.output_data":
             folder = str(cfg.get("folder") or "pasta padrão de exportações")
+            template = f" · lê o modelo {cfg['template']}" if cfg.get("template") else ""
             item = {
                 "kind": "output",
-                "detail": f"{cfg.get('filename') or 'saida'} em {folder}",
+                "detail": f"{cfg.get('filename') or 'saida'} em {folder}{template}",
                 "missing": False,
             }
         if item:

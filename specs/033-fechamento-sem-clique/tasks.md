@@ -1,0 +1,24 @@
+# Tarefas da spec 033
+
+- [x] Contexto das caixas e pasta de estado (RF-3344, RF-3384)
+- [x] `prodata run`, `list` e `prodata-cli.exe` (RF-3301 a RF-3306)
+- [x] Input Folder e Generate Rows (RF-3310 a RF-3314, RF-3364)
+- [x] Aviso de multiplicação no Join (RF-3320 a RF-3322)
+- [x] Data Quality que interrompe e Reconcile (RF-3330 a RF-3333)
+- [x] Compare Runs (RF-3340 a RF-3344)
+- [x] Subflow, Subflow Input e Subflow Output (RF-3350 a RF-3355)
+- [x] Fuzzy Match, Regex, Multi-Field Formula e Mask (RF-3360 a RF-3366)
+- [x] Output Data em modelo de Excel (RF-3370 a RF-3373)
+- [x] Modelos de ML com versão (RF-3380 a RF-3384)
+- [x] Gráficos automáticos opcionais (RF-3390)
+- [x] Limite de memória do cache (RF-3391, RF-3392)
+- [x] Spark SQL e T-SQL convertidos (RF-3393 a RF-3395)
+- [x] Conexão ODBC (RF-3396 a RF-3398)
+- [x] Índice do guia e teste (RF-3399)
+- [x] Abertura protegida lista pasta lida, modelo de Excel e subfluxo
+- [x] Guia, Manual, contexto para IA e constituição
+- [x] Biblioteca de modelos, Model Input e arquivo .modelo sem pickle (RF-3385 a RF-3388)
+- [x] Esquemas "Como funciona" das caixas novas e capturas no guia (RF-3400 a RF-3404)
+- [x] Tabela de resultados em tela cheia (RF-3405)
+- [ ] Conferência do ODBC em Oracle, MySQL ou ERP (depende de um banco real)
+- [ ] Conferência do SQL convertido num Microsoft Fabric (depende de um ambiente real)

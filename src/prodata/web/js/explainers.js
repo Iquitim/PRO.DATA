@@ -5,6 +5,7 @@
 import { api } from './api.js';
 import { fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
+import { extraExplain, hasExtraExplainer } from './explainers_extra.js';
 import { distanceOf, recipeOf, targetOf } from './multirow_recipes.js';
 import { qualityExplain } from './quality_ui.js';
 import { inspect, nodeResult, on, placeholdersOf, store } from './store.js';
@@ -198,8 +199,13 @@ function join(n, cfg, left, right) {
   const side = (title, col, vals, other) => mini(title, [{ text: col }], vals.map((v) => [{
     text: v, link: `k:${v}`, kind: other.includes(v) ? 'match' : 'alone',
   }]));
+  const mult = res?.extra?.join_multiplied;
+  const multNote = mult ? h('p', { class: ['x-join-mult', cfg.allow_multiply && 'expected'] }, icon('alert', 13),
+    ` A chave repete em [R]: ${fmt.int(mult.left_rows)} linhas de [L] viraram ${fmt.int(mult.joined_rows)} no J`
+    + (mult.both_sides ? ', e ela repete dos dois lados.' : '.')
+    + (cfg.allow_multiply ? ' Marcado como esperado.' : ' Somas feitas depois podem contar em dobro.')) : null;
   return {
-    body: [bar, h('div', { class: 'x-pair' }, side('Esquerda [L]', lk, lv, rv), arrow('casa pela chave'), side('Direita [R]', rk, rv, lv))],
+    body: [bar, multNote, h('div', { class: 'x-pair' }, side('Esquerda [L]', lk, lv, rv), arrow('casa pela chave'), side('Direita [R]', rk, rv, lv))].filter(Boolean),
     caption: `Linhas com o mesmo valor em [${lk}] e [${rk}] saem juntas em J. As demais saem em L ou R, para você ver o que não encontrou par.`
       + ((cfg.keys?.length || 0) > 1 ? ` Com ${cfg.keys.length} chaves, todas precisam ser iguais.` : '')
       + ({ both: ' No J ficam as chaves dos dois lados.', left: ` No J fica só [${lk}], da esquerda.`, right: ` No J fica só [${rk}], da direita.` }[cfg.keys_mode || 'both']),
@@ -510,7 +516,10 @@ export function explainerEl(n, spec) {
   const draw = async () => {
     const cfg = store.workflow.nodes.find((k) => k.id === n.id)?.config || n.config || {};
     let out;
-    if (spec.explainer === 'join') {
+    const stacked = spec.explainer === 'join' || hasExtraExplainer(spec.explainer);
+    if (hasExtraExplainer(spec.explainer)) {
+      out = await extraExplain(spec.explainer, n, cfg, { mini, arrow });
+    } else if (spec.explainer === 'join') {
       const [l, r] = await Promise.all([sampleOf(n.id, 'L'), sampleOf(n.id, 'R')]);
       out = join(n, cfg, l, r);
     } else if (spec.explainer === 'period_state') {
@@ -528,9 +537,9 @@ export function explainerEl(n, spec) {
       out = ({ crosstab, transpose, summarize }[spec.explainer])(cfg, rows?.length ? rows : null);
       out.sample = Boolean(rows?.length);
     }
-    note.textContent = ['join', 'period_state'].includes(spec.explainer) ? (spec.explainer === 'join' ? '' : 'exemplo') : out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)';
+    note.textContent = out.note ?? ['join', 'period_state'].includes(spec.explainer) ? (spec.explainer === 'join' ? '' : 'exemplo') : out.sample ? 'com uma amostra dos seus dados' : 'exemplo (execute para ver seus dados)';
     body.replaceChildren(
-      h('div', { class: spec.explainer === 'join' ? 'x-stack' : 'x-row' }, out.body),
+      h('div', { class: stacked ? 'x-stack' : 'x-row' }, out.body),
       h('p', { class: 'x-caption' }, out.caption));
   };
   root.refresh = () => draw().catch(() => {});

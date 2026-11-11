@@ -87,6 +87,38 @@ function drawFilterBar() {
   );
 }
 
+// ---------------------------------------------------------------- tabela em tela cheia (spec 033)
+
+export const inTableFocus = () => Boolean(els.root?.classList.contains('table-focus'));
+
+function drawFocusButton() {
+  const active = inTableFocus();
+  els.focusBtn.title = active ? 'Voltar ao tamanho normal (Shift+F11 ou Esc)' : 'Tabela em tela cheia, para mostrar ou explorar (Shift+F11)';
+  els.focusBtn.setAttribute('aria-label', els.focusBtn.title);
+  els.focusBtn.setAttribute('aria-pressed', String(active));
+  // Só o ícone: com o painel estreito, um rótulo encostava nos controles do painel.
+  els.focusBtn.replaceChildren(icon(active ? 'minimize' : 'maximize', 15));
+}
+
+/** Liga, desliga ou alterna a tabela em tela cheia. Devolve se mudou alguma coisa. */
+export function toggleTableFocus(force = null) {
+  if (!els.root) return false;
+  const next = force === null ? !inTableFocus() : force;
+  if (next === inTableFocus()) return false;
+  els.root.classList.toggle('table-focus', next);
+  document.body.classList.toggle('table-focus-on', next);
+  let hint = els.root.querySelector('.table-focus-hint');
+  if (next && !hint) {
+    hint = h('div', { class: 'focus-hint table-focus-hint', role: 'status' }, h('b', {}, 'Tabela em tela cheia'), ' · ', h('kbd', {}, 'Esc'), ' volta');
+    els.root.append(hint);
+    setTimeout(() => hint.remove(), 4000);
+  } else if (!next) {
+    hint?.remove();
+  }
+  drawFocusButton();
+  return true;
+}
+
 export function initResults(root) {
   els.root = root;
   els.title = h('div', { class: 'results-title' });
@@ -109,9 +141,12 @@ export function initResults(root) {
   });
   els.filterBar = h('div', { class: 'results-row filter-bar', hidden: true });
 
+  els.focusBtn = button({ icon: 'maximize', title: '', size: 'sm', variant: 'ghost', onClick: () => toggleTableFocus() });
+  els.focusBtn.classList.add('results-focus');
+  drawFocusButton();
   root.replaceChildren(
     h('div', { class: 'results-toolbar' },
-      h('div', { class: 'results-row' }, els.tabs, h('div', { class: 'grow' }), els.pager, panelControls('results')),
+      h('div', { class: 'results-row' }, els.tabs, h('div', { class: 'grow' }), els.pager, els.focusBtn, panelControls('results')),
       h('div', { class: 'results-row' }, els.title, els.anchors, h('div', { class: 'grow' }), els.filterBtn, els.search),
       els.filterBar),
     els.body);

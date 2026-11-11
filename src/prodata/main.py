@@ -24,6 +24,7 @@ from prodata.connectors import ConnectionStore, KeyringSecretStore, MemorySecret
 from prodata.connectors.api_store import ApiStore
 from prodata.connectors.jira_store import JiraStore
 from prodata.connectors.queries import QueryStore
+from prodata.connectors.secrets import installation_key
 from prodata.domain.workflow import Workflow
 from prodata.engine.cache import ResultCache
 from prodata.engine.runner import WorkflowRunner
@@ -52,7 +53,7 @@ def build_services(settings: Settings) -> Services:
     settings.ensure_dirs()
     setup_audit(settings.storage_dir)
     datasets = DatasetStore(settings.datasets_dir, settings.max_upload_mb * 1024 * 1024)
-    cache = ResultCache(settings.cache_dir)
+    cache = ResultCache(settings.cache_dir, settings.cache_memory_mb * 1024 * 1024)
     workflows = WorkflowRepository(settings.workflows_dir)
     secrets: SecretStore = (
         KeyringSecretStore() if settings.secrets_backend == "keyring" else MemorySecretStore()
@@ -86,7 +87,18 @@ def build_services(settings: Settings) -> Services:
         datasets=datasets,
         cache=cache,
         runner=WorkflowRunner(
-            cache, datasets, settings.exports_dir, connections, queries, apis, constants, jira
+            cache,
+            datasets,
+            settings.exports_dir,
+            connections,
+            queries,
+            apis,
+            constants,
+            jira,
+            state_dir=settings.storage_dir / "estado",
+            workflows=workflows,
+            secret_key=lambda: installation_key(secrets),
+            guard=trust.check_runnable,
         ),
         workflows=workflows,
         connections=connections,

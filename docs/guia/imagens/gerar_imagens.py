@@ -25,6 +25,8 @@ from PIL import Image
 from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from novas_075 import part_new_tools  # noqa: E402
 PORT = 8796
 FAKE_JIRA = 8797
 URL = f"http://127.0.0.1:{PORT}/"
@@ -531,9 +533,13 @@ def part_data_trust(pg: Pg, tmp: Path) -> None:
     shot(pg, "abertura-protegida", clip={**canvas, "height": min(canvas["height"], 620)})
 
 
+def part_075(pg: Pg, tmp: Path) -> None:
+    part_new_tools(pg, tmp, shot)
+
+
 def PARTS(tmp):  # noqa: N802
     every = ((part_screen, ()), (part_cache_dashboard, ()), (part_sql, ()), (part_tools, ()), (part_quality_lists, ()), (part_data_trust, (tmp,)), (part_manual, ()))
-    every = (*every, (part_jira, ()), (part_replay, ()))
+    every = (*every, (part_jira, ()), (part_replay, ()), (part_075, (tmp,)))
     only = os.environ.get("IMAGENS_SO")
     return [e for e in every if not only or e[0].__name__ in only.split(",")]
 

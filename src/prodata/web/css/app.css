@@ -558,6 +558,59 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .x-table .x-lit { background: color-mix(in srgb, var(--accent) 32%, var(--surface)) !important; color: var(--text); }
 .x-arrow { display: flex; flex-direction: column; align-items: center; color: var(--text-3); font-size: var(--fs-2xs); flex: 0 0 auto; }
 .x-caption { margin: 0; font-size: var(--fs-xs); color: var(--text-2); }
+/* peças dos esquemas da spec 033 */
+.x-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.x-chips > .x-title { flex: 1 0 100%; margin-bottom: 0; }
+.x-chip {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 2px 8px; border: 1px solid var(--border);
+  border-radius: 999px; background: var(--surface); font-size: var(--fs-xs); transition: background-color .12s;
+}
+.x-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.x-chip .icon { flex-shrink: 0; color: var(--text-3); }
+.x-chip-from { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.x-chip-to { background: color-mix(in srgb, var(--brand-gold, #b58a2a) 22%, var(--surface)); }
+.x-chip-ok { background: color-mix(in srgb, var(--status-good, #0ca30c) 14%, var(--surface)); }
+.x-chip-ok .icon { color: var(--status-good, #0ca30c); }
+.x-chip-bad { background: var(--err-weak); }
+.x-chip-bad .icon { color: var(--err); }
+.x-chip-warn { background: var(--warn-weak); }
+.x-chip-warn .icon { color: var(--warn); }
+.x-chip-muted { color: var(--text-3); border-style: dashed; white-space: normal; border-radius: var(--radius-sm); }
+.x-chip-muted > span { white-space: normal; }
+.x-chip.x-lit { background: color-mix(in srgb, var(--accent) 32%, var(--surface)); }
+.x-table .x-bad { background: var(--err-weak); color: var(--err); font-weight: 600; }
+.x-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.x-stat { display: flex; flex-direction: column; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.x-stat strong { font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+.x-stat span { font-size: var(--fs-xs); color: var(--text-3); }
+.x-stat-ok strong { color: var(--status-good, #0ca30c); }
+.x-stat-bad strong { color: var(--err); }
+.x-stat-warn strong { color: var(--warn); }
+.x-subflow, .x-card { display: flex; flex-direction: column; gap: 5px; padding: 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius); background: var(--surface); }
+.x-card { border-style: solid; }
+.x-kv { display: flex; justify-content: space-between; gap: 10px; font-size: var(--fs-xs); }
+.x-kv span { color: var(--text-3); }
+.x-kv strong { text-align: right; overflow-wrap: anywhere; }
+.x-formula { padding: 4px 8px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+.x-path { justify-content: flex-start; }
+.x-path > .icon { color: var(--text-3); }
+.model-versions { display: flex; flex-direction: column; gap: 4px; }
+.model-version { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; padding: 4px 6px 4px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: var(--fs-xs); }
+.model-version span { color: var(--text-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-version.using { border-color: var(--accent); background: var(--accent-weak); }
+.model-version-tag { color: var(--accent) !important; font-weight: 600; }
+.x-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.x-flow > .x-arrow { flex-direction: row; gap: 3px; }
+.x-stack > .x-table { flex: none; }
+.x-stack > .x-arrow { flex-direction: row; justify-content: center; gap: 4px; }
+.x-stack > .x-arrow .icon { transform: rotate(90deg); }
+/* tabela de resultados em tela cheia (spec 033) */
+.panel.table-focus { position: fixed !important; inset: 0; z-index: 70; width: auto !important; height: auto !important; background: var(--bg); }
+.panel.table-focus .panel-controls { display: none; }
+/* .focus-hint prende no topo: aqui o aviso fica embaixo, e sem o topo ele não estica de cima a baixo */
+.panel.table-focus .focus-hint.table-focus-hint { top: auto; bottom: 18px; }
+.results-focus { flex-shrink: 0; }
+
 .x-join-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .x-join-part {
   display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto; column-gap: 6px; row-gap: 1px;

@@ -1,4 +1,4 @@
-"""Leitura de bancos via connectorx (PostgreSQL e SQL Server), sempre somente leitura."""
+"""Leitura de bancos via connectorx (PostgreSQL e SQL Server) ou ODBC, sempre somente leitura."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from urllib.parse import quote, urlencode
 
 import polars as pl
 
+from prodata.connectors import odbc
 from prodata.connectors.models import Connection
 from prodata.errors import InvalidInputError
 
@@ -103,6 +104,15 @@ def ensure_reachable(conn: Connection, timeout: float = 5.0) -> None:
 
 
 def read_sql(conn: Connection, password: str, query: str, limit: int | None = None) -> pl.DataFrame:
+    if conn.kind == "odbc":
+        checked = ensure_read_only(query)
+        try:
+            # Cada banco limita linhas de um jeito: aqui o limite é quantas linhas buscar do resultado.
+            return odbc.read(conn, password, checked, limit)
+        except InvalidInputError:
+            raise
+        except Exception as exc:  # o driver lança erros próprios, com a mensagem do banco
+            raise DatabaseError(f"{conn.name}: {_sanitize(str(exc), password, '')}") from exc
     sql = limited(conn, ensure_read_only(query), limit)
     ensure_reachable(conn)
     uri = build_uri(conn, password)
@@ -114,6 +124,8 @@ def read_sql(conn: Connection, password: str, query: str, limit: int | None = No
 
 
 def table_query(conn: Connection, qualified: str) -> str:
+    if conn.kind == "odbc":
+        return odbc.table_query(qualified)
     schema, _, table = qualified.rpartition(".")
     return f"SELECT * FROM {quote_table(conn, schema or default_schema(conn), table)}"
 
@@ -123,6 +135,13 @@ def default_schema(conn: Connection) -> str:
 
 
 def list_tables(conn: Connection, password: str) -> list[dict[str, str]]:
+    if conn.kind == "odbc":
+        try:
+            return odbc.list_tables(conn, password)
+        except InvalidInputError:
+            raise
+        except Exception as exc:
+            raise DatabaseError(f"{conn.name}: {_sanitize(str(exc), password, '')}") from exc
     excluded = ", ".join(f"'{s}'" for s in SYSTEM_SCHEMAS)
     query = (
         "SELECT table_schema, table_name, table_type FROM information_schema.tables "
@@ -142,4 +161,13 @@ def list_tables(conn: Connection, password: str) -> list[dict[str, str]]:
 
 
 def check_connection(conn: Connection, password: str) -> None:
+    if conn.kind == "odbc":
+        # "SELECT 1" não vale em todo banco (o Oracle pede FROM DUAL): abrir e fechar já prova a conexão.
+        try:
+            odbc.connect(conn, password).close()
+        except InvalidInputError:
+            raise
+        except Exception as exc:
+            raise DatabaseError(f"{conn.name}: {_sanitize(str(exc), password, '')}") from exc
+        return
     read_sql(conn, password, "SELECT 1 AS ok")

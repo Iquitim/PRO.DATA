@@ -4,7 +4,7 @@
 import { chartSkeleton } from './skeleton.js';
 import { api } from './api.js';
 import { AGG_LABELS, goToNode, kpiTile, visualCard } from './dashboard.js';
-import { button, debounce, fmt, h } from './dom.js';
+import { button, debounce, fmt, h, persist, storage } from './dom.js';
 import { icon } from './icons.js';
 import { panelControls } from './layout.js';
 import { liveWidgets, nodeResult, on, store } from './store.js';
@@ -17,6 +17,8 @@ let root;
 let body;
 let count;
 let seq = 0;
+// Um gráfico por Summarize vira ruído em fluxos grandes: só aparecem se a pessoa pedir (spec 033).
+let autoSummaries = storage('prodata.insights.resumos', false);
 
 export function initInsights(el, opts) {
   root = el;
@@ -87,7 +89,8 @@ export async function render() {
   if (!root || !store.workflow || !root.isConnected || root.closest('#panelStore')) return;
   const mine = ++seq;
   const widgets = new Map(liveWidgets().map((w) => [w.node_id, w]));
-  const summaries = store.workflow.nodes.filter((n) => n.type === 'transform.summarize' && isFresh(n.id));
+  const available = store.workflow.nodes.filter((n) => n.type === 'transform.summarize' && !n.disabled && isFresh(n.id));
+  const summaries = autoSummaries ? available : [];
   const built = await Promise.all(summaries.map((n) => summaryWidget(n).catch(() => null)));
   if (mine !== seq) return; // uma execução mais nova já está desenhando
   const bySummary = new Map(summaries.map((n, i) => [n.id, built[i]]));
@@ -107,10 +110,18 @@ export async function render() {
 
   count.hidden = !cards.length;
   count.textContent = cards.length;
+  if (available.length) {
+    cards.push(h('button', {
+      type: 'button', class: 'insights-auto',
+      title: 'Um gráfico automático para cada Summarize executado',
+      onclick: () => { autoSummaries = !autoSummaries; persist('prodata.insights.resumos', autoSummaries); render(); },
+    }, icon(autoSummaries ? 'x' : 'chart', 14),
+    autoSummaries ? 'Esconder os resumos automáticos' : `Mostrar ${available.length} resumo(s) automático(s) de Summarize`));
+  }
   const waiting = !cards.length && store.running;
   body.replaceChildren(cards.length || waiting
     ? h('div', { class: 'insights-strip' }, waiting ? [chartSkeleton(), chartSkeleton(), chartSkeleton()] : cards)
     : h('div', { class: 'empty' }, icon('chart', 20),
       h('strong', {}, store.execution ? 'Nenhum gráfico ou resumo' : 'Execute o fluxo'),
-      h('span', {}, 'Caixas Chart, KPI Card e Summarize aparecem aqui depois de executar.')));
+      h('span', {}, 'Caixas Chart e KPI Card aparecem aqui depois de executar. Os resumos de Summarize são opcionais.')));
 }

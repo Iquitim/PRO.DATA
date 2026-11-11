@@ -10,7 +10,9 @@ hiddenimports = (
     + collect_submodules("webview")
     + collect_submodules("sklearn.ensemble")
     + collect_submodules("sklearn.linear_model")
-    + ["keyring.backends.Windows", "sklearn.utils._typedefs", "sklearn.neighbors._partition_nodes"]
+    + collect_submodules("sqlglot")  # dialetos escolhidos por nome (spec 033)
+    + collect_submodules("skops")  # arquivo .modelo, sem pickle (spec 033)
+    + ["keyring.backends.Windows", "sklearn.utils._typedefs", "sklearn.neighbors._partition_nodes", "pyodbc"]
 )
 
 datas = (
@@ -24,7 +26,8 @@ datas = (
 )
 
 a = Analysis(  # noqa: F821
-    [f"{HERE}/launcher.py"],
+    # Dois pontos de entrada no mesmo pacote: a janela e a linha de comando (spec 033).
+    [f"{HERE}/launcher.py", f"{HERE}/launcher_cli.py"],
     pathex=[],
     binaries=[],
     datas=datas,
@@ -45,10 +48,12 @@ splash = Splash(  # noqa: F821
     text_default="Abrindo…",
     always_on_top=False,
 )
+window_scripts = [s for s in a.scripts if s[0] != "launcher_cli"]
+cli_scripts = [s for s in a.scripts if s[0] != "launcher"]
 exe = EXE(  # noqa: F821
     pyz,
     splash,
-    a.scripts,
+    window_scripts,
     [],
     exclude_binaries=True,
     name="PRO.DATA",
@@ -56,4 +61,17 @@ exe = EXE(  # noqa: F821
     icon=f"{HERE}/prodata.ico",
     version=f"{HERE}/version_info.txt",
 )
-coll = COLLECT(exe, a.binaries, a.datas, splash.binaries, name="PRO.DATA")  # noqa: F821
+# Linha de comando (spec 033): mesmo pacote, com console e sem tela de abertura. Serve ao Agendador do Windows.
+cli_exe = EXE(  # noqa: F821
+    pyz,
+    cli_scripts,
+    [],
+    exclude_binaries=True,
+    name="prodata-cli",
+    console=True,
+    icon=f"{HERE}/prodata.ico",
+    version=f"{HERE}/version_info.txt",
+)
+coll = COLLECT(  # noqa: F821
+    exe, cli_exe, a.binaries, a.datas, splash.binaries, name="PRO.DATA"
+)

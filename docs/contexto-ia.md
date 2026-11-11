@@ -1,6 +1,6 @@
 # PRO.DATA: contexto para assistentes de IA
 
-Versão do programa: 0.7.2. Este arquivo é gerado a partir do código.
+Versão do programa: 0.7.5. Este arquivo é gerado a partir do código.
 
 Você está ajudando alguém que usa o PRO.DATA, um programa de Windows para montar fluxos visuais de dados, parecido com o Alteryx. A pessoa pode enviar um fluxo (arquivo `.prodata.json`) e pedir para explicar, corrigir ou mudar. Use este documento para responder com um fluxo que abre e executa de primeira.
 
@@ -392,7 +392,49 @@ Entradas: `in` (Entrada), `in2` (Planilha 2, opcional, conforme a configuração
 - `confidentiality` ("interno"): Rótulo de confidencialidade. Opções: `publico`, `interno`, `confidencial`, `restrito`. No Excel, fica nas propriedades do arquivo, na impressão e na cor da aba. Nos outros formatos, Confidencial e Restrito entram no nome do arquivo
 - `sheet_name` ("Dados"): Nome da planilha. Aparece se `format` em excel
 - `sheet_names` ({}): Planilhas das outras entradas. Aparece se `format` em excel. No Excel, ligue mais tabelas nesta caixa: cada uma vira uma planilha do mesmo arquivo
+- `template` (""): Modelo de Excel. Aparece se `format` em excel. Opcional. Um .xlsx já formatado: os dados entram numa cópia dele, e o modelo nunca é alterado. Mantém formatos, larguras e fórmulas do resto da planilha
+- `template_cell` ("A1"): Célula inicial. Aparece se `format` em excel. Onde começa o cabeçalho (ou a primeira linha de dados, sem cabeçalho). A planilha é a de 'Nome da planilha'
+- `template_header` (true): Gravar o cabeçalho. Aparece se `format` em excel
+- `template_clear` (true): Limpar linhas antigas abaixo dos dados. Aparece se `format` em excel
 - `if_exists` ("ask"): Se o arquivo já existir. Opções: `ask`, `replace`, `new_file`, `add_sheet`. "Adicionar planilha" só vale para Excel: vários Output Data podem montar um arquivo só
+
+#### `io.input_folder`: Input Folder
+
+Lê todos os arquivos de uma pasta que casam com um padrão de nome, como vendas_*.xlsx, e empilha as linhas.
+
+Entradas: nenhuma. Saídas: `out` (Dados).
+
+- `format` ("auto"): Formato. Opções: `auto`, `csv`, `excel`, `parquet`, `json`, `ndjson`, `arrow`. 'auto' detecta pela extensão e pelo conteúdo
+- `delimiter` ("auto"): Delimitador. Opções: `auto`, `,`, `;`, `	`, `|`. Aparece se `$format` em csv
+- `encoding` ("auto"): Encoding. Opções: `auto`, `utf-8`, `utf-8-sig`, `cp1252`, `latin-1`. Aparece se `$format` em csv
+- `decimal` ("auto"): Separador decimal. Opções: `auto`, `.`, `,`. Aparece se `$format` em csv
+- `sheet` (""): Aba. Aparece se `$format` em excel. Vazio = primeira aba
+- `skip_rows` (0): Pular linhas iniciais. De 0 a …. Aparece se `$format` em csv, excel. Linhas acima da tabela (título, logotipo…). No Excel, contadas desde a linha 1: cabeçalho na linha 4 → pular 3
+- `skip_columns` (0): Pular colunas iniciais. De 0 a …. Aparece se `$format` em csv, excel. Descarta as N primeiras colunas que aparecem na prévia. No Excel, colunas vazias à esquerda da tabela já são ignoradas sozinhas: só conte as que têm conteúdo
+- `has_header` (true): Primeira linha é cabeçalho. Aparece se `$format` em csv, excel. A primeira linha depois das puladas tem os nomes das colunas
+- `null_values` (""): Valores nulos. Aparece se `$format` em csv. Separados por vírgula, ex.: NA, NULL, -
+- `infer_schema_rows` (10000): Linhas para inferir tipos. De 0 a …. 0 = arquivo inteiro
+- `parse_dates` (true): Detectar datas. Aparece se `$format` em csv
+- `folder` (""): Pasta. Caminho completo. O PRO.DATA só lê: nunca grava, move ou apaga o que está nela
+- `pattern` ("*.xlsx"): Arquivos. Padrão do nome: * vale qualquer trecho e ? um caractere. Ex.: vendas_*.xlsx
+- `file_column` ("arquivo"): Coluna com o nome do arquivo. Vazio = não criar. Serve para saber de qual arquivo veio cada linha
+- `limit` (0): Limite de linhas por arquivo. De 0 a …. 0 = todas as linhas
+
+#### `io.generate_rows`: Generate Rows
+
+Cria linhas sem ler arquivo: um calendário entre duas datas ou números em sequência.
+
+Entradas: nenhuma. Saídas: `out` (Linhas).
+
+- `mode` ("dates"): Gerar. Opções: `dates`, `numbers`
+- `column` ("data"): Nome da coluna
+- `start_date` (""): De. Aparece se `mode` em dates. 2026-01-01 ou 01/01/2026. Aceita constante, como [#mes_referencia]
+- `end_date` (""): Até. Aparece se `mode` em dates. Vazio = hoje
+- `every` ("day"): Uma linha por. Opções: `day`, `week`, `month`, `quarter`, `year`. Aparece se `mode` em dates
+- `calendar` (true): Colunas de calendário. Aparece se `mode` em dates. Ano, mês, dia, trimestre, dia da semana, fim de semana e ano-mês
+- `start` (1.0): De. Aparece se `mode` em numbers
+- `end` (10.0): Até. Aparece se `mode` em numbers
+- `step` (1.0): De quanto em quanto. Aparece se `mode` em numbers
 
 ### Preparação
 
@@ -520,6 +562,8 @@ Entradas: `in` (Entrada), `L` (Lista de valores, opcional, conforme a configura�
   - `ignore_case` (true): Sem diferenciar maiúsculas. Aparece se `kind` em allowed
   - `expression` (""): A linha passa quando [fórmula]. Aparece se `kind` em formula. Ex.: [idade] >= 18 AND [uf] != 'XX'
   - `message` (""): Motivo quando falha. Aparece se `kind` em formula. Opcional. Vazio: mostra a fórmula
+- `stop` ("never"): Interromper o fluxo. Opções: `never`, `any`, `pct`. A caixa fica em erro e nada do que vem depois dela executa
+- `stop_pct` (5.0): Porcentagem de falha aceita (%). De 0 a 100. Aparece se `stop` em pct
 
 #### `prep.text_to_columns`: Text To Columns
 
@@ -554,7 +598,61 @@ Entradas: `in` (Entrada). Saídas: `out` (Saída).
 - `group_by` ([]): Recomeçar a cada grupo [lista de colunas]. Vazio = um acumulado só, na ordem das linhas
 - `prefix` ("acumulado_"): Prefixo das novas colunas
 
+#### `prep.regex`: Regex
+
+Expressão regular numa coluna de texto: extrai grupos para colunas, substitui ou marca as linhas que casam.
+
+Entradas: `in` (Entrada). Saídas: `out` (Saída).
+
+- `column` (""): Coluna [nome de coluna]
+- `pattern` (""): Padrão (expressão regular). Parênteses formam grupos. Ex.: (\d{2})/(\d{4}) separa mês e ano de 10/2026
+- `mode` ("extract"): O que fazer. Opções: `extract`, `replace`, `match`
+- `names` ([]): Nomes das colunas novas. Aparece se `mode` em extract. Um por grupo, na ordem. Vazio = grupo_1, grupo_2…
+- `replacement` (""): Trocar por. Aparece se `mode` em replace. $1, $2… repetem os grupos
+- `output` (""): Coluna do resultado. Aparece se `mode` em replace, match. Vazio = a própria coluna (Substituir) ou 'casou' (Marcar)
+- `ignore_case` (false): Ignorar maiúsculas e minúsculas
+
+#### `prep.multi_field`: Multi-Field Formula
+
+Aplica a mesma fórmula a várias colunas de uma vez. [_Atual_] é a coluna da vez.
+
+Entradas: `in` (Entrada). Saídas: `out` (Saída).
+
+- `columns` ([]): Colunas [lista de colunas]
+- `expression` (""): Expressão [fórmula]. [_Atual_] é a coluna da vez. Ex.: Trim(Uppercase([_Atual_]))
+- `target` ("replace"): Resultado em. Opções: `replace`, `new`
+- `prefix` (""): Prefixo do nome novo. Aparece se `target` em new
+- `suffix` ("_novo"): Sufixo do nome novo. Aparece se `target` em new
+- `type` ("Auto"): Tipo. Opções: `Auto`, `Float64`, `Int64`, `String`, `Boolean`, `Date`
+
+#### `prep.mask`: Mask
+
+Protege dados pessoais (LGPD): máscara de CPF, CNPJ e e-mail, só o início ou o fim, texto fixo ou código estável.
+
+Entradas: `in` (Entrada). Saídas: `out` (Saída).
+
+- `columns` ([]): Colunas [lista de colunas]
+- `method` ("cpf"): Como proteger. Opções: `cpf`, `cnpj`, `email`, `keep_last`, `keep_first`, `fixed`, `code`
+- `keep` (4): Quantos caracteres mostrar. De 0 a 50. Aparece se `method` em keep_last, keep_first
+- `text` ("***"): Texto. Aparece se `method` em fixed
+
 ### Combinar e transformar
+
+#### `transform.fuzzy_match`: Fuzzy Match
+
+Junta [L] e [R] por texto parecido (razão social, endereço), com nota de 0 a 100. Saídas: [L] sem par, [J] casados, [R] sem par.
+
+Entradas: `L` (Esquerda), `R` (Direita). Saídas: `L` (Sem par na esquerda), `J` (Casados), `R` (Sem par na direita).
+
+- `left` (""): Texto em [L] [nome de coluna]
+- `right` (""): Texto em [R] [nome de coluna]
+- `threshold` (88): Nota mínima (0 a 100). De 50 a 100. 100 = igual depois de limpar. Abaixo de 85 começam a aparecer casamentos errados: confira a saída J
+- `method` ("jaro"): Como comparar. Opções: `jaro`, `words`
+- `company` (true): Ignorar LTDA, S.A., ME, EIRELI no fim. Para razão social. Desligue para endereços e nomes de pessoas
+- `block_left` (""): Só comparar quando for igual em [L] [nome de coluna]. Opcional. Ex.: UF ou cidade. Reduz muito o tempo e os casamentos errados
+- `block_right` (""): e em [R] [nome de coluna]
+- `score_column` ("nota"): Coluna da nota
+- `right_prefix` ("r_"): Prefixo para colunas repetidas da direita
 
 #### `transform.crosstab`: Cross Tab
 
@@ -622,6 +720,7 @@ Entradas: `L` (Esquerda), `R` (Direita). Saídas: `L` (Só na esquerda), `J` (Co
   - `cast` (""): Cast. Opções: ``, `Int64`, `Float64`, `String`, `Boolean`, `Date`
 - `order` ([]): Ordem
 - `right_prefix` ("r_"): Prefixo para colunas repetidas da direita
+- `allow_multiply` (false): Repetição da chave é esperada. Sem isso, o Join avisa quando a chave repete em [R] e as linhas de [L] se multiplicam no J
 
 #### `transform.summarize`: Summarize
 
@@ -651,6 +750,55 @@ Uma consulta SELECT em memória sobre as entradas, usando DuckDB.
 Entradas: `in` (input_1), `in2` (input_2, opcional). Saídas: `out` (Saída).
 
 - `sql` ("SELECT *\nFROM input_1\nLIMIT 100"): Consulta [SQL]. As entradas estão disponíveis como as tabelas input_1 e input_2
+
+### Conferência e reúso
+
+#### `control.reconcile`: Reconcile
+
+Confere se [A] e [B] fecham: linhas, soma ou valores distintos. Pode interromper o fluxo quando não fecha.
+
+Entradas: `A` (Referência (antes)), `B` (A conferir (depois)). Saídas: `out` (Dados de [B], conferidos), `check` (Conferência).
+
+- `controls` ([{"measure": "count", "column_a": "", "column_b": "", "tolerance": 0.01}]): Controles. Cada controle compara o mesmo número calculado em [A] e em [B]
+  - `measure` ("count"): Conferir. Opções: `count`, `sum`, `n_unique`
+  - `column_a` (""): Coluna em [A] [nome de coluna]. Aparece se `measure` em sum, n_unique
+  - `column_b` (""): Coluna em [B] [nome de coluna]. Aparece se `measure` em sum, n_unique. Vazio = a mesma de [A]
+  - `tolerance` (0.01): Diferença aceita. De 0 a …. Em valor absoluto. Centavos de arredondamento costumam pedir 0,01
+- `on_fail` ("stop"): Se não fechar. Opções: `stop`, `warn`
+
+#### `control.compare_runs`: Compare Runs
+
+Guarda a tabela a cada dia de execução e mostra o que mudou desde um dia ou um mês anterior: totais em [T], linhas em [D].
+
+Entradas: `in` (Entrada). Saídas: `out` (Dados), `D` (Diferenças), `T` (Totais).
+
+- `baseline` ("day"): Comparar com. Opções: `day`, `month`
+- `keys` ([]): Colunas que identificam cada linha [lista de colunas]. Com elas, a saída D lista o que entrou, o que saiu e o que mudou. Vazio = só os totais
+- `columns` ([]): Colunas a comparar [lista de colunas]. Vazio = todas as que não são chave
+
+#### `flow.subflow`: Subflow
+
+Executa outro fluxo da biblioteca como uma etapa. As entradas vão para as caixas Subflow Input dele; as saídas vêm das Subflow Output.
+
+Entradas: `in` (Entrada 1, opcional), `in2` (Entrada 2, opcional), `in3` (Entrada 3, opcional). Saídas: `out` (Saída 1), `out2` (Saída 2), `out3` (Saída 3).
+
+- `workflow` (""): Fluxo. Um fluxo salvo na biblioteca que tenha Subflow Input e Subflow Output. Mudar o fluxo de origem muda todos os que o usam
+
+#### `flow.input`: Subflow Input
+
+Num fluxo usado como subfluxo, é por onde os dados entram. Aberto sozinho, repassa a tabela de teste ligada nela.
+
+Entradas: `in` (Tabela de teste, opcional). Saídas: `out` (Saída).
+
+- `number` (1): Entrada. Opções: `1`, `2`, `3`. Recebe o que estiver ligado nesta entrada da caixa Subflow
+
+#### `flow.output`: Subflow Output
+
+Num fluxo usado como subfluxo, é o que ele devolve para quem chamou.
+
+Entradas: `in` (Entrada). Saídas: `out` (Saída).
+
+- `number` (1): Saída. Opções: `1`, `2`, `3`. O que chega aqui sai nesta saída da caixa Subflow
 
 ### BI e indicadores
 
@@ -743,6 +891,9 @@ Entradas: `in` (Dados de treino). Saídas: `M` (Modelo), `I` (Importância das v
 - `target_column` (""): Coluna alvo [nome de coluna]
 - `feature_columns` ([]): Variáveis de entrada [lista de colunas]. Vazio = todas as colunas exceto o alvo
 - `holdout_ratio` (0.25): Validação (holdout). De 0.1 a 0.5. Fração reservada para medir as métricas
+- `training` ("fixed"): Quando treinar. Opções: `fixed`, `always`. O modelo fica guardado neste computador, com versão, data e métricas
+- `version` (1): Versão. De 1 a 9999. Aparece se `training` em fixed, always. No modelo fixo, aumente para treinar de novo. Em Treinar sempre, a versão em uso é a mais nova
+- `publish_as` (""): Nome na biblioteca de modelos. Opcional. Com um nome, o modelo fica na biblioteca deste computador: a caixa Model Input usa em qualquer fluxo, e dá para exportar o arquivo e levar para outro computador
 
 #### `ml.predictor`: Predictor
 
@@ -752,6 +903,14 @@ Entradas: `M` (Modelo), `D` (Dados). Saídas: `out` (Saída).
 
 - `prediction_column` ("predicao"): Coluna da predição
 - `probability_column` ("probabilidade_pct"): Coluna da probabilidade (classificação)
+
+#### `ml.model_input`: Model Input
+
+Traz um modelo já treinado da biblioteca de modelos, sem treinar de novo. Ligue a saída [M] num Predictor.
+
+Entradas: nenhuma. Saídas: `M` (Modelo), `I` (Importância das variáveis).
+
+- `model` (""): Modelo. Um modelo da biblioteca deste computador: guardado por um Model Trainer ou importado de um arquivo .modelo
 
 ### Ferramentas antigas
 

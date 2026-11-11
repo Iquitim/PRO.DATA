@@ -8,8 +8,8 @@ import { inspect, select, store } from './store.js';
 import { toast, toastError } from './ui.js';
 
 const GROUPS = [
-  { title: 'Lê', kinds: { file: ['file', 'arquivo'], query: ['database', 'banco'], api: ['globe', 'internet'] } },
-  { title: 'Calcula', kinds: { formula: ['function', 'fórmula'], sql: ['terminal', 'SQL'] } },
+  { title: 'Lê', kinds: { file: ['file', 'arquivo'], folder: ['directory', 'pasta do computador'], query: ['database', 'banco'], api: ['globe', 'internet'] } },
+  { title: 'Calcula', kinds: { formula: ['function', 'fórmula'], sql: ['terminal', 'SQL'], subflow: ['workflow', 'executa outro fluxo'] } },
   { title: 'Grava', kinds: { output: ['download', 'arquivo'] } },
 ];
 

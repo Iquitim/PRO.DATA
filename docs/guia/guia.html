@@ -105,7 +105,7 @@
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; }
   .scope-in li::marker { content: "✓  "; color: var(--green); font-weight: 700; }
   .scope-out li::marker { content: "–  "; color: var(--ink-3); font-weight: 700; }
-  .toc { columns: 2; column-gap: 16pt; font-size: 10pt; }
+  .toc { columns: 3; column-gap: 14pt; font-size: 9.3pt; }
   .toc div { display: flex; gap: 8pt; padding: 4pt 0; border-bottom: 1px dotted var(--line); break-inside: avoid; }
   .toc span:first-child { color: var(--blue); font-weight: 700; width: 16pt; }
   .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin: 10pt 0; }
@@ -121,10 +121,15 @@
   figure.m80 { max-width: 80%; margin-left: auto; margin-right: auto; }
   figure.m60 { max-width: 60%; margin-left: auto; margin-right: auto; }
   figure.m50 { max-width: 50%; margin-left: auto; margin-right: auto; }
+  figure.m30 { max-width: 30%; margin-left: auto; margin-right: auto; }
   .side { display: grid; grid-template-columns: 1fr 66mm; gap: 14pt; align-items: start; margin-bottom: 8pt; }
   .side.wide { grid-template-columns: 1fr 84mm; }
   .grid-2.tight { max-width: 88%; margin-left: auto; margin-right: auto; }
   .side figure { margin: 0; }
+  .side.feature { break-inside: avoid; grid-template-columns: 1fr 62mm; margin-bottom: 4pt; }
+  .side.feature.wide { grid-template-columns: 1fr 70mm; }
+  .side.feature.slim { grid-template-columns: 1fr 50mm; }
+  .side.feature ul { margin-bottom: 0; }
   .side > div > :last-child { margin-bottom: 0; }
 
   /* ---------- didático e comercial ---------- */
@@ -165,7 +170,7 @@
     <div class="rule"></div>
     <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
     <div class="shot"><img src="../../src/prodata/web/manual/img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.7.2 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.7.5 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -185,7 +190,7 @@
     <tr><td>Enviar um print do gráfico</td><td>Dashboard em imagem ou em HTML, com filtros que funcionam no arquivo</td></tr>
   </table>
   <div class="stat-row">
-    <div class="stat"><b>32</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
+    <div class="stat"><b>44</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
     <div class="stat"><b>1</b><span>clique para refazer o processo inteiro com dados novos</span></div>
     <div class="stat"><b>100%</b><span>do processamento no seu computador, sem nuvem</span></div>
@@ -197,17 +202,23 @@
     <div><span>3</span>Seu primeiro fluxo</div>
     <div><span>4</span>Trazendo dados</div>
     <div><span>5</span>Dados de APIs</div>
-    <div><span>6</span>Montando o fluxo</div>
-    <div><span>7</span>Dados que dá para confiar</div>
-    <div><span>8</span>Explorando os resultados</div>
-    <div><span>9</span>Indicadores e visuais</div>
-    <div><span>10</span>Montando o dashboard</div>
-    <div><span>11</span>Do fluxo ao SQL</div>
-    <div><span>12</span>Organização</div>
-    <div><span>13</span>Segurança e privacidade</div>
-    <div><span>14</span>Instalação e requisitos</div>
-    <div><span>15</span>Escopo e limitações</div>
-    <div><span>16</span>Atalhos e perguntas</div>
+    <div><span>6</span>Dados do Jira</div>
+    <div><span>7</span>Montando o fluxo</div>
+    <div><span>8</span>Cruzando e tratando textos</div>
+    <div><span>9</span>Dados que dá para confiar</div>
+    <div><span>10</span>Explorando os resultados</div>
+    <div><span>11</span>Indicadores e visuais</div>
+    <div><span>12</span>Montando o dashboard</div>
+    <div><span>13</span>Linha do tempo e história</div>
+    <div><span>14</span>Do fluxo ao SQL</div>
+    <div><span>15</span>O fechamento que se refaz sozinho</div>
+    <div><span>16</span>Modelos de previsão</div>
+    <div><span>17</span>Organização</div>
+    <div><span>18</span>Segurança e privacidade</div>
+    <div><span>19</span>Instalação e requisitos</div>
+    <div><span>20</span>Escopo e limitações</div>
+    <div><span>21</span>Todas as ferramentas</div>
+    <div><span>22</span>Atalhos e perguntas</div>
   </div>
 </section>
 
@@ -242,7 +253,7 @@
   <div class="eyebrow">2 · Primeiros passos</div>
   <h2>Conhecendo a tela</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="executar">Mostrar o Executar</button><button type="button" class="manual-only m-act" data-show="tema">Mostrar o botão de tema</button></div>
-  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 14).</p>
+  <p class="intro">Uma tela só, dividida em áreas com papéis claros. Todos os painéis podem ser movidos ou ocultados (veja o capítulo 17).</p>
   <figure>
     <div class="frame">
       <img src="../../src/prodata/web/manual/img/overview.png" alt="Tela principal do PRO.DATA">
@@ -332,15 +343,17 @@
     <tr><td class="tool">Parquet · Arrow</td><td>Formatos analíticos de alto desempenho.</td></tr>
     <tr><td class="tool">JSON · JSON Lines</td><td>Lista de registros ou um registro por linha (detectado automaticamente).</td></tr>
     <tr><td class="tool">Tabela digitada</td><td>A ferramenta <em>Text Input</em> oferece uma grade para digitar ou colar do Excel (tabelas de-para, metas, parâmetros).</td></tr>
+    <tr><td class="tool">Pasta inteira</td><td>A ferramenta <em>Input Folder</em> lê todos os arquivos de uma pasta que casam com um padrão de nome, como <code>vendas_*.xlsx</code>, e empilha as linhas.</td></tr>
+    <tr><td class="tool">Linhas geradas</td><td>A ferramenta <em>Generate Rows</em> cria um calendário entre duas datas ou números em sequência, sem ler arquivo.</td></tr>
   </table>
-
   <h3>Bancos de dados</h3>
-  <p>Cadastre conexões com <strong>PostgreSQL</strong> e <strong>SQL Server</strong> e teste com um clique. Depois, na própria vista <strong>Dados</strong>, crie <strong>consultas de banco</strong>: escolha uma tabela da lista ou escreva o SQL, veja a prévia e dê um nome. A consulta fica ao lado dos arquivos e é usada exatamente como eles: arraste para o canvas ou escolha no <em>Input Data</em>, a mesma ferramenta que lê arquivos.</p>
-  <figure class="m50">
+  <p>Cadastre conexões com <strong>PostgreSQL</strong>, <strong>SQL Server</strong> ou <strong>ODBC</strong> e teste com um clique. Depois, na própria vista <strong>Dados</strong>, crie <strong>consultas de banco</strong>: escolha uma tabela da lista ou escreva o SQL, veja a prévia e dê um nome. A consulta fica ao lado dos arquivos e é usada exatamente como eles: arraste para o canvas ou escolha no <em>Input Data</em>, a mesma ferramenta que lê arquivos.</p>
+  <figure class="m50" style="max-width:40%">
     <div class="frame"><img src="../../src/prodata/web/manual/img/connection-crop.png" alt="Cadastro de conexão com banco de dados"></div>
     <figcaption>A senha vai para o Gerenciador de Credenciais do Windows — nunca para arquivos do projeto.</figcaption>
   </figure>
   <div class="callout ok"><strong>Seguro por padrão</strong>As conexões são somente leitura: apenas consultas de leitura (<code>SELECT</code>/<code>WITH</code>) são aceitas, e comandos que alteram dados são recusados antes de chegar ao banco. Por padrão, cada execução consulta o banco de novo; a opção "Reaproveitar resultado" evita consultas repetidas quando os dados não mudam.</div>
+  <p><strong>Outros bancos, por ODBC.</strong> Oracle, MySQL e a maioria dos ERPs têm driver ODBC. Crie a fonte de dados em <em>Fontes de Dados ODBC (64 bits)</em>, no Windows, e informe no PRO.DATA só o nome dela (o DSN), com usuário e senha se o banco pedir. A senha fica no cofre, e a conexão continua somente leitura. Esta versão foi conferida com um driver local de teste: em Oracle, MySQL e ERPs, confira a primeira leitura com um resultado que você conhece.</p>
 
   <h3>Constantes: um valor com nome</h3>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="constantes">Mostrar onde fica</button><button type="button" class="manual-only m-act" data-try="constantes">Experimentar num exemplo</button></div>
@@ -357,7 +370,7 @@
       <figcaption>Na fórmula, a constante aparece em âmbar e nunca se confunde com uma coluna.</figcaption>
     </figure>
   </div>
-  <figure class="m50">
+  <figure class="m50" style="max-width:38%">
     <div class="frame"><img src="../../src/prodata/web/manual/img/constante.png" alt="Cadastro de uma constante compartilhada"></div>
     <figcaption>Uma constante compartilhada: nome, tipo, valor, descrição e um exemplo de como usar.</figcaption>
   </figure>
@@ -464,54 +477,20 @@
   <div class="eyebrow">7 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_ferramentas">Mostrar onde fica</button></div>
-  <p class="intro">32 ferramentas em cinco famílias. Algumas têm mais de uma saída — por exemplo, o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
-  <table>
-    <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
-    <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
-    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da vista Dados: arquivos (com detecção automática de formato) consultas de banco ou APIs.</td></tr>
-    <tr><td class="tool">API Loop</td><td>Chama uma API para cada linha da tabela e junta as respostas, com as falhas numa saída própria.</td></tr>
-    <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
-    <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
-    <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher, com um <strong>rótulo de confidencialidade</strong>. No Excel, ligue várias tabelas na mesma caixa: cada uma vira uma planilha. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
-    <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
-    <tr><td class="tool">Select</td><td>Escolhe, renomeia, reordena (arrastando) e muda o tipo das colunas. Entende números no padrão brasileiro, datas como 29/10/2026 e sim/não, e avisa quantos valores não converteram.</td></tr>
-    <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
-    <tr><td class="tool">Formula</td><td>Cria colunas calculadas ou altera colunas existentes (SE/ENTÃO, texto, matemática, datas).</td></tr>
-    <tr><td class="tool">Multi-Row Formula</td><td>Olha outras linhas, com receitas prontas: preencher para baixo, diferença, variação %, valor anterior, próximo valor e "mudou?". Tem o próprio <strong>Ordenar por</strong>.</td></tr>
-    <tr><td class="tool">Data Quality</td><td>Confere regras prontas (não vazio, sem duplicados, CPF, CNPJ, e-mail, faixa de número, data, lista de valores ou uma fórmula sua) e separa o que passou (P) do que falhou (F), com o motivo de cada falha. Veja o capítulo 8.</td></tr>
-    <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
-    <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
-    <tr><td class="tool">Sort · Sample</td><td>Ordena por uma ou mais colunas (o <em>order by</em>); tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
-    <tr><td class="tool">Text To Columns</td><td>Divide um texto por um separador em novas colunas ou linhas (ex.: "SP - São Paulo").</td></tr>
-    <tr><td class="tool">Record ID · Running Total</td><td>Numera as linhas; calcula soma acumulada, recomeçando a cada grupo se quiser.</td></tr>
-    <tr><td colspan="2"><span class="tag">Combinar e transformar</span></td></tr>
-    <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R. Dá para escolher se o J mantém as chaves dos dois lados, só a da esquerda ou só a da direita, e escolher, renomear, converter e reordenar as colunas do J ali mesmo, como num Select. O Configurar mostra quantas linhas saem em cada uma.</td></tr>
-    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, moda, desvio padrão, contagens, mínimo e máximo. Só oferece o que serve para o tipo da coluna: texto não soma. O Configurar mostra um esquema do antes e depois.</td></tr>
-    <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
-    <tr><td class="tool">Estado por período</td><td>Transforma eventos em fotos: uma linha por item e por dia, semana ou mês, com o estado no fim de cada período e há quantos dias está nele. O Configurar desenha o antes e o depois.</td></tr>
-    <tr><td class="tool">Cross Tab · Transpose</td><td>Tabela dinâmica (valores de uma coluna viram colunas) e o inverso (colunas viram linhas). O Configurar desenha o antes e o depois com os seus dados.</td></tr>
-    <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
-    <tr><td class="tool">SQL</td><td>Para quem conhece SQL: consulta livre sobre os dados do fluxo.</td></tr>
-    <tr><td colspan="2"><span class="tag">BI e indicadores</span></td></tr>
-    <tr><td class="tool">Chart</td><td>Colunas, barras, linha, rosca, empilhado, agrupado, 100%, área, Pareto, funil e dispersão.</td></tr>
-    <tr><td class="tool">KPI Card</td><td>Big number com variação contra meta ou período anterior e tendência, ou medidor.</td></tr>
-    <tr><td class="tool">Venn · Table</td><td>Interseções de 2 ou 3 grupos (ex.: clientes por produto) e tabela com totais e cores por faixa.</td></tr>
-    <tr><td colspan="2"><span class="tag">Machine Learning</span></td></tr>
-    <tr><td class="tool">Train/Test Split</td><td>Divide os dados em treino e teste.</td></tr>
-    <tr><td class="tool">Model Trainer · Predictor</td><td>Treina modelos de classificação ou regressão e aplica a novos dados, com acurácia medida em dados de validação.</td></tr>
-  </table>
+  <p class="intro">Um fluxo é feito de caixas ligadas por fios. Este capítulo mostra o que vale para todas: como configurar, como entender o que cada uma faz, como escrever fórmulas e como editar com agilidade. A lista das 44 ferramentas está no capítulo 21.</p>
+  <div class="goal"><b>Ao final:</b> <span>você configura qualquer caixa, lê o esquema <strong>Como funciona</strong> dela e escreve fórmulas sem decorar funções.</span></div>
 
   <h3>Configurando uma caixa</h3>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_configurar">Mostrar onde fica</button></div>
   <p>Clique na caixa e a aba <strong>Configurar</strong> abre ao lado, com um formulário só dela. Na direita, a tabela já mostra o resultado — no exemplo, as três saídas do Join com a contagem de cada uma.</p>
-  <figure class="m50">
+  <figure class="m80">
     <div class="frame"><img src="../../src/prodata/web/manual/img/join.png" alt="Configuração do Join"></div>
     <figcaption>As chaves de junção são escolhidas em listas que já conhecem as colunas de cada lado.</figcaption>
   </figure>
   <h3>Entendendo o que a caixa faz</h3>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-try="juntar">Experimentar num exemplo</button></div>
   <p>Cross Tab, Transpose, Join e Summarize são conceitos que confundem quem não trabalha com dados todo dia. No Configurar, essas caixas mostram um <strong>esquema</strong> do que acontece com a tabela, montado com as colunas escolhidas e uma amostra dos seus dados. Passar o mouse num valor destaca para onde ele vai; no Join, clicar em L, J ou R abre aquelas linhas.</p>
-  <div class="grid-2 tight">
+  <div class="grid-2 tight" style="max-width:66%">
     <figure>
       <div class="frame"><img src="../../src/prodata/web/manual/img/explain-crosstab.png" alt="Esquema do Cross Tab"></div>
       <figcaption>Cross Tab: cada segmento vira uma coluna. O valor destacado mostra onde cai na tabela nova.</figcaption>
@@ -546,6 +525,29 @@
     <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/formula-crop.png" alt="Editor de fórmulas com sugestões"></div><figcaption>Sugestão de função enquanto se digita, com descrição e exemplo.</figcaption></figure>
   </div>
 
+  <h3>A mesma fórmula em várias colunas</h3>
+  <div class="side feature slim">
+    <div>
+      <p>Padronizar dez colunas do mesmo jeito não pede dez fórmulas. Na <strong>Multi-Field Formula</strong>, você escreve a conta uma vez, com <code>[_Atual_]</code> no lugar da coluna, e marca em quais colunas ela roda.</p>
+      <ul>
+        <li><strong>A própria coluna</strong> troca os valores no lugar.</li>
+        <li><strong>Uma coluna nova para cada uma</strong> mantém a original e cria outra, com o prefixo ou sufixo que você escolher.</li>
+        <li>O esquema mostra o antes e o depois com as suas linhas.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-multifield.png" alt="Esquema da Multi-Field Formula"></div><figcaption>Antes, a fórmula e depois: <code>[_Atual_]</code> vira cada coluna escolhida.</figcaption></figure>
+  </div>
+  <h3>Fórmula que olha outras linhas</h3>
+  <p>A <strong>Multi-Row Formula</strong> compara uma linha com as vizinhas. Você não precisa escrever nada: escolha o que quer fazer, escolha a coluna, e a fórmula sai pronta, à vista.</p>
+  <ul>
+    <li>Em <strong>Ordenar por</strong>, diga a ordem, com uma ou mais colunas: "a linha anterior" depende dela.</li>
+    <li>Com <strong>Agrupar por</strong>, as contas não atravessam grupos.</li>
+    <li><strong>Escrever a minha</strong> abre a fórmula livre, com botões para inserir <code>[Row-1:coluna]</code> e <code>[Row+1:coluna]</code>.</li>
+  </ul>
+  <div class="grid-2 tight" style="max-width:48%">
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/multirow.png" alt="Receitas da Multi-Row Formula"></div><figcaption>As receitas: a pergunta vem antes da fórmula.</figcaption></figure>
+    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/explain-multirow.png" alt="Esquema da Multi-Row Formula"></div><figcaption>O esquema, como no Join: passe o mouse no resultado para ver as células que ele usou.</figcaption></figure>
+  </div>
   <h3>Editando com agilidade</h3>
   <div style="display:grid; grid-template-columns: 1fr 44%; gap: 14pt; align-items: start">
     <ul>
@@ -558,30 +560,65 @@
     <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/menu-crop.png" alt="Menu do botão direito numa caixa"></div><figcaption>Menu do botão direito numa caixa.</figcaption></figure>
   </div>
 
-  <h3>Fórmula que olha outras linhas</h3>
-  <p>A <strong>Multi-Row Formula</strong> compara uma linha com as vizinhas. Você não precisa escrever nada: escolha o que quer fazer, escolha a coluna, e a fórmula sai pronta, à vista.</p>
-  <ul>
-    <li>Em <strong>Ordenar por</strong>, diga a ordem, com uma ou mais colunas: "a linha anterior" depende dela.</li>
-    <li>Com <strong>Agrupar por</strong>, as contas não atravessam grupos.</li>
-    <li><strong>Escrever a minha</strong> abre a fórmula livre, com botões para inserir <code>[Row-1:coluna]</code> e <code>[Row+1:coluna]</code>.</li>
-  </ul>
-  <div class="grid-2 tight" style="max-width:78%">
-    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/multirow.png" alt="Receitas da Multi-Row Formula"></div><figcaption>As receitas: a pergunta vem antes da fórmula.</figcaption></figure>
-    <figure style="margin:0"><div class="frame"><img src="../../src/prodata/web/manual/img/explain-multirow.png" alt="Esquema da Multi-Row Formula"></div><figcaption>O esquema, como no Join: passe o mouse no resultado para ver as células que ele usou.</figcaption></figure>
-  </div>
-  <h3>Várias planilhas no mesmo Excel</h3>
-  <div class="side">
+</section>
+
+<!-- ================================================================ CRUZAR E TRATAR -->
+<section class="chapter">
+  <div class="eyebrow">8 · Cruzar e tratar</div>
+  <h2>Cruzando tabelas e tratando textos</h2>
+  <p class="intro">Juntar duas bases é onde os números mais mudam sem ninguém perceber. Estas quatro caixas mostram, no próprio esquema, o que casou, o que multiplicou e o que foi escondido.</p>
+  <div class="goal"><b>Ao final:</b> <span>você cruza bases sem dobrar somas, casa nomes escritos de jeitos diferentes, separa trechos de um texto e protege dados pessoais.</span></div>
+  <h3>Junção que multiplica linhas</h3>
+  <div class="side feature">
     <div>
-      <p>Com o formato Excel, o <strong>Output Data</strong> oferece uma entrada nova sempre que a anterior é ligada, até 8. Cada tabela vira uma planilha do mesmo arquivo, e o Configurar dá o nome de cada uma.</p>
-      <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes × vendas</em> e veja o esquema do Join: quantas linhas casaram e o que ficou sem par.</li><li>Clique em <strong>L</strong>, <strong>J</strong> ou <strong>R</strong> para abrir aquelas linhas.</li></ol></div>
+      <p>No PROCV, cada linha encontra um valor só. No <strong>Join</strong>, se a chave aparece duas vezes na direita, a linha da esquerda sai duas vezes, e qualquer soma feita depois conta em dobro.</p>
+      <p>O Join avisa quando isso acontece e diz quantas linhas viraram quantas, como em <em>"2 linhas de [L] viraram 3 no J"</em>.</p>
+      <ul>
+        <li>Se a direita é um cadastro, ponha um <strong>Unique</strong> antes.</li>
+        <li>Se a chave repete dos dois lados, resuma um deles com <strong>Summarize</strong>.</li>
+        <li>Se a repetição é esperada, como clientes e pedidos, marque <strong>Repetição da chave é esperada</strong> em Avançado.</li>
+      </ul>
     </div>
-    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-join-multiplica.png" alt="Join avisando que a chave repete"></div><figcaption>O aviso fica no esquema do Join, junto das contagens de L, J e R.</figcaption></figure>
   </div>
+  <h3>Textos parecidos: Fuzzy Match</h3>
+  <div class="side feature">
+    <div>
+      <p>"Padaria Pão Quente LTDA" e "PADARIA PAO QUENTE" são a mesma empresa, mas um Join comum não casa as duas. O <strong>Fuzzy Match</strong> limpa os dois lados (acentos, maiúsculas, pontuação e, se você quiser, LTDA e S.A.) e dá a cada par uma nota de 0 a 100.</p>
+      <ul>
+        <li>Só entram no J os pares com nota igual ou acima da mínima, cada linha da esquerda com o seu melhor par.</li>
+        <li>Comece com a nota padrão e confira o J: abaixo de 85 começam os casamentos errados.</li>
+        <li>Em tabelas grandes, escolha em Avançado uma <strong>coluna de bloco</strong>, como UF: a comparação fica só dentro dela. Acima de 25 milhões de comparações, a caixa pede o bloco.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-fuzzy.png" alt="Esquema do Fuzzy Match"></div><figcaption>A limpeza antes da comparação e a nota de cada par, com os seus dados.</figcaption></figure>
+  </div>
+  <h3>Trechos de um texto: Regex</h3>
+  <div class="side feature">
+    <div>
+      <p>O <strong>Regex</strong> aplica uma expressão regular a uma coluna de texto. Serve para tirar o mês e o ano de "NF 10/2026", o número de um pedido no meio de uma descrição ou o domínio de um e-mail.</p>
+      <ul>
+        <li><strong>Extrair</strong>: cada par de parênteses do padrão vira uma coluna nova.</li>
+        <li><strong>Substituir</strong>: o que casar é trocado, e <code>$1</code> repete um grupo.</li>
+        <li><strong>Marcar</strong>: uma coluna diz se a linha casa com o padrão.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-regex.png" alt="Esquema do Regex"></div><figcaption>Cada linha, antes e depois: linha que não casa fica vazia.</figcaption></figure>
+  </div>
+  <h3>Dados pessoais: Mask</h3>
+  <div class="side feature">
+    <div>
+      <p>Antes de mandar uma base para fora da área, o <strong>Mask</strong> esconde o que identifica alguém: CPF vira <code>***.456.789-**</code>, CNPJ vira <code>**.345.678/****-**</code> e e-mail vira <code>a***@empresa.com.br</code>. Também mostra só o início ou o fim, ou troca tudo por um texto fixo.</p>
+      <p>O <strong>código estável</strong> troca cada valor por um código: o mesmo CPF dá sempre o mesmo código, e assim dá para cruzar e contar sem expor o dado. A chave fica no cofre do Windows deste computador, então o código de um computador não bate com o de outro.</p>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-mask.png" alt="Esquema do Mask"></div><figcaption>O esquema usa exemplos inventados: os seus dados pessoais nunca aparecem nele.</figcaption></figure>
+  </div>
+  <div class="try"><strong>Experimente</strong><ol><li>Ligue dois <em>Text Input</em> num <em>Join</em>, com a mesma chave repetida no da direita.</li><li>Execute e abra o <strong>Como funciona</strong>: o aviso mostra quantas linhas viraram quantas.</li><li>Ponha um <em>Unique</em> antes da entrada direita e execute de novo: o aviso some.</li></ol></div>
 </section>
 
 <!-- ================================================================ 7. DATA QUALITY -->
 <section class="chapter">
-  <div class="eyebrow">8 · Qualidade</div>
+  <div class="eyebrow">9 · Qualidade</div>
   <h2>Dados que dá para confiar</h2>
   <p class="intro">Um CPF inválido, um setor em branco ou um estado fora da lista chegam ao relatório sem ninguém ver. A ferramenta <strong>Data Quality</strong> confere regras antes de o dado seguir e separa o que passou do que falhou, com o motivo.</p>
   <div class="goal"><b>Ao final:</b> <span>você sabe montar regras de qualidade sem escrever fórmulas e decidir o que fazer com as linhas que falharam.</span></div>
@@ -638,11 +675,39 @@
     </figure>
   </div>
   <div class="try"><strong>Experimente</strong><ol><li>Arraste <em>Data Quality</em> e ligue à saída de <em>Clientes</em>.</li><li>Clique no cartão <strong>Não vazio</strong> e escolha <code>setor</code>.</li><li>Execute até a caixa: as linhas sem setor saem pelo F, cada uma com o motivo.</li></ol></div>
+  <h3>Parar o fluxo quando o dado não presta</h3>
+  <p>Separar P e F não impede que o relatório saia com metade da base. Em <strong>Controle</strong>, o Data Quality pode <strong>interromper o fluxo</strong>: se qualquer linha falhar, ou só quando a falha passar de uma porcentagem que você aceita. A caixa fica em erro, diz quantas linhas falharam e em quais regras, e nada do que vem depois dela executa.</p>
+  <h3>Conferir se entrada e saída fecham</h3>
+  <div class="side feature">
+    <div>
+      <p>A caixa <strong>Reconcile</strong> responde à pergunta de toda conciliação: o que saiu bate com o que entrou? Ligue em <strong>A</strong> a referência e em <strong>B</strong> o que você quer conferir.</p>
+      <ul>
+        <li>Cada <strong>controle</strong> é o mesmo número calculado dos dois lados: linhas, soma de uma coluna ou valores distintos, com a diferença que você aceita.</li>
+        <li>A saída <strong>C</strong> traz uma linha por controle, com os dois valores e a diferença.</li>
+        <li>A saída <strong>O</strong> repassa a tabela B: o que vem depois passa a depender da conferência.</li>
+        <li>Com <strong>Interromper o fluxo aqui</strong>, o que não fecha vira erro, com os números na mensagem.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-reconcile.png" alt="Esquema do Reconcile"></div><figcaption>Cada controle nos dois lados e o que acontece quando não fecha.</figcaption></figure>
+  </div>
+  <h3>O que mudou desde a última execução</h3>
+  <div class="side feature">
+    <div>
+      <p>A caixa <strong>Compare Runs</strong> guarda a tabela a cada dia em que o fluxo executa e compara a de agora com a de um dia anterior, ou de um mês anterior.</p>
+      <ul>
+        <li>A saída <strong>T</strong> traz os totais: linhas e soma de cada coluna numérica, antes, agora e a variação.</li>
+        <li>Com as colunas que identificam cada linha, a saída <strong>D</strong> lista o que entrou, o que saiu e o que mudou, com o valor de antes e o de agora.</li>
+        <li>Na primeira execução ainda não há base, e a caixa avisa.</li>
+        <li>As tabelas guardadas ficam neste computador, não no arquivo do fluxo: os últimos 62 dias e o último dia de cada mês por 13 meses. O limite é de 2 milhões de linhas.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-compare.png" alt="Esquema do Compare Runs"></div><figcaption>A execução guardada, a de agora e o que mudou entre elas.</figcaption></figure>
+  </div>
 </section>
 
 <!-- ================================================================ 6. RESULTADOS -->
 <section class="chapter">
-  <div class="eyebrow">9 · Análise</div>
+  <div class="eyebrow">10 · Análise</div>
   <h2>Explorando os resultados</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="aba_resultado">Mostrar a tabela</button><button type="button" class="manual-only m-act" data-show="filtros_resultado">Mostrar os filtros</button></div>
   <p class="intro">Cada caixa guarda o resultado da última execução. Clique nela — ou em uma de suas saídas — e a tabela mostra os dados correspondentes.</p>
@@ -663,12 +728,18 @@
       <figcaption>Perfil da saída combinada do Join.</figcaption></figure>
   </div>
   <div class="callout ok"><strong>Da exploração para o processo</strong>Quando a investigação vira regra, o botão <strong>Criar caixa Filter</strong> transforma os filtros em uma caixa Filter já conectada ao fluxo.</div>
+  <h3>Tabela em tela cheia</h3>
+  <p>Para mostrar um resultado numa reunião, ou explorar uma tabela larga, o botão de tela cheia, no topo da tabela (as duas setas), a abre na janela inteira, com a busca, os filtros, o perfil e as páginas. <kbd>Shift</kbd>+<kbd>F11</kbd> faz o mesmo, e <kbd>Esc</kbd> volta ao fluxo, do jeito que estava.</p>
+  <figure class="m80">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/tabela-cheia.png" alt="Tabela de resultados em tela cheia"></div>
+    <figcaption>A tabela na janela inteira: é o modo foco do resultado, como o F11 é o do fluxo.</figcaption>
+  </figure>
   <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes</em> e, na tabela, em <strong>Filtros</strong>: filtre <code>uf</code> por SP.</li><li>Repare que o cabeçalho das colunas passa a mostrar a soma e a contagem só das linhas filtradas.</li></ol></div>
 </section>
 
 <!-- ================================================================ 7. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">10 · Apresentação</div>
+  <div class="eyebrow">11 · Apresentação</div>
   <h2>Indicadores e visuais</h2>
   <p class="intro">Os números nascem dentro do fluxo: as caixas de BI calculam e o Dashboard mostra. Quando os dados mudam, basta executar de novo.</p>
   <table>
@@ -699,7 +770,7 @@
   <ul>
     <li>Todo visual tem o botão <strong>Ver tabela</strong>, com os números exatos — o dado nunca depende só do desenho.</li>
     <li>Passar o mouse mostra o valor de cada barra, ponto ou região. Clicar no título leva à caixa que gerou o visual.</li>
-    <li>Cada <strong>Summarize</strong> do fluxo também vira, automaticamente, um gráfico no painel <strong>Gráficos e resumos</strong>, abaixo do canvas.</li>
+    <li>O painel <strong>Gráficos e resumos</strong>, abaixo do canvas, mostra os visuais das caixas de BI. Um botão no fim dele mostra também um gráfico automático para cada <strong>Summarize</strong>, o que é opcional.</li>
   </ul>
   <figure class="m50">
     <div class="frame"><img src="../../src/prodata/web/manual/img/dash-export.png" alt="Imagem PNG do dashboard"></div>
@@ -709,7 +780,7 @@
 
 <!-- ================================================================ 8. DASHBOARD -->
 <section class="chapter">
-  <div class="eyebrow">11 · Apresentação</div>
+  <div class="eyebrow">12 · Apresentação</div>
   <h2>Montando o dashboard</h2>
   <p class="intro">O fluxo define <strong>o que</strong> mostrar; o dashboard define <strong>onde e como</strong>. Mudar cores ou posições não executa nada de novo.</p>
   <div class="goal"><b>Ao final:</b> <span>você monta a página, filtra e entrega em imagem ou em um arquivo que abre em qualquer navegador.</span></div>
@@ -763,7 +834,7 @@
 
 <!-- ================================================================ REPLAY -->
 <section class="chapter">
-  <div class="eyebrow">12 · Replay</div>
+  <div class="eyebrow">13 · Replay</div>
   <h2>Linha do tempo e história</h2>
   <p class="intro">O dashboard pode andar no tempo. Os visuais acompanham a reprodução sem executar o fluxo, com o mesmo cálculo do resto do programa.</p>
   <div class="goal"><b>Ao final:</b> <span>você reproduz o dashboard, encontra os momentos que importam, gera um GIF de um gráfico e conta o que viu em cenas.</span></div>
@@ -811,7 +882,7 @@
 
 <!-- ================================================================ 10. SQL -->
 <section class="chapter">
-  <div class="eyebrow">13 · Do fluxo ao SQL</div>
+  <div class="eyebrow">14 · Do fluxo ao SQL</div>
   <h2>Levando a lógica para o banco</h2>
   <p class="intro">O PRO.DATA é onde você constrói rápido e experimenta. A aba <strong>SQL</strong>, ao lado de Designer e Dashboard, mostra o que foi construído escrito em SQL e confere se o código dá o mesmo resultado, para que levar a lógica ao lake seja uma revisão, não uma reescrita.</p>
   <figure class="m80">
@@ -847,11 +918,122 @@
       <figcaption>Fluxo completo: o caminho da saída aceso, as caixas sem SQL em vermelho.</figcaption></figure>
   </div>
   <div class="try"><strong>Experimente</strong><ol><li>Abra a aba <strong>SQL</strong> e clique na saída <em>Exportar</em>: o caminho para em vermelho, na caixa do modelo.</li><li>Clique em <strong>Mostrar visuais</strong> e escolha <em>Gráfico por UF</em>: esse caminho não passa pelo modelo, e o estado mostra <strong>Conferido, com ressalvas</strong>.</li></ol></div>
-  <div class="callout tip"><strong>O dialeto desta versão</strong>O código é do DuckDB, o motor usado pelo próprio PRO.DATA, e roda sozinho nele. Spark SQL e T-SQL, os dialetos do Microsoft Fabric, ficam para uma próxima versão. Até lá, o time de dados usa o código como especificação exata do que a lógica faz.</div>
+  <h3>Spark SQL e T-SQL para o Microsoft Fabric</h3>
+  <p>No topo da aba, escolha o dialeto. <strong>DuckDB</strong> é o código do próprio PRO.DATA, conferido com os resultados. <strong>Spark SQL</strong> (Lakehouse e notebooks) e <strong>T-SQL</strong> (Warehouse) são convertidos dele, bloco a bloco, para encurtar o caminho do time de dados.</p>
+  <div class="callout warn"><strong>Convertido não é conferido</strong>O código em Spark SQL e T-SQL não é executado nem comparado com os resultados, e sai marcado como <strong>não conferido</strong> na tela e no arquivo. Os blocos que leem arquivo pedem a troca pela tabela do Fabric, os que usam funções próprias do PRO.DATA vêm marcados com <em>Atenção</em>, e o que a conversão não entende fica em DuckDB, com o motivo escrito. Revise antes de usar.</div>
+  <figure class="m80">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/sql-fabric.png" alt="Aba SQL em T-SQL, com o aviso de não conferido"></div>
+    <figcaption>O aviso fica acima do código enquanto o dialeto não é o DuckDB.</figcaption>
+  </figure>
+</section>
+
+<!-- ================================================================ FECHAMENTO -->
+<section class="chapter">
+  <div class="eyebrow">15 · Automação</div>
+  <h2>O fechamento que se refaz sozinho</h2>
+  <p class="intro">Todo mês chegam arquivos novos, o relatório tem o mesmo formato e alguém precisa rodar tudo. Este capítulo junta as peças que tiram esse trabalho da sua mão.</p>
+  <div class="goal"><b>Ao final:</b> <span>o fluxo lê a pasta do mês, grava no modelo de Excel da área, reaproveita etapas e roda sozinho pelo Agendador do Windows.</span></div>
+  <h3>Uma pasta inteira de uma vez</h3>
+  <div class="side feature">
+    <div>
+      <p>No fechamento, os arquivos costumam chegar um por filial ou um por dia. Em vez de uma caixa por arquivo, use o <strong>Input Folder</strong>: escolha a pasta e escreva o padrão do nome, como <code>vendas_*.xlsx</code> (<code>*</code> vale qualquer trecho).</p>
+      <ul>
+        <li>Todos os arquivos que casam entram, um embaixo do outro, com as colunas alinhadas pelo nome.</li>
+        <li>A coluna <code>arquivo</code> diz de onde veio cada linha.</li>
+        <li>Arquivo novo, removido ou alterado: a caixa refaz sozinha na execução seguinte.</li>
+        <li>Coluna que falta num arquivo fica vazia, e a caixa avisa quais arquivos destoam.</li>
+        <li>O PRO.DATA só lê a pasta: nunca grava, move ou apaga. O limite é de 500 arquivos.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-folder.png" alt="Esquema do Input Folder"></div><figcaption>Passe o mouse num arquivo para ver as linhas que vieram dele.</figcaption></figure>
+  </div>
+  <h3>Calendário e sequências</h3>
+  <div class="side feature slim">
+    <div>
+      <p>O <strong>Generate Rows</strong> cria linhas sem ler arquivo: um calendário entre duas datas, com ano, mês, dia da semana e fim de semana, ou números em sequência.</p>
+      <p>O uso mais comum é cruzar o calendário com as vendas por data: os dias sem venda passam a aparecer com zero, em vez de sumir do gráfico. Sem data final, o calendário vai até hoje.</p>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-generate.png" alt="Esquema do Generate Rows"></div><figcaption>Você informa o intervalo, e a caixa cria uma linha por dia.</figcaption></figure>
+  </div>
+  <h3>Várias planilhas no mesmo Excel</h3>
+  <div class="side feature slim">
+    <div>
+      <p>Com o formato Excel, o <strong>Output Data</strong> oferece uma entrada nova sempre que a anterior é ligada, até 8. Cada tabela vira uma planilha do mesmo arquivo, e o Configurar dá o nome de cada uma.</p>
+      <div class="try"><strong>Experimente</strong><ol><li>Clique na caixa <em>Clientes × vendas</em> e veja o esquema do Join: quantas linhas casaram e o que ficou sem par.</li><li>Clique em <strong>L</strong>, <strong>J</strong> ou <strong>R</strong> para abrir aquelas linhas.</li></ol></div>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/excel-sheets.png" alt="Output Data com duas tabelas"></div><figcaption>Uma caixa, um arquivo, uma planilha por tabela.</figcaption></figure>
+  </div>
+  <h3>Excel num modelo já formatado</h3>
+  <p>O relatório do fechamento já tem cores, larguras, fórmulas e cabeçalho? No <strong>Output Data</strong>, em <strong>Modelo</strong>, aponte para esse <code>.xlsx</code> e diga a célula inicial. O PRO.DATA grava os dados numa <em>cópia</em> do modelo, mudando só o valor das células.</p>
+  <ul>
+    <li>O formato e as fórmulas em volta continuam, e o modelo nunca é alterado.</li>
+    <li>Uma Tabela do Excel que comece na célula inicial acompanha o tamanho dos dados.</li>
+    <li><strong>Limpar linhas antigas</strong> apaga o que sobrou de uma gravação maior.</li>
+    <li>Modelo com gráfico ou imagem gera um aviso: confira esses elementos no arquivo gerado. O limite é de 200 mil linhas.</li>
+  </ul>
+  <h3>Subfluxos: uma etapa, vários fluxos</h3>
+  <div class="side feature">
+    <div>
+      <p>Quando a mesma padronização aparece em cinco fluxos, copiar as caixas faz as cópias divergirem. Monte a etapa num fluxo próprio, com <strong>Subflow Input</strong> no começo e <strong>Subflow Output</strong> no fim, e salve na biblioteca.</p>
+      <p>Nos outros fluxos, a caixa <strong>Subflow</strong> executa esse fluxo como se fosse uma ferramenta. Mudou o fluxo de origem, mudaram todos os que o usam.</p>
+      <ul>
+        <li>São até 3 entradas e 3 saídas, numeradas: a entrada 2 alimenta o Subflow Input 2.</li>
+        <li>Para testar o fluxo de origem sozinho, ligue uma tabela de teste em cada Subflow Input.</li>
+        <li>Se uma caixa de dentro falhar, a caixa Subflow mostra o nome dela e o erro.</li>
+        <li>Ao levar o fluxo para outra pessoa, leve também o fluxo de origem.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-subflow.png" alt="Esquema do Subflow"></div><figcaption>As caixas do fluxo de origem e por onde os dados entram e saem.</figcaption></figure>
+  </div>
+  <h3>Executar sem abrir o programa</h3>
+  <p>Para o fechamento estar pronto quando você chega, o fluxo pode rodar sozinho. Em <strong>Arquivo → Executar sem abrir o programa…</strong>, o PRO.DATA mostra a linha de comando do fluxo aberto e o comando que cria a tarefa no <strong>Agendador do Windows</strong>. É só copiar.</p>
+  <figure class="m50" style="max-width:42%">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/cli-dialogo.png" alt="Diálogo Executar sem abrir o programa"></div>
+    <figcaption>A linha de comando do fluxo aberto e o comando do Agendador, prontos para copiar.</figcaption>
+  </figure>
+  <ul>
+    <li>O comando executa o fluxo salvo, grava as saídas e termina com código 0 quando tudo executou, ou 1 quando alguma caixa falhou. O relatório fica na pasta de dados, em <code>logs/execucoes</code>. Fluxo recebido de fora só executa depois de confiado no programa.</li>
+    <li>Saída em <strong>Perguntar ao executar</strong> nunca sobrescreve sem alguém para responder: cria um arquivo novo com data e hora. Para manter sempre o mesmo nome, escolha <strong>Substituir o arquivo</strong>. Com <strong>Data Quality</strong> ou <strong>Reconcile</strong> em modo de interromper, a tarefa falha em vez de gravar um número errado.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ MODELOS -->
+<section class="chapter">
+  <div class="eyebrow">16 · Previsão</div>
+  <h2>Modelos de previsão</h2>
+  <p class="intro">Um modelo aprende com o histórico e aplica o que aprendeu a dados novos: quem tende a atrasar, quanto um cliente deve comprar. No PRO.DATA, treinar, guardar e reaproveitar um modelo são caixas do fluxo.</p>
+  <div class="goal"><b>Ao final:</b> <span>você treina um modelo, sabe quando ele muda, usa em outros fluxos e leva para outro computador.</span></div>
+  <h3>Do histórico à previsão</h3>
+  <div class="steps">
+    <div class="step"><div><h4>Model Trainer</h4><p>Recebe o histórico, com a coluna que você quer prever. Treina e mede a qualidade em linhas que o modelo não viu.</p></div></div>
+    <div class="step"><div><h4>Predictor</h4><p>Recebe o modelo na entrada <strong>M</strong> e os dados novos na <strong>D</strong>. Acrescenta a previsão e, na classificação, a probabilidade.</p></div></div>
+    <div class="step"><div><h4>Train/Test Split</h4><p>Opcional: separa uma parte dos dados para você conferir as previsões por conta própria.</p></div></div>
+  </div>
+  <h3>O modelo só muda quando você manda</h3>
+  <div class="side feature slim">
+    <div>
+      <p>O <strong>Model Trainer</strong> guarda o modelo treinado, com versão. Por padrão ele é <em>fixo</em>: mesmo que os dados mudem, as previsões continuam vindo do mesmo modelo, e a caixa avisa de quando ele é. Assim o número de ontem não muda sozinho hoje.</p>
+      <ul>
+        <li>Para treinar de novo com os dados de agora, aumente a <strong>Versão</strong>. A lista <strong>Versões guardadas</strong> mostra cada uma com a data, as linhas e a qualidade, e deixa voltar a uma anterior ou apagar as que não servem. A que está em uso nunca é apagada.</li>
+        <li>Em <strong>Treinar sempre que os dados mudarem</strong>, cada treino vira uma versão, a mais nova é a que vale e ficam guardadas as 10 últimas.</li>
+        <li>Mudar o alvo, as variáveis ou o algoritmo pede uma versão nova.</li>
+      </ul>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-model.png" alt="Esquema do Model Trainer"></div><figcaption>O caminho do modelo até o Predictor e a ficha dele.</figcaption></figure>
+  </div>
+  <h3>Usar o modelo em outros fluxos: Model Input</h3>
+  <div class="side feature">
+    <div>
+      <p>Dê ao modelo um <strong>Nome na biblioteca de modelos</strong>, no Model Trainer. A caixa <strong>Model Input</strong> traz esse modelo pronto em qualquer fluxo, sem treinar, e a saída <strong>M</strong> dela liga num Predictor.</p>
+      <p>O esquema mostra a ficha do modelo: o que ele prevê, a qualidade medida, quando foi treinado e de quais colunas ele precisa para prever.</p>
+      <p><strong>Salvar arquivo…</strong>, no Model Trainer, ou <strong>Exportar</strong>, no Model Input, grava um arquivo <code>.modelo</code>. <strong>Importar arquivo…</strong> traz um de outro computador, e a lixeira tira o modelo da biblioteca. O arquivo não é um pickle: ele só é aberto se tudo o que há dentro for um modelo dos tipos que o PRO.DATA treina. Receber um modelo de outra pessoa não dá a ele o poder de executar nada aqui.</p>
+    </div>
+    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/model-input.png" alt="Caixa Model Input"></div><figcaption>Escolher da biblioteca, importar um arquivo ou exportar.</figcaption></figure>
+  </div>
 </section>
 
 <section class="chapter">
-  <div class="eyebrow">14 · Organização</div>
+  <div class="eyebrow">17 · Organização</div>
   <h2>Organização e personalização</h2>
   <h3>Etapas</h3>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="etapa">Mostrar onde fica</button></div>
@@ -893,7 +1075,7 @@
 
 <!-- ================================================================ 9. SEGURANÇA -->
 <section class="chapter">
-  <div class="eyebrow">15 · Confiança</div>
+  <div class="eyebrow">18 · Confiança</div>
   <h2>Segurança e privacidade</h2>
   <div class="grid-3">
     <div class="card"><h4>Tudo local</h4><p>O PRO.DATA roda inteiramente no seu computador e funciona offline. A única saída para a rede é a que você cadastra: bancos e APIs. O programa não envia nada por conta própria.</p></div>
@@ -920,12 +1102,12 @@
 
 <!-- ================================================================ 10. INSTALAÇÃO -->
 <section class="chapter">
-  <div class="eyebrow">16 · Comece agora</div>
+  <div class="eyebrow">19 · Comece agora</div>
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.2-setup.exe</code> (164 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.2-portable.zip</code> (247 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.5-setup.exe</code> (197 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.5-portable.zip</code> (281 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -938,7 +1120,7 @@
   </table>
   <h3>Primeira execução</h3>
   <div class="steps">
-    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 17): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
+    <div class="step"><div><h4>Abra o PRO.DATA</h4><p>Pelo Menu Iniciar ou pelo atalho. Na primeira vez o Windows pode exibir "Editor desconhecido" (veja o capítulo 20): clique em <em>Mais informações → Executar assim mesmo</em>.</p></div></div>
     <div class="step"><div><h4>Explore o exemplo</h4><p>O fluxo de demonstração já vem pronto. Clique em <strong>Executar</strong>, clique nas caixas, abra o Dashboard e siga os quadros <strong>Experimente</strong> deste guia.</p></div></div>
     <div class="step"><div><h4>Comece o seu</h4><p>Siga o capítulo 3 com um arquivo seu: envie na vista Dados e arraste para o canvas.</p></div></div>
   </div>
@@ -946,24 +1128,27 @@
 
 <!-- ================================================================ 11. ESCOPO E LIMITAÇÕES -->
 <section class="chapter">
-  <div class="eyebrow">17 · Transparência</div>
+  <div class="eyebrow">20 · Transparência</div>
   <h2>Escopo e limitações</h2>
   <p class="intro">O que esta versão faz, o que não faz e onde ela tem limites — para você decidir com clareza.</p>
   <div class="two-col">
     <div>
       <h3>Incluído nesta versão</h3>
       <ul class="scope-in">
-        <li>Fluxos visuais com 32 ferramentas</li>
+        <li>Fluxos visuais com 44 ferramentas, inclusive subfluxos</li>
         <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
-        <li>Consultas a PostgreSQL e SQL Server</li>
+        <li>Leitura de uma pasta inteira por padrão de nome</li>
+        <li>Consultas a PostgreSQL, SQL Server e, por ODBC, a outros bancos</li>
         <li>APIs em JSON, CSV ou XML, com paginação e uma chamada por linha</li>
-        <li>Exportação nesses formatos, em qualquer pasta</li>
+        <li>Exportação nesses formatos, em qualquer pasta, e Excel num modelo já formatado</li>
         <li>Vista Dados com mapa de uso, constantes, Data Quality e abertura protegida</li>
         <li>Abas, copiar/colar, fórmulas com autocompletar, perfil e filtros</li>
         <li>Dashboard com filtros, 18 tipos de visual, linha do tempo, história, PNG, GIF por gráfico e HTML</li>
         <li>Leitura do Jira Cloud com token e lições guiadas no Manual</li>
-        <li>Modelos de ML, execução incremental e ponto de cache</li>
-        <li>Aba SQL: o fluxo em SQL do DuckDB, por saída, conferido com o resultado</li>
+        <li>Modelos de ML guardados com versão, biblioteca de modelos com importar e exportar, execução incremental e ponto de cache</li>
+        <li>Execução por linha de comando, para o Agendador do Windows</li>
+        <li>Conferência de totais, interrupção por qualidade e comparação com a execução anterior</li>
+        <li>Aba SQL: o fluxo em SQL do DuckDB, por saída, conferido com o resultado, e convertido para Spark SQL e T-SQL sem conferência</li>
         <li>Aplicativo de desktop para Windows, que funciona offline (exceto as fontes em rede que você cadastrar)</li>
       </ul>
     </div>
@@ -971,11 +1156,10 @@
       <h3>Fora do escopo</h3>
       <ul class="scope-out">
         <li>Uso em equipe com login e permissões (é um app individual)</li>
-        <li>Agendamento automático de execuções</li>
+        <li>Agendador próprio: o agendamento usa o Agendador do Windows</li>
         <li>Comandos que gravam ou alteram dados na caixa SQL: ela aceita só uma consulta SELECT</li>
         <li>Gravar dados de volta no banco ou publicar no lake (o PRO.DATA gera o código; quem publica é o time de dados)</li>
-        <li>SQL nos dialetos do Microsoft Fabric (Spark SQL e T-SQL), previsto para uma próxima versão</li>
-        <li>Outros bancos (MySQL, Oracle) e fontes na nuvem</li>
+        <li>Fontes na nuvem e bancos sem driver ODBC</li>
         <li>Escrever no Jira, Jira Data Center e GIF da página inteira</li>
         <li>Versões para macOS e Linux</li>
         <li>Atualização automática do programa</li>
@@ -988,16 +1172,72 @@
   <h3>Limitações conhecidas</h3>
   <table>
     <tr><th style="width:30%">Limitação</th><th>O que significa na prática</th></tr>
-    <tr><td class="tool">Volume de dados</td><td>As tabelas são carregadas inteiras na memória do computador. O limite prático depende da RAM disponível; bases muito grandes (dezenas de milhões de linhas) ainda não foram validadas e podem exigir uma máquina com mais memória.</td></tr>
-    <tr><td class="tool">Modelos de ML</td><td>Ficam em memória e são treinados novamente quando o programa é reaberto (sem impacto no resultado, só no tempo da primeira execução).</td></tr>
+    <tr><td class="tool">Volume de dados</td><td>Cada caixa ainda carrega a própria tabela inteira na memória. Os resultados intermediários, porém, não ficam mais todos nela: acima de um quarto da memória do computador, os menos usados ficam só em disco e voltam quando uma caixa precisa. Bases muito grandes (dezenas de milhões de linhas) ainda não foram validadas.</td></tr>
+    <tr><td class="tool">Modelos de ML</td><td>O modelo fica guardado neste computador, não no arquivo do fluxo. Para outra pessoa usar o mesmo modelo, exporte o arquivo .modelo e ela importa com a caixa Model Input. Sem isso, quem recebe o fluxo treina o próprio modelo, e o resultado pode diferir do seu.</td></tr>
+    <tr><td class="tool">ODBC</td><td>Conferido só com um driver local de teste. Em Oracle, MySQL e ERPs, confira a primeira leitura com um resultado conhecido.</td></tr>
+    <tr><td class="tool">SQL para o Fabric</td><td>Spark SQL e T-SQL são convertidos do DuckDB e não foram conferidos num Fabric de verdade. Leitura de arquivos e funções próprias do PRO.DATA precisam ser reescritas.</td></tr>
+    <tr><td class="tool">Subfluxos</td><td>Até 3 entradas e 3 saídas, sem parâmetros. O fluxo de origem precisa estar na biblioteca do computador que executa.</td></tr>
+    <tr><td class="tool">Excel em modelo</td><td>Gráficos, imagens e tabelas dinâmicas do modelo nem sempre são preservados. O programa avisa quando o modelo tem algum.</td></tr>
     <tr><td class="tool">Aviso do Windows</td><td>O instalador ainda não é assinado digitalmente; por isso o SmartScreen mostra "Editor desconhecido" na primeira execução.</td></tr>
     <tr><td class="tool">Visuais com muitos dados</td><td>A dispersão desenha até 2.000 pontos e avisa; gráficos mostram até 50 categorias e 8 séries. No Venn de 3 grupos, os círculos são ilustrativos.</td></tr>
   </table>
 </section>
 
+<!-- ================================================================ FERRAMENTAS -->
+<section class="chapter">
+  <div class="eyebrow">21 · Referência</div>
+  <h2>Todas as ferramentas</h2>
+  <p class="intro">As 44 ferramentas, por família. Algumas têm mais de uma saída: o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <table>
+    <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
+    <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
+    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da vista Dados: arquivos (com detecção automática de formato) consultas de banco ou APIs.</td></tr>
+    <tr><td class="tool">API Loop</td><td>Chama uma API para cada linha da tabela e junta as respostas, com as falhas numa saída própria.</td></tr>
+    <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
+    <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
+    <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher, com um <strong>rótulo de confidencialidade</strong>. No Excel, ligue várias tabelas na mesma caixa: cada uma vira uma planilha. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
+    <tr><td class="tool">Input Folder · Generate Rows</td><td>Lê uma pasta inteira por padrão de nome; cria um calendário ou uma sequência de números. Veja o capítulo 15.</td></tr>
+    <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
+    <tr><td class="tool">Select</td><td>Escolhe, renomeia, reordena (arrastando) e muda o tipo das colunas. Entende números no padrão brasileiro, datas como 29/10/2026 e sim/não, e avisa quantos valores não converteram.</td></tr>
+    <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>
+    <tr><td class="tool">Formula</td><td>Cria colunas calculadas ou altera colunas existentes (SE/ENTÃO, texto, matemática, datas).</td></tr>
+    <tr><td class="tool">Multi-Row Formula</td><td>Olha outras linhas, com receitas prontas: preencher para baixo, diferença, variação %, valor anterior, próximo valor e "mudou?". Tem o próprio <strong>Ordenar por</strong>.</td></tr>
+    <tr><td class="tool">Data Quality</td><td>Confere regras prontas (não vazio, sem duplicados, CPF, CNPJ, e-mail, faixa de número, data, lista de valores ou uma fórmula sua) e separa o que passou (P) do que falhou (F), com o motivo de cada falha. Veja o capítulo 9.</td></tr>
+    <tr><td class="tool">Data Cleansing</td><td>Remove espaços, padroniza maiúsculas e trata vazios em um passo.</td></tr>
+    <tr><td class="tool">Unique</td><td>Separa a primeira ocorrência de cada chave das duplicadas.</td></tr>
+    <tr><td class="tool">Sort · Sample</td><td>Ordena por uma ou mais colunas (o <em>order by</em>); tira amostras (primeiras, últimas, aleatórias, percentual).</td></tr>
+    <tr><td class="tool">Text To Columns</td><td>Divide um texto por um separador em novas colunas ou linhas (ex.: "SP - São Paulo").</td></tr>
+    <tr><td class="tool">Record ID · Running Total</td><td>Numera as linhas; calcula soma acumulada, recomeçando a cada grupo se quiser.</td></tr>
+    <tr><td class="tool">Regex</td><td>Expressão regular numa coluna: extrai grupos para colunas novas, substitui ou marca as linhas que casam.</td></tr>
+    <tr><td class="tool">Multi-Field Formula</td><td>Aplica a mesma fórmula a várias colunas de uma vez. <code>[_Atual_]</code> é a coluna da vez.</td></tr>
+    <tr><td class="tool">Mask</td><td>Protege dados pessoais (LGPD): máscara de CPF, CNPJ e e-mail, só o início ou o fim, texto fixo ou código estável.</td></tr>
+    <tr><td colspan="2"><span class="tag">Combinar e transformar</span></td></tr>
+    <tr><td class="tool">Join</td><td>Cruza duas tabelas por uma ou mais chaves, com saídas L, J e R. Dá para escolher se o J mantém as chaves dos dois lados, só a da esquerda ou só a da direita, e escolher, renomear, converter e reordenar as colunas do J ali mesmo, como num Select. O Configurar mostra quantas linhas saem em cada uma e avisa quando a chave repetida multiplica linhas.</td></tr>
+    <tr><td class="tool">Fuzzy Match</td><td>Cruza duas tabelas por texto parecido, como razão social e endereço, com nota de 0 a 100.</td></tr>
+    <tr><td class="tool">Summarize</td><td>Agrupa e calcula soma, média, mediana, moda, desvio padrão, contagens, mínimo e máximo. Só oferece o que serve para o tipo da coluna: texto não soma. O Configurar mostra um esquema do antes e depois.</td></tr>
+    <tr><td class="tool">Union</td><td>Empilha tabelas, alinhando colunas pelo nome ou posição.</td></tr>
+    <tr><td class="tool">Estado por período</td><td>Transforma eventos em fotos: uma linha por item e por dia, semana ou mês, com o estado no fim de cada período e há quantos dias está nele. O Configurar desenha o antes e o depois.</td></tr>
+    <tr><td class="tool">Cross Tab · Transpose</td><td>Tabela dinâmica (valores de uma coluna viram colunas) e o inverso (colunas viram linhas). O Configurar desenha o antes e o depois com os seus dados.</td></tr>
+    <tr><td class="tool">Append Fields</td><td>Anexa uma tabela pequena (parâmetros, taxa do mês) a todas as linhas.</td></tr>
+    <tr><td class="tool">SQL</td><td>Para quem conhece SQL: consulta livre sobre os dados do fluxo.</td></tr>
+    <tr><td colspan="2"><span class="tag">Conferência e reúso</span></td></tr>
+    <tr><td class="tool">Reconcile</td><td>Confere se duas tabelas fecham em linhas, soma ou valores distintos, e pode interromper o fluxo. Veja o capítulo 9.</td></tr>
+    <tr><td class="tool">Compare Runs</td><td>Mostra o que mudou desde a execução de um dia ou de um mês anterior. Veja o capítulo 9.</td></tr>
+    <tr><td class="tool">Subflow · Subflow Input · Subflow Output</td><td>Executa outro fluxo da biblioteca como uma etapa, para manter num lugar só o que vários fluxos usam.</td></tr>
+    <tr><td colspan="2"><span class="tag">BI e indicadores</span></td></tr>
+    <tr><td class="tool">Chart</td><td>Colunas, barras, linha, rosca, empilhado, agrupado, 100%, área, Pareto, funil e dispersão.</td></tr>
+    <tr><td class="tool">KPI Card</td><td>Big number com variação contra meta ou período anterior e tendência, ou medidor.</td></tr>
+    <tr><td class="tool">Venn · Table</td><td>Interseções de 2 ou 3 grupos (ex.: clientes por produto) e tabela com totais e cores por faixa.</td></tr>
+    <tr><td colspan="2"><span class="tag">Machine Learning</span></td></tr>
+    <tr><td class="tool">Train/Test Split</td><td>Divide os dados em treino e teste.</td></tr>
+    <tr><td class="tool">Model Trainer · Predictor</td><td>Treina modelos de classificação ou regressão e aplica a novos dados, com acurácia medida em dados de validação. O modelo fica guardado, com versão: ele só muda quando você manda.</td></tr>
+    <tr><td class="tool">Model Input</td><td>Traz um modelo da biblioteca de modelos, treinado noutro fluxo ou importado de um arquivo <code>.modelo</code>, sem treinar de novo.</td></tr>
+  </table>
+</section>
+
 <!-- ================================================================ 12. ATALHOS E FAQ -->
 <section class="chapter">
-  <div class="eyebrow">18 · Referência rápida</div>
+  <div class="eyebrow">22 · Referência rápida</div>
   <h2>Atalhos e perguntas frequentes</h2>
   <h3>Atalhos de teclado</h3>
   <table>
@@ -1023,8 +1263,8 @@
   <div class="avoid"><h4>A exportação vai apagar o arquivo de ontem?</h4><p>Não sem perguntar. Se o arquivo de saída já existe, ao clicar em Executar o PRO.DATA pergunta: substituir, criar um novo com data e hora no nome, ou (no Excel) adicionar a planilha. Dá para lembrar a escolha na caixa. Ao abrir o programa, essas exportações esperam o seu Executar.</p></div>
   <div class="avoid"><h4>Algo deu errado. Onde vejo?</h4><p>A caixa com problema fica vermelha e explica o motivo na aba Configurar; as caixas seguintes aparecem como "não executado". A aba <strong>Log</strong> lista tudo. Se o programa não abrir, o registro fica em <code>%LOCALAPPDATA%\PRO.DATA\logs</code>.</p></div>
   <div class="avoid"><h4>Posso guardar o fluxo numa pasta da equipe?</h4><p>Sim. Use <strong>Salvar como…</strong> e escolha a pasta (rede, OneDrive, projeto). O arquivo é um JSON legível; quem abrir em outro computador precisa ter os mesmos arquivos e consultas na vista Dados. As constantes vão junto: as do fluxo, e o valor das compartilhadas que ele usa.</p></div>
-  <div class="avoid"><h4>Abri um fluxo e ele não executa. Por quê?</h4><p>Ele veio de fora e abriu em modo protegido (capítulo 15). Confira na faixa o que ele lê, calcula e grava, e clique em <strong>Confiar e executar</strong>.</p></div>
-  <div class="avoid"><h4>Minha API interna foi recusada. E agora?</h4><p>Peça à TI para incluir o servidor na lista de APIs internas (capítulo 15). APIs públicas não precisam de nada.</p></div>
+  <div class="avoid"><h4>Abri um fluxo e ele não executa. Por quê?</h4><p>Ele veio de fora e abriu em modo protegido (capítulo 18). Confira na faixa o que ele lê, calcula e grava, e clique em <strong>Confiar e executar</strong>.</p></div>
+  <div class="avoid"><h4>Minha API interna foi recusada. E agora?</h4><p>Peça à TI para incluir o servidor na lista de APIs internas (capítulo 18). APIs públicas não precisam de nada.</p></div>
   <div class="avoid"><h4>Posso pedir ajuda a uma IA sobre um fluxo?</h4><p>Sim. Envie o arquivo <code>.prodata.json</code> junto com o <code>contexto-ia.md</code>, publicado com cada versão. Ele ensina a IA a mexer no fluxo; depois, é só salvar a resposta e abrir no programa. Confira o resultado, e lembre que o fluxo mostra nomes de colunas e fórmulas, além dos dados digitados em Text Input.</p></div>
   <div class="avoid"><h4>Como mando o dashboard por e-mail?</h4><p>No Dashboard, <strong>Baixar imagem</strong> gera um PNG em alta resolução, pronto para o e-mail ou a apresentação. <strong>Baixar HTML</strong> gera um arquivo que abre em qualquer navegador, com os filtros funcionando; a tela avisa quais dados vão dentro dele.</p></div>
   <div class="avoid"><h4>Desinstalar apaga meus fluxos?</h4><p>Não. Fluxos, arquivos e conexões ficam na sua pasta de dados e continuam lá para uma futura reinstalação.</p></div>

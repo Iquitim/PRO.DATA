@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter
@@ -31,7 +33,15 @@ def get_catalog() -> dict[str, Any]:
         "file_formats": EXTENSIONS,
         "formula_functions": formula.function_catalog(),
         "formula_keywords": {"control": formula.KEYWORDS, "logical": formula.LOGICAL},
+        "cli_command": cli_command(),
     }
+
+
+def cli_command() -> str:
+    """Como chamar ``prodata run`` neste computador (spec 033): o executável instalado ou o ambiente de quem desenvolve."""
+    if getattr(sys, "frozen", False):
+        return f'"{Path(sys.executable).parent / "prodata-cli.exe"}"'
+    return "uv run prodata"
 
 
 class ValidateFormulaRequest(BaseModel):

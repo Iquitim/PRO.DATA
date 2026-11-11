@@ -30,7 +30,7 @@ import { initSelectPicker } from './select_picker.js';
 import { commandList, topMenus } from './top_menus.js';
 import { enterFocus, inFocus, initLayout, leaveFocus, panelControls } from './layout.js';
 import { renderPalette } from './palette.js';
-import { initResults, showLog } from './results.js';
+import { initResults, inTableFocus, showLog, toggleTableFocus } from './results.js';
 import { handleSqlKey, initSqlView, renderSqlView } from './sql_view.js';
 import { blockedByTrust, initTrustBanner, refreshTrust, resetTrustBanner } from './trust_banner.js';
 import {
@@ -377,6 +377,7 @@ const SHORTCUTS = [
   ['Shift + clique / Ctrl + clique', 'Adicionar ou tirar caixa da seleção'],
   ['Shift + arrastar no vazio', 'Selecionar várias caixas com um retângulo'], ['Ctrl + A', 'Selecionar todas'],
   ['H / V', 'Arrastar no vazio: navegar / selecionar'],
+  ['Shift + F11', 'Tabela de resultados em tela cheia'],
   ['+ / −', 'Zoom'], ['Duplo clique no canvas', 'Adicionar ferramenta'],
   ['Esc', 'Limpar seleção'],
 ];
@@ -647,6 +648,8 @@ function setupShortcuts() {
     if (mod && key === 'o') { e.preventDefault(); openDialogList(); return; }
     if (mod && key === 'k') { e.preventDefault(); togglePalette(); return; }
     if (key === 'f1') { e.preventDefault(); if (!document.querySelector('dialog[open]')) toggleManual(); return; }
+    if (key === 'f11' && e.shiftKey) { e.preventDefault(); if (store.view === 'designer' && !document.querySelector('dialog[open]')) toggleTableFocus(); return; }
+    if (key === 'escape' && inTableFocus() && !document.querySelector('dialog[open], .menu')) { e.preventDefault(); toggleTableFocus(false); return; }
     if (key === 'f11') { e.preventDefault(); if (store.view === 'designer' && !document.querySelector('dialog[open]')) toggleFocus(); return; }
     // Na aba SQL, nada altera o fluxo: Delete, Ctrl+D e Ctrl+Z não mexem nas caixas (spec 020).
     if (store.view === 'sql') {

@@ -55,7 +55,8 @@ def test_connection(connection_id: ConnectionId, services: ServicesDep) -> dict[
         sql.check_connection(conn, services.connections.password(conn.id))
     except sql.DatabaseError as exc:
         return {"ok": False, "message": exc.message}
-    return {"ok": True, "message": f"Conectado a {conn.database} em {conn.host}."}
+    where = f"à fonte ODBC {conn.odbc_dsn}" if conn.kind == "odbc" else f"a {conn.database} em {conn.host}"
+    return {"ok": True, "message": f"Conectado {where}."}
 
 
 @router.get("/{connection_id}/tables")

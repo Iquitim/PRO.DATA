@@ -12,6 +12,7 @@ import { RECIPES } from './multirow_recipes.js';
 import { qualityRulesField } from './quality_ui.js';
 import { allowedValuesField } from './quality_values.js';
 import { columnValues, renameLabels } from './fields_values.js';
+import { fileField, modelField, modelSaveField, modelVersionsField, subflowField } from './fields_extra.js';
 import { formulaEditor } from './formula_editor.js';
 import { openLargeFormula } from './formula_large.js';
 import { API_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
@@ -348,7 +349,7 @@ function apiParams(field, value, set, ctx, id) {
 
 function folder(field, value, set, ctx, id) {
   const input = h('input', {
-    id, class: 'input mono', value: value ?? '', placeholder: 'Pasta padrão de exportações', spellcheck: false,
+    id, class: 'input mono', value: value ?? '', placeholder: field.placeholder || 'Pasta padrão de exportações', spellcheck: false,
     oninput: (e) => set(e.target.value),
   });
   return h('div', { class: 'row' }, input,
@@ -359,7 +360,7 @@ function folder(field, value, set, ctx, id) {
         if (chosen) { input.value = chosen; set(chosen); }
       },
     }) : null,
-    value ? button({ icon: 'x', title: 'Voltar para a pasta padrão', onClick: () => { input.value = ''; set(''); } }) : null);
+    value ? button({ icon: 'x', title: field.placeholder ? 'Tirar a pasta' : 'Voltar para a pasta padrão', onClick: () => { input.value = ''; set(''); } }) : null);
 }
 
 function sheet(field, value, set, ctx, id) {
@@ -691,7 +692,7 @@ function categoryColors(field, value, set, ctx) {
 
 const WIDGETS = {
   color, optional_number: optionalNumber, category_colors: categoryColors, column_values: columnValues,
-  rename_labels: renameLabels,
+  rename_labels: renameLabels, subflow: subflowField, file: fileField, model: modelField, model_save: modelSaveField, model_versions: modelVersionsField,
   text, textarea, number, toggle, select, column, columns, tags, expression, sql, template, dataset, sheet, folder,
   recipe_cards: recipeCards, confidentiality,
   quality_rules: (f, v, s, c) => qualityRulesField(f, v, s, c, { renderFields }),

@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     seed_samples: bool = True
     secrets_backend: Literal["keyring", "memory"] = "keyring"
     results_page_max: int = 1000
+    # Memória para os resultados intermediários (spec 033). 0 = um quarto da memória do computador.
+    cache_memory_mb: int = 0
 
     @cached_property
     def datasets_dir(self) -> Path:

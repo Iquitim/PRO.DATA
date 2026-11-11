@@ -11,8 +11,8 @@ import { icon } from './icons.js';
 import { commit, emit, QUERY_PREFIX, store } from './store.js';
 import { confirmDialog, openDialog, toast, toastError } from './ui.js';
 
-const KINDS = { postgres: 'PostgreSQL', mssql: 'SQL Server' };
-const DEFAULT_PORTS = { postgres: 5432, mssql: 1433 };
+const KINDS = { postgres: 'PostgreSQL', mssql: 'SQL Server', odbc: 'ODBC (Oracle, MySQL, ERPs…)' };
+const DEFAULT_PORTS = { postgres: 5432, mssql: 1433, odbc: 0 };
 const tablesCache = new Map();
 
 export async function refreshConnections() {
@@ -57,7 +57,7 @@ function field(label, control, help) {
 export function connectionEditor(existing = null, { onSaved } = {}, host) {
   const conn = existing
     ? { ...existing }
-    : { id: '', name: '', kind: 'postgres', host: 'localhost', port: 0, database: '', user: '', ssl_mode: 'prefer', encrypt: true, trust_server_certificate: false };
+    : { id: '', name: '', kind: 'postgres', host: 'localhost', port: 0, database: '', user: '', odbc_dsn: '', ssl_mode: 'prefer', encrypt: true, trust_server_certificate: false };
   const status = h('div', { class: 'conn-status' });
   const input = (key, attrs = {}) => h('input', {
     class: 'input', value: conn[key] ?? '', oninput: (e) => { conn[key] = attrs.type === 'number' ? Number(e.target.value || 0) : e.target.value; }, ...attrs,
@@ -69,7 +69,7 @@ export function connectionEditor(existing = null, { onSaved } = {}, host) {
   const port = input('port', { type: 'number', min: 0, max: 65535, placeholder: String(DEFAULT_PORTS[conn.kind]) });
   if (!conn.port) port.value = '';
   const tls = h('div', {});
-  const drawTls = () => tls.replaceChildren(conn.kind === 'postgres'
+  const drawTls = () => tls.replaceChildren(conn.kind === 'odbc' ? '' : conn.kind === 'postgres'
     ? field('SSL', h('select', { class: 'input', onchange: (e) => { conn.ssl_mode = e.target.value; } },
       [['prefer', 'Preferir (padrão)'], ['require', 'Exigir'], ['disable', 'Desativado']].map(([v, l]) => h('option', { value: v, selected: conn.ssl_mode === v }, l))))
     : h('div', { class: 'stack-xs' },
@@ -78,7 +78,7 @@ export function connectionEditor(existing = null, { onSaved } = {}, host) {
   drawTls();
 
   const save = async () => {
-    if (!conn.name.trim()) conn.name = conn.database || conn.host;
+    if (!conn.name.trim()) conn.name = conn.kind === 'odbc' ? conn.odbc_dsn : conn.database || conn.host;
     if (!conn.id) conn.id = slug(conn.name);
     const { has_password: _, ...payload } = conn;
     const saved = await api.saveConnection(payload, password.value === '' ? null : password.value);
@@ -101,6 +101,21 @@ export function connectionEditor(existing = null, { onSaved } = {}, host) {
     }
   };
 
+  // ODBC (spec 033): só o nome da fonte de dados do Windows; servidor e database ficam na própria fonte.
+  const serverRow = h('div', { class: 'conn-grid host' }, field('Servidor (host)', input('host')), field('Porta', port));
+  const databaseRow = h('div', { class: 'conn-grid' }, field('Database', input('database')), field('Usuário', input('user', { autocomplete: 'off' })));
+  const odbcRow = h('div', { class: 'conn-grid' },
+    field('Fonte de dados ODBC (DSN)', input('odbc_dsn', { placeholder: 'Ex.: ERP_PRODUCAO', autocomplete: 'off' }),
+      'O nome criado em "Fontes de Dados ODBC (64 bits)" do Windows, com o driver do seu banco.'),
+    field('Usuário (se o banco pedir)', input('user', { autocomplete: 'off' })));
+  const drawKind = () => {
+    const odbc = conn.kind === 'odbc';
+    serverRow.hidden = odbc;
+    databaseRow.hidden = odbc;
+    odbcRow.hidden = !odbc;
+  };
+  drawKind();
+
   return {
     title: existing ? `Editar conexão · ${existing.name}` : 'Nova conexão com banco de dados',
     body: h('div', { class: 'form conn-form' },
@@ -108,10 +123,9 @@ export function connectionEditor(existing = null, { onSaved } = {}, host) {
         field('Nome', input('name', { placeholder: 'Ex.: Data Warehouse' })),
         field('Banco de dados', h('select', {
           class: 'input',
-          onchange: (e) => { conn.kind = e.target.value; port.placeholder = String(DEFAULT_PORTS[conn.kind]); drawTls(); },
+          onchange: (e) => { conn.kind = e.target.value; port.placeholder = String(DEFAULT_PORTS[conn.kind]); drawTls(); drawKind(); },
         }, Object.entries(KINDS).map(([v, l]) => h('option', { value: v, selected: conn.kind === v }, l))))),
-      h('div', { class: 'conn-grid host' }, field('Servidor (host)', input('host')), field('Porta', port)),
-      h('div', { class: 'conn-grid' }, field('Database', input('database')), field('Usuário', input('user', { autocomplete: 'off' }))),
+      serverRow, databaseRow, odbcRow,
       field('Senha', password, 'Guardada no Gerenciador de Credenciais do Windows; nunca vai para arquivos do projeto.'),
       tls,
       h('p', { class: 'hint-box small' }, icon('lock', 14),

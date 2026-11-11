@@ -29,6 +29,7 @@ CATEGORIES: list[dict[str, str]] = [
     {"id": "inout", "label": "Entrada e saída"},
     {"id": "prep", "label": "Preparação"},
     {"id": "transform", "label": "Combinar e transformar"},
+    {"id": "control", "label": "Conferência e reúso"},
     {"id": "bi", "label": "BI e indicadores"},
     {"id": "ml", "label": "Machine Learning"},
 ]
@@ -63,6 +64,27 @@ class NodeContext:
     # Constantes que a caixa usa (spec 028), já com o valor: a API lê as dela nos parâmetros fixos.
     constants: dict[str, Any] = field(default_factory=dict)
     jira: Any = None  # JiraStore (spec 030)
+    # Spec 033: quem é a caixa, onde ela guarda o que fica entre execuções e o que vem do fluxo que a chamou.
+    workflow_id: str = ""
+    node_id: str = ""
+    state_root: Path | None = None
+    # Execução automática (abrir o fluxo, trocar de aba): nada que grave ou gaste deve rodar.
+    hold: bool = False
+    input_fingerprints: dict[str, str] = field(default_factory=dict)
+    run_subflow: Callable[[str], dict[str, pl.DataFrame]] | None = None
+    subflow_signature: Callable[[str], str] | None = None
+    # Tabelas entregues pelo fluxo que chamou este como subfluxo: porta -> (tabela, assinatura).
+    injected: dict[str, tuple[pl.DataFrame, str]] | None = None
+    secret_key: Callable[[], bytes] | None = None
+
+    def state_dir(self) -> Path:
+        """Pasta desta caixa na pasta de dados do computador. Nunca vai no arquivo do fluxo."""
+        if self.state_root is None or not self.workflow_id or not self.node_id:
+            raise InvalidInputError("Esta caixa precisa guardar dados entre execuções: salve o fluxo antes.")
+        safe = lambda part: "".join(c if c.isalnum() or c in "-_" else "_" for c in part)  # noqa: E731
+        folder = self.state_root / safe(self.workflow_id) / safe(self.node_id)
+        folder.mkdir(parents=True, exist_ok=True)
+        return folder
 
     def input(self, port: str = "in") -> pl.DataFrame:
         if port not in self.inputs:

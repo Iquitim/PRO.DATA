@@ -21,6 +21,7 @@ class TrustRequest(BaseModel):
 def _names(services: Services) -> dict[str, str]:
     names = {f"sql:{q.id}": f"consulta {q.name}" for q in services.queries.list()}
     names |= {f"api:{a.id}": f"API {a.name}" for a in services.apis.list()}
+    names |= {f"flow:{w.id}": f"fluxo {w.name}" for w in services.workflows.list()}
     return names
 
 

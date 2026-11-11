@@ -44,7 +44,7 @@ def test_manual_is_generated_from_the_guide() -> None:
 
 
 def test_every_chapter_has_a_title_and_text(manual: dict[str, Any]) -> None:
-    assert len(manual["chapters"]) == 19
+    assert len(manual["chapters"]) == 23
     for chapter in manual["chapters"]:
         assert chapter["title"] and chapter["html"] and chapter["sections"], chapter["id"]
 

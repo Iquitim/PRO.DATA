@@ -27,6 +27,8 @@ def source_keys(node_type: str, config: dict[str, Any]) -> list[str]:
         return [str(config["dataset"])]
     if node_type == "io.api_loop" and config.get("source"):
         return [f"{API}{config['source']}"]
+    if node_type == "flow.subflow" and config.get("workflow"):
+        return [f"flow:{config['workflow']}"]  # quem usa cada subfluxo (spec 033)
     return []
 
 

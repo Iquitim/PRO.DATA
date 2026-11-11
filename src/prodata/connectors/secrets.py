@@ -4,6 +4,7 @@ macOS Keychain, Secret Service). Em testes: memória."""
 from __future__ import annotations
 
 import contextlib
+import secrets
 from typing import Protocol
 
 import keyring
@@ -16,6 +17,18 @@ class SecretStore(Protocol):
     def get(self, key: str) -> str | None: ...
     def set(self, key: str, value: str) -> None: ...
     def delete(self, key: str) -> None: ...
+
+
+INSTALLATION_KEY = "instalacao:mask"
+
+
+def installation_key(store: SecretStore) -> bytes:
+    """Chave deste computador para o código estável do Mask (spec 033). Nasce no primeiro uso e fica no cofre."""
+    saved = store.get(INSTALLATION_KEY)
+    if not saved:
+        saved = secrets.token_hex(32)
+        store.set(INSTALLATION_KEY, saved)
+    return bytes.fromhex(saved)
 
 
 class KeyringSecretStore:

@@ -115,21 +115,39 @@ export const api = {
   saveWorkflow: (wf) => request('PUT', `/api/workflows/${enc(wf.id)}`, wf),
   deleteWorkflow: (id) => request('DELETE', `/api/workflows/${enc(id)}`),
 
-  sqlGenerate: (workflow, selection = [], temporaryNode = null) =>
-    request('POST', '/api/sql/generate', { workflow, selection, temporary_node: temporaryNode }),
+  sqlGenerate: (workflow, selection = [], temporaryNode = null, dialect = 'duckdb') =>
+    request('POST', '/api/sql/generate', { workflow, selection, temporary_node: temporaryNode, dialect }),
   sqlVerify: (workflow) => request('POST', '/api/sql/verify', { workflow }),
   trustState: (workflow) => request('POST', '/api/trust/state', { workflow }),
   usage: () => request('GET', '/api/usage'),
+  models: () => request('GET', '/api/models'),
+  modelVersions: (workflowId, nodeId) => request('GET', `/api/models/versions/${enc(workflowId)}/${enc(nodeId)}`),
+  deleteModelVersion: (workflowId, nodeId, version, inUse) => request('DELETE', `/api/models/versions/${enc(workflowId)}/${enc(nodeId)}/${version}?in_use=${inUse}`),
+  deleteModel: (name) => request('DELETE', `/api/models/${enc(name)}`),
+  importModel: async (file, name = '') => {
+    const body = new FormData();
+    body.append('file', file);
+    body.append('name', name);
+    const res = await fetch('/api/models/import', { method: 'POST', body });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.detail || `Erro ${res.status}`, res.status);
+    return data;
+  },
+  exportModel: async (name) => {
+    const res = await fetch(`/api/models/${enc(name)}/export`);
+    if (!res.ok) throw new ApiError(`Erro ${res.status}`, res.status);
+    return { blob: await res.blob(), name: `${name}.modelo` };
+  },
   constants: () => request('GET', '/api/constants'),
   saveConstant: (constant, previous = null) => request('POST', '/api/constants', { constant, previous }),
   deleteConstant: (name) => request('DELETE', `/api/constants/${enc(name)}`),
   trustConfirm: (workflow) => request('POST', '/api/trust/confirm', { workflow }),
   sqlVerifyStatus: (workflowId) => request('GET', `/api/sql/verify/${encodeURIComponent(workflowId)}`),
-  sqlDownload: async (workflow, selection, temporaryNode, mode) => {
+  sqlDownload: async (workflow, selection, temporaryNode, mode, dialect = 'duckdb') => {
     const res = await fetch('/api/sql/download', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ workflow, selection, temporary_node: temporaryNode, mode }),
+      body: JSON.stringify({ workflow, selection, temporary_node: temporaryNode, mode, dialect }),
     });
     if (!res.ok) throw new ApiError(`Erro ${res.status}`, res.status);
     const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || 'fluxo.sql';

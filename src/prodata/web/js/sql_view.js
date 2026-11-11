@@ -36,6 +36,7 @@ const ui = {
   codeKey: '',
 };
 const els = {};
+ui.dialect = storage('prodata.sql.dialeto', 'duckdb');
 
 const selectionKey = () => `prodata.sql.saidas.${store.workflow?.id}`;
 const visible = () => store.view === 'sql' && store.workflow;
@@ -46,7 +47,7 @@ async function refresh() {
   if (!visible()) return;
   const seq = ++ui.seq;
   try {
-    const data = await api.sqlGenerate(store.workflow, ui.selection || [], ui.temporary);
+    const data = await api.sqlGenerate(store.workflow, ui.selection || [], ui.temporary, ui.dialect);
     if (seq !== ui.seq) return; // chegou uma versão mais nova do fluxo
     ui.data = data;
     draw();
@@ -415,6 +416,7 @@ function drawHead() {
     notes.length ? h('details', { class: 'sql-notes-more' }, h('summary', {}, `${notes.length} ressalva${notes.length > 1 ? 's' : ''}`), h('ul', {}, notes.map((n) => h('li', {}, n)))) : null,
   ].filter(Boolean));
   els.notes.hidden = !els.notes.childElementCount;
+  els.unverified.hidden = !ui.data.unverified;
 }
 
 /** Exemplos do que difere (RF-2023): uma tabela curta, com rolagem própria. */
@@ -440,6 +442,7 @@ function draw() {
     els.state.replaceChildren();
     els.sub.textContent = '';
     els.notes.hidden = true;
+    els.unverified.hidden = true;
     return;
   }
   drawOutputs();
@@ -540,7 +543,7 @@ async function copyCode() {
 
 async function download(mode) {
   try {
-    const { blob, name } = await api.sqlDownload(store.workflow, ui.data.selection, ui.temporary, mode);
+    const { blob, name } = await api.sqlDownload(store.workflow, ui.data.selection, ui.temporary, mode, ui.dialect);
     const saved = await saveDownload(name, blob);
     if (saved) toast(`Salvo: ${saved}`, { kind: 'success' });
   } catch (err) {
@@ -660,7 +663,15 @@ export function initSqlView(root) {
     button({ icon: 'workflow', label: 'Fluxo completo', onClick: openMap }),
     button({ icon: 'download', label: 'Baixar', onClick: downloadMenu }),
     button({ icon: 'copy', label: 'Copiar SQL', variant: 'primary', onClick: copyCode }));
-  const dialect = h('span', { class: 'sql-dialect', title: 'O código é do DuckDB. Para o Microsoft Fabric, é preciso adaptar a leitura de arquivos e as funções próprias do DuckDB.' }, 'DuckDB');
+  // Spark SQL e T-SQL saem convertidos do DuckDB, sem conferência (spec 033).
+  const dialect = h('select', {
+    class: 'input input-sm sql-dialect', 'aria-label': 'Dialeto do código',
+    title: 'DuckDB é o código conferido com os resultados. Spark SQL e T-SQL são convertidos dele para o Microsoft Fabric e não são conferidos.',
+    onchange: (e) => { ui.dialect = e.target.value; persist('prodata.sql.dialeto', ui.dialect); refresh(); },
+  }, [['duckdb', 'DuckDB (conferido)'], ['spark', 'Spark SQL · Fabric Lakehouse'], ['tsql', 'T-SQL · Fabric Warehouse']]
+    .map(([v, l]) => h('option', { value: v, selected: ui.dialect === v }, l)));
+  els.unverified = h('div', { class: 'sql-unverified', role: 'status', hidden: true }, icon('alert', 14),
+    ' Código convertido do DuckDB e não conferido: não foi executado nem comparado com os resultados do PRO.DATA. Os avisos de conferência valem para o DuckDB. Revise antes de usar.');
   const head = h('div', { class: 'sql-head' }, els.state, els.sub, dialect, actions);
   els.notes = h('div', { class: 'sql-notes', hidden: true });
   els.searchInput = h('input', {
@@ -684,7 +695,7 @@ export function initSqlView(root) {
       h('span', { class: 'sql-sub' }, 'Só leitura. O caminho da seleção fica aceso.'), els.mapClose),
     els.mapBody);
 
-  const main = h('section', { class: 'sql-main', 'aria-label': 'Código SQL' }, head, els.notes, els.search, els.code);
+  const main = h('section', { class: 'sql-main', 'aria-label': 'Código SQL' }, head, els.unverified, els.notes, els.search, els.code);
   root.replaceChildren(left, main, els.map);
 
   on('workflow:changed', () => { ui.verifyAllowed = true; if (visible()) refreshSoon(); });

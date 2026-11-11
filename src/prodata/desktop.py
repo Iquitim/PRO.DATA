@@ -225,6 +225,7 @@ _GENERATED_FILTERS = {
     ".zip": _ZIP_FILTER,
     ".html": "Página da web (*.html)",
     ".gif": "Imagem GIF (*.gif)",
+    ".modelo": "Modelo do PRO.DATA (*.modelo)",
 }
 _GENERATED_MAX_BYTES = 64 * 1024 * 1024
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -312,12 +313,12 @@ def web_link(url: str) -> str | None:
 
 
 def generated_name(name: str) -> str:
-    """Nome saneado, sempre terminando em .sql, .zip, .html ou .gif (constituição IV)."""
+    """Nome saneado, sempre terminando em .sql, .zip, .html, .gif ou .modelo (constituição IV)."""
     stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", Path(name.replace("\\", "/")).name)
     stem = re.sub(r"\s+", " ", stem).strip(" .")
-    found = re.search(r"\.(sql|zip|html|gif)$", stem, flags=re.IGNORECASE)
+    found = re.search(r"\.(sql|zip|html|gif|modelo)$", stem, flags=re.IGNORECASE)
     extension = found.group(1).lower() if found else "sql"
-    stem = re.sub(r"\.(sql|zip|html|gif)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
+    stem = re.sub(r"\.(sql|zip|html|gif|modelo)$", "", stem, flags=re.IGNORECASE).strip(" .")[:120]
     return f"{stem or 'fluxo'}.{extension}"
 
 

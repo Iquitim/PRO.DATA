@@ -58,6 +58,60 @@ class JoinConfig(ToolConfig):
     right_prefix: str = Field(
         "r_", title="Prefixo para colunas repetidas da direita", json_schema_extra=ui(group="Avançado")
     )
+    allow_multiply: bool = Field(
+        False,
+        title="Repetição da chave é esperada",
+        description="Sem isso, o Join avisa quando a chave repete em [R] e as linhas de [L] se multiplicam no J.",
+        json_schema_extra=ui(group="Avançado"),
+    )
+
+
+def _count(n: int) -> str:
+    return f"{n:,}".replace(",", ".")
+
+
+def multiplication(
+    left: pl.DataFrame, right: pl.DataFrame, left_on: list[str], right_on: list[str], joined_rows: int
+) -> dict[str, int] | None:
+    """Quantas linhas de [L] viraram quantas no J, quando a chave repete em [R] (spec 033)."""
+    right_keys = right.select(right_on).drop_nulls()
+    repeated = right_keys.filter(right_keys.is_duplicated())
+    if not repeated.height:
+        return None
+    matched = left.join(right_keys.unique(), left_on=left_on, right_on=right_on, how="semi")
+    if joined_rows <= matched.height:
+        return None
+    hit = left.join(repeated.unique(), left_on=left_on, right_on=right_on, how="semi")
+    left_keys = left.select(left_on).drop_nulls()
+    both = (
+        left_keys.filter(left_keys.is_duplicated())
+        .unique()
+        .join(repeated.unique(), left_on=left_on, right_on=right_on, how="semi")
+        .height
+    )
+    return {
+        "left_rows": matched.height,
+        "joined_rows": joined_rows,
+        "left_hit": hit.height,
+        "repeated_keys": repeated.unique().height,
+        "both_sides": both,
+    }
+
+
+def multiplication_warning(stats: dict[str, int]) -> str:
+    text = (
+        f"A chave repete em [R] ({_count(stats['repeated_keys'])} valor(es)): "
+        f"{_count(stats['left_rows'])} linhas de [L] viraram {_count(stats['joined_rows'])} no J. "
+    )
+    if stats["both_sides"]:
+        return text + (
+            f"Em {_count(stats['both_sides'])} valor(es) ela repete dos dois lados, e somas feitas depois "
+            "contam em dobro. Resuma um dos lados antes, com Summarize ou Unique."
+        )
+    return text + (
+        "Se [R] é um cadastro, use Unique antes: somas de colunas de [L] feitas depois contam em dobro. "
+        "Se a repetição é esperada, marque isso em Avançado."
+    )
 
 
 @tool(
@@ -96,15 +150,23 @@ def join(ctx: NodeContext, cfg: JoinConfig) -> NodeOutput:
         nulls_equal=False,
         coalesce=False,
     )
+    stats = multiplication(left, right, left_on, right_on, joined.height)
     joined = _keep_key_side(joined, cfg.keys_mode, left_on, right_on, renamed_right_keys)
     joined, warnings = apply_select(joined, cfg.fields, cfg.order)
+    extra: dict[str, object] = {}
+    if stats:
+        extra["join_multiplied"] = stats
+        if not cfg.allow_multiply:
+            warnings = [multiplication_warning(stats), *warnings]
+    if warnings:
+        extra["warnings"] = warnings
     return NodeOutput(
         tables={
             "L": left.join(right, left_on=left_on, right_on=right_on, how="anti"),
             "J": joined,
             "R": right.join(left, left_on=right_on, right_on=left_on, how="anti"),
         },
-        extra={"warnings": warnings} if warnings else {},
+        extra=extra,
     )
 
 

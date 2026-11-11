@@ -106,6 +106,26 @@ class QualityConfig(ToolConfig):
     rules: list[QualityRule] = Field(
         default_factory=list, title="Regras", json_schema_extra=ui(widget="quality_rules")
     )
+    stop: Literal["never", "any", "pct"] = Field(
+        "never",
+        title="Interromper o fluxo",
+        description="A caixa fica em erro e nada do que vem depois dela executa.",
+        json_schema_extra=ui(
+            group="Controle",
+            labels={
+                "never": "Nunca: o que falha sai em F",
+                "any": "Se qualquer linha falhar",
+                "pct": "Se falhar mais do que uma porcentagem",
+            },
+        ),
+    )
+    stop_pct: float = Field(
+        5,
+        ge=0,
+        le=100,
+        title="Porcentagem de falha aceita (%)",
+        json_schema_extra=ui(group="Controle", show_if={"stop": ["pct"]}, step=0.5),
+    )
 
 
 # ------------------------------------------------------------------ CPF e CNPJ
@@ -365,6 +385,16 @@ def _annotation(cfg: QualityConfig) -> str:
 )
 def data_quality(ctx: NodeContext, cfg: QualityConfig) -> NodeOutput:
     passed, failed, counts = check_quality(ctx.input(), cfg.rules, ctx.inputs.get("L"))
+    total = passed.height + failed.height
+    pct = failed.height / total * 100 if total else 0.0
+    if failed.height and (cfg.stop == "any" or (cfg.stop == "pct" and pct > cfg.stop_pct)):
+        worst = sorted(counts, key=lambda c: -c["failed"])[:3]
+        detail = "; ".join(f"{c['failed']} em {c['rule']} [{c['column']}]" for c in worst if c["failed"])
+        limit = "" if cfg.stop == "any" else f" (aceito: {cfg.stop_pct:g}%)".replace(".", ",")
+        raise ValueError(
+            f"Fluxo interrompido: {failed.height} de {total} linhas falharam, {pct:.1f}%".replace(".", ",")
+            + f"{limit}. {detail}."
+        )
     return NodeOutput(
         tables={"P": passed, "F": failed},
         extra={"dq_failed": failed.height, "dq_passed": passed.height, "dq_rules": counts},

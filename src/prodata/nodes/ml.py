@@ -8,7 +8,9 @@ import numpy as np
 import polars as pl
 from pydantic import Field
 
+from prodata.errors import InvalidInputError
 from prodata.forms import ui
+from prodata.nodes import ml_library, ml_store
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
 
 if TYPE_CHECKING:
@@ -129,6 +131,118 @@ class TrainerConfig(ToolConfig):
         description="Fração reservada para medir as métricas.",
         json_schema_extra=ui(group="Avançado", step=0.05),
     )
+    training: Literal["fixed", "always"] = Field(
+        "fixed",
+        title="Quando treinar",
+        description="O modelo fica guardado neste computador, com versão, data e métricas.",
+        json_schema_extra=ui(
+            group="Modelo guardado",
+            labels={
+                "fixed": "Modelo fixo: só treina de novo quando a Versão aumenta",
+                "always": "Treinar sempre que os dados mudarem",
+            },
+        ),
+    )
+    version: int = Field(
+        1,
+        ge=1,
+        le=9999,
+        title="Versão",
+        description="No modelo fixo, aumente para treinar de novo. Em Treinar sempre, a versão em uso é a mais nova.",
+        # Aparece nos dois modos: a lista das versões guardadas vale para ambos (o campo depende de "training" para redesenhar).
+        json_schema_extra=ui(
+            widget="model_versions", group="Modelo guardado", show_if={"training": ["fixed", "always"]}
+        ),
+    )
+    publish_as: str = Field(
+        "",
+        title="Nome na biblioteca de modelos",
+        description=(
+            "Opcional. Com um nome, o modelo fica na biblioteca deste computador: a caixa Model Input usa em "
+            "qualquer fluxo, e dá para exportar o arquivo e levar para outro computador."
+        ),
+        json_schema_extra=ui(widget="model_save", group="Modelo guardado", placeholder="Ex.: churn_clientes"),
+    )
+
+
+def _metric_text(metrics: dict[str, Any]) -> str:
+    if metrics.get("task") == "classification":
+        return f"acurácia {metrics.get('accuracy_pct')}%"
+    return f"R² {metrics.get('r2')}"
+
+
+def _stored(ctx: NodeContext, cfg: TrainerConfig, df: pl.DataFrame) -> NodeOutput:
+    """Treina, reaproveita ou versiona conforme "Quando treinar" (spec 033)."""
+    folder = ctx.state_dir()
+    features = [c for c in (cfg.feature_columns or df.columns) if c != cfg.target_column]
+    setup = ml_store.config_hash(
+        {
+            "task": cfg.task_type,
+            "algorithm": cfg.algorithm,
+            "target": cfg.target_column,
+            "features": features,
+            "holdout": cfg.holdout_ratio,
+        }
+    )
+    data = ml_store.data_hash(df.select([c for c in [*features, cfg.target_column] if c in df.columns]))
+    info = {"config": setup, "data": data, "rows": df.height}
+    saved = ml_store.versions(folder)
+
+    def result(bundle: dict[str, Any], record: dict[str, Any], notes: list[str], reused: bool) -> NodeOutput:
+        extra: dict[str, Any] = {
+            "ml_metrics": bundle["metrics"],
+            "ml_model": {
+                "version": record["version"],
+                "trained_at": record["trained_at"],
+                "rows": record["rows"],
+                "reused": reused,
+                "versions": ml_store.versions(folder),
+            },
+        }
+        if cfg.publish_as.strip():
+            origin = f"{ctx.workflow_id}/{ctx.node_id}"
+            ml_library.publish(ml_library.folder_of(ctx.state_root), cfg.publish_as, bundle, record, origin)
+            extra["ml_published"] = ml_library.slug(cfg.publish_as)
+        if notes:
+            extra["warnings"] = notes
+        return NodeOutput(tables={"I": bundle["importance"]}, models={"M": bundle}, extra=extra)
+
+    def train(version: int) -> tuple[dict[str, Any], dict[str, Any]]:
+        bundle = _train(cfg, df)
+        return bundle, ml_store.save(folder, version, bundle, {**info, "metrics": bundle["metrics"]})
+
+    if cfg.training == "fixed":
+        record = ml_store.meta(folder, cfg.version) if cfg.version in saved else None
+        if record is None:
+            bundle, record = train(cfg.version)
+            return result(bundle, record, [], False)
+        if record.get("config") != setup:
+            raise InvalidInputError(
+                f"O modelo v{cfg.version} foi treinado com outro alvo, outras variáveis ou outro algoritmo. "
+                "Aumente a Versão para treinar de novo com a configuração de agora."
+            )
+        notes = []
+        if record.get("data") != data:
+            notes.append(
+                f"Usando o modelo v{cfg.version} de {ml_store.when(record)}, treinado com "
+                f"{record.get('rows')} linhas. Os dados mudaram desde então: aumente a Versão para treinar de novo."
+            )
+        return result(ml_store.load(folder, cfg.version, record), record, notes, True)
+
+    last = ml_store.meta(folder, saved[-1]) if saved else None
+    if last is not None and last.get("config") == setup and last.get("data") == data:
+        return result(ml_store.load(folder, saved[-1], last), last, [], True)
+    bundle, record = train((saved[-1] + 1) if saved else 1)
+    # Cada mudança nos dados cria uma versão: ficam as últimas, para a pasta não crescer para sempre.
+    for old in ml_store.versions(folder)[: -ml_store.KEEP_ALWAYS]:
+        ml_store.delete(folder, old, in_use=record["version"])
+    notes = []
+    if last is not None:
+        notes.append(
+            f"Modelo treinado de novo (v{record['version']}) porque os dados ou a configuração mudaram: "
+            f"{_metric_text(last.get('metrics') or {})} → {_metric_text(bundle['metrics'])}."
+        )
+    return result(bundle, record, notes, False)
 
 
 @tool(
@@ -141,11 +255,22 @@ class TrainerConfig(ToolConfig):
     inputs=[Port("in", "D", "Dados de treino")],
     outputs=[Port("M", "M", "Modelo", kind="model"), Port("I", "I", "Importância das variáveis")],
     annotate=lambda c: f"{c.algorithm} → {c.target_column}",
+    explainer="model_card",
 )
 def trainer(ctx: NodeContext, cfg: TrainerConfig) -> NodeOutput:
     df = ctx.input()
     if cfg.target_column not in df.columns:
         raise ValueError("Escolha a coluna alvo.")
+    if ctx.state_root is not None and ctx.workflow_id and ctx.node_id:
+        return _stored(ctx, cfg, df)
+    # Sem pasta de dados (uso do motor por script): treina e entrega, sem guardar.
+    bundle = _train(cfg, df)
+    return NodeOutput(
+        tables={"I": bundle["importance"]}, models={"M": bundle}, extra={"ml_metrics": bundle["metrics"]}
+    )
+
+
+def _train(cfg: TrainerConfig, df: pl.DataFrame) -> dict[str, Any]:
     features = [c for c in (cfg.feature_columns or df.columns) if c != cfg.target_column]
     if not features:
         raise ValueError("Nenhuma variável de entrada disponível.")
@@ -203,7 +328,7 @@ def trainer(ctx: NodeContext, cfg: TrainerConfig) -> NodeOutput:
         {"variavel": features, "importancia_pct": [round(float(v) / total * 100, 2) for v in raw_imp]}
     ).sort("importancia_pct", descending=True)
 
-    bundle = {
+    return {
         "model": model,
         "task_type": cfg.task_type,
         "target_column": cfg.target_column,
@@ -211,8 +336,8 @@ def trainer(ctx: NodeContext, cfg: TrainerConfig) -> NodeOutput:
         "encoders": encoders,
         "classes": classes,
         "metrics": metrics,
+        "importance": importance,
     }
-    return NodeOutput(tables={"I": importance}, models={"M": bundle}, extra={"ml_metrics": metrics})
 
 
 # ------------------------------------------------------------------ Predictor
@@ -247,3 +372,48 @@ def predictor(ctx: NodeContext, cfg: PredictorConfig) -> NodeOutput:
     else:
         cols = [pl.Series(cfg.prediction_column, np.round(raw.astype(float), 4))]
     return NodeOutput(tables={"out": df.with_columns(cols)}, extra={"ml_metrics": bundle["metrics"]})
+
+
+# ------------------------------------------------------------------ Model Input (spec 033)
+
+
+class ModelInputConfig(ToolConfig):
+    model: str = Field(
+        "",
+        title="Modelo",
+        description="Um modelo da biblioteca deste computador: guardado por um Model Trainer ou importado de um arquivo .modelo.",
+        json_schema_extra=ui(widget="model"),
+    )
+
+
+def _model_signature(ctx: NodeContext, cfg: ModelInputConfig) -> str:
+    if not cfg.model or ctx.state_root is None:
+        return ""
+    try:
+        return str(ml_library.card(ml_library.folder_of(ctx.state_root), cfg.model).get("sha256", ""))
+    except InvalidInputError, LookupError, OSError:
+        return "sumiu"
+
+
+@tool(
+    type="ml.model_input",
+    name="Model Input",
+    category="ml",
+    icon="brain",
+    description="Traz um modelo já treinado da biblioteca de modelos, sem treinar de novo. Ligue a saída [M] num Predictor.",
+    config=ModelInputConfig,
+    inputs=[],
+    outputs=[Port("M", "M", "Modelo", kind="model"), Port("I", "I", "Importância das variáveis")],
+    annotate=lambda c: c.model or "Escolha o modelo",
+    fingerprint=_model_signature,
+    explainer="model_card",
+)
+def model_input(ctx: NodeContext, cfg: ModelInputConfig) -> NodeOutput:
+    if not cfg.model:
+        raise InvalidInputError("Escolha o modelo.")
+    bundle, card = ml_library.load(ml_library.folder_of(ctx.state_root), cfg.model)
+    return NodeOutput(
+        tables={"I": bundle["importance"]},
+        models={"M": bundle},
+        extra={"ml_metrics": bundle["metrics"], "ml_card": card},
+    )

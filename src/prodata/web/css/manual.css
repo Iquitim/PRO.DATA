@@ -41,6 +41,9 @@ body.manual-open [data-resize="right"], body.manual-open #slot-right { visibilit
 .manual-text .intro { color: var(--text-2); font-size: var(--fs-sm); }
 .manual-text .two-col, .manual-text [style*="grid-template-columns"] { display: block !important; }
 .manual-text figure { margin: 6px 0 10px; }
+/* esquema de uma caixa: a captura tem a largura do painel Configurar, e esticar deixaria o texto enorme */
+.manual-text .feature figure { max-width: 300px; margin-inline: auto; }
+.manual-text .feature > div > :last-child { margin-bottom: 8px; }
 .manual-text figcaption { margin-top: 3px; color: var(--text-3); font-size: var(--fs-xs); }
 .manual-text .frame { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); }
 .manual-text img { display: block; width: 100%; height: auto; }

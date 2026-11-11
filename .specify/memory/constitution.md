@@ -4,7 +4,7 @@ Princípios não negociáveis do projeto. Toda spec, plano e PR deve ser compat�
 com eles; quando um princípio precisar mudar, altere este arquivo primeiro, em PR
 separado, com justificativa.
 
-Versão: 1.4.0 · Ratificada: 2026-10-28 · Emendada: 2026-10-30 (princípio IV: cofre do SO, conectores somente leitura; destinos escolhidos pelo usuário — spec 009; imagens PNG do dashboard — spec 014; arquivos de origem vinculados — spec 017)
+Versão: 1.5.0 · Ratificada: 2026-10-28 · Emendada: 2026-11-09 (princípio IV: cofre do SO, conectores somente leitura; destinos escolhidos pelo usuário — spec 009; imagens PNG do dashboard — spec 014; arquivos de origem vinculados — spec 017; pasta lida, modelo de Excel e estado das caixas — spec 033)
 
 ## I. Spec antes do código (SDD)
 
@@ -44,6 +44,12 @@ exceto widgets especializados reutilizáveis.
 - Arquivos de origem **vinculados** pelo usuário (spec 017) podem ser lidos fora do diretório de
   dados: caminho absoluto, arquivo existente no momento do vínculo, extensão da lista permitida.
   São somente leitura: o PRO.DATA nunca grava, move ou apaga o arquivo vinculado.
+- A pasta do Input Folder e o modelo de Excel do Output Data (spec 033) seguem a mesma regra dos arquivos
+  vinculados: caminho absoluto escolhido pelo usuário, existente, extensão da lista permitida, somente
+  leitura. A abertura protegida mostra os dois a quem recebe o fluxo.
+- O que uma caixa guarda entre execuções (modelos de ML, tabelas do Compare Runs) fica na pasta de dados do
+  computador, num caminho montado com o ID do fluxo e da caixa. Nunca vai no arquivo do fluxo, e um arquivo
+  de modelo só é lido dali, depois de conferido o seu SHA-256.
 - Uploads têm lista de extensões permitidas e tamanho máximo.
 - Segredos (senhas de banco, chaves de API) nunca são salvos em workflows,
   arquivos do projeto ou logs, nem devolvidos pela API. Ficam no cofre do

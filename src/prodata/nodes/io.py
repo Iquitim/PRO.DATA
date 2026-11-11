@@ -34,6 +34,7 @@ from prodata.nodes.excel_output import (
     _sheet_list,
     write_excel_book,
 )
+from prodata.nodes.excel_template import drawing_warning, template_path, write_template
 from prodata.services.audit import log_export
 
 # ------------------------------------------------------------------ Input Data
@@ -421,6 +422,34 @@ class OutputDataConfig(ToolConfig):
         description="No Excel, ligue mais tabelas nesta caixa: cada uma vira uma planilha do mesmo arquivo.",
         json_schema_extra=ui(widget="sheet_ports", show_if={"format": ["excel"]}),
     )
+    template: str = Field(
+        "",
+        title="Modelo de Excel",
+        description=(
+            "Opcional. Um .xlsx já formatado: os dados entram numa cópia dele, e o modelo nunca é alterado. "
+            "Mantém formatos, larguras e fórmulas do resto da planilha."
+        ),
+        json_schema_extra=ui(
+            widget="file",
+            group="Modelo",
+            show_if={"format": ["excel"]},
+            placeholder="D:\\Modelos\\fechamento.xlsx",
+        ),
+    )
+    template_cell: str = Field(
+        "A1",
+        title="Célula inicial",
+        description="Onde começa o cabeçalho (ou a primeira linha de dados, sem cabeçalho). A planilha é a de 'Nome da planilha'.",
+        json_schema_extra=ui(group="Modelo", show_if={"format": ["excel"]}),
+    )
+    template_header: bool = Field(
+        True, title="Gravar o cabeçalho", json_schema_extra=ui(group="Modelo", show_if={"format": ["excel"]})
+    )
+    template_clear: bool = Field(
+        True,
+        title="Limpar linhas antigas abaixo dos dados",
+        json_schema_extra=ui(group="Modelo", show_if={"format": ["excel"]}),
+    )
     if_exists: Literal["ask", "replace", "new_file", "add_sheet"] = Field(
         "ask",
         title="Se o arquivo já existir",
@@ -451,6 +480,15 @@ def export_path(exports_dir: Path, cfg: OutputDataConfig) -> Path:
     if not folder.is_dir():
         raise InvalidInputError(f"A pasta de destino não existe: {folder}")
     return folder.resolve() / name
+
+
+def _has_sheet(template: Path, name: str) -> bool:
+    from openpyxl import load_workbook
+
+    try:
+        return name in load_workbook(template, read_only=True).sheetnames
+    except Exception:  # o erro de leitura aparece, com mensagem própria, ao gravar
+        return False
 
 
 def new_file_path(path: Path) -> Path:
@@ -490,6 +528,11 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
     extras = {p: t for p, t in ctx.inputs.items() if p != "in"}
     if extras and cfg.format != "excel":
         raise InvalidInputError("Só o formato Excel recebe várias tabelas: cada uma vira uma planilha.")
+    template = template_path(cfg.template) if cfg.format == "excel" and cfg.template.strip() else None
+    if template and extras:
+        raise InvalidInputError("Com modelo, o Output Data grava uma tabela só: use uma caixa por planilha.")
+    if template and cfg.if_exists == "add_sheet":
+        raise InvalidInputError('"Adicionar planilha" não combina com modelo: o arquivo nasce do modelo.')
     sheets = _sheet_list(df, extras, cfg) if cfg.format == "excel" else []
     if cfg.if_exists == "add_sheet" and cfg.format != "excel":
         raise InvalidInputError(
@@ -508,6 +551,20 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
     match cfg.format:
         case "csv":
             df.write_csv(path, separator=";")
+        case "excel" if template:
+            # "Dados" é o padrão do campo: com modelo, vale como "a primeira planilha".
+            write_template(
+                df,
+                template,
+                path,
+                sheet=""
+                if cfg.sheet_name.strip() == "Dados" and not _has_sheet(template, "Dados")
+                else cfg.sheet_name,
+                cell=cfg.template_cell,
+                header=cfg.template_header,
+                clear=cfg.template_clear,
+                label=cfg.confidentiality,
+            )
         case "excel":
             write_excel_book(sheets, path, cfg.if_exists == "add_sheet", cfg.confidentiality)
         case "json":
@@ -531,6 +588,10 @@ def output_data(ctx: NodeContext, cfg: OutputDataConfig) -> NodeOutput:
     )
     if len(sheets) > 1:
         extra["exported_sheets"] = [name for name, _ in sheets]
+    if template:
+        extra["exported_template"] = template.name
+        if note := drawing_warning(template):
+            extra["warnings"] = [note]
     if cfg.folder.strip():
         extra["exported_path"] = str(path)
     return NodeOutput(tables={"out": df}, extra=extra)

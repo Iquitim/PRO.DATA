@@ -37,6 +37,7 @@
   --cat-inout: #1f8a5b;
   --cat-prep: #2a63d6;
   --cat-transform: #6d4fc9;
+  --cat-control: #0e7490;
   --cat-bi: #b7740f;
   --cat-ml: #138496;
   --cat-org: #64748b;
@@ -121,6 +122,7 @@
     --cat-inout: #50fa7b;
     --cat-prep: #8be9fd;
     --cat-transform: #bd93f9;
+    --cat-control: #f1fa8c;
     --cat-bi: #ffb86c;
     --cat-ml: #ff79c6;
     --cat-org: #a5adcb;
@@ -187,6 +189,7 @@
   --cat-inout: #50fa7b;
   --cat-prep: #8be9fd;
   --cat-transform: #bd93f9;
+  --cat-control: #f1fa8c;
   --cat-bi: #ffb86c;
   --cat-ml: #ff79c6;
   --cat-org: #a5adcb;
@@ -226,6 +229,7 @@
 [data-category="inout"] { --cat: var(--cat-inout); }
 [data-category="prep"] { --cat: var(--cat-prep); }
 [data-category="transform"] { --cat: var(--cat-transform); }
+[data-category="control"] { --cat: var(--cat-control); }
 [data-category="bi"] { --cat: var(--cat-bi); }
 [data-category="ml"] { --cat: var(--cat-ml); }
 [data-category="org"] { --cat: var(--cat-org); }

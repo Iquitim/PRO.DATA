@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from prodata.api.deps import Services, ServicesDep
 from prodata.domain.workflow import ID_PATTERN, Workflow
 from prodata.engine.graph import GraphError
+from prodata.engine.sql.dialects import Dialect, convert_parts
 from prodata.engine.sql.fragment import slug
 from prodata.engine.sql.plan import OK, Env, Output, SqlPlan, build_plan, temporary_output
 from prodata.engine.sql.render import render, to_text
@@ -28,6 +29,8 @@ class GenerateRequest(BaseModel):
     workflow: Workflow
     selection: list[str] = []
     temporary_node: str | None = None
+    # Spec 033: Spark SQL e T-SQL saem convertidos do DuckDB, sem conferência.
+    dialect: Dialect = "duckdb"
 
 
 class DownloadRequest(GenerateRequest):
@@ -165,11 +168,12 @@ def generate(req: GenerateRequest, services: ServicesDep) -> dict[str, Any]:
     plan = _plan(services, req.workflow)
     result, running = _visible_result(services, req.workflow)
     outputs, temporary = _resolve(plan, req)
-    parts = render(plan, outputs, _states(plan, outputs, result))
+    parts = convert_parts(plan, render(plan, outputs, _states(plan, outputs, result)), req.dialect)
     views = [_output_view(plan, o, result) for o in plan.outputs]
     selected = [o.id for o in outputs]
     return {
-        "dialect": "duckdb",
+        "dialect": req.dialect,
+        "unverified": req.dialect != "duckdb",
         "blocks": _block_view(plan, result),
         "outputs": views,
         "selection": selected,
@@ -235,10 +239,15 @@ def download(req: DownloadRequest, services: ServicesDep) -> Response:
     plan = _plan(services, req.workflow)
     result, _ = _visible_result(services, req.workflow)
     name = slug(req.workflow.name or "fluxo")
+    mark = "" if req.dialect == "duckdb" else f"__{req.dialect}_nao_conferido"
+
+    def text_of(chosen: list[Output]) -> str:
+        return to_text(convert_parts(plan, render(plan, chosen, _states(plan, chosen, result)), req.dialect))
+
     if req.mode != "zip":
         outputs, _temporary = _resolve(plan, req)
-        text = to_text(render(plan, outputs, _states(plan, outputs, result)))
-        file = f"{name}.sql" if len(outputs) != 1 else f"{name}__{slug(outputs[0].name)}.sql"
+        text = text_of(outputs)
+        file = f"{name}{mark}.sql" if len(outputs) != 1 else f"{name}__{slug(outputs[0].name)}{mark}.sql"
         return Response(text, media_type="application/sql", headers=_attachment(file))
     tables = [o for o in plan.outputs if o.kind == "table"]
     buffer = io.BytesIO()
@@ -248,12 +257,10 @@ def download(req: DownloadRequest, services: ServicesDep) -> Response:
             base = slug(output.name)
             file = base if base not in used else f"{base}_{len(used)}"
             used.add(file)
-            archive.writestr(f"{file}.sql", to_text(render(plan, [output], _states(plan, [output], result))))
+            archive.writestr(f"{file}{mark}.sql", text_of([output]))
         if len(tables) > 1:
-            archive.writestr(
-                "_todas_as_saidas.sql", to_text(render(plan, tables, _states(plan, tables, result)))
-            )
-    return Response(buffer.getvalue(), media_type="application/zip", headers=_attachment(f"{name}.zip"))
+            archive.writestr(f"_todas_as_saidas{mark}.sql", text_of(tables))
+    return Response(buffer.getvalue(), media_type="application/zip", headers=_attachment(f"{name}{mark}.zip"))
 
 
 def _attachment(file: str) -> dict[str, str]:

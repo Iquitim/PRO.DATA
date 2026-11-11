@@ -19,7 +19,7 @@ export const KINDS = {
 
 const JIRA_TABLES = { issues: 'Demandas', history: 'Histórico', comments: 'Comentários' };
 const FORMAT_LABELS = { csv: 'CSV', excel: 'Excel', parquet: 'Parquet', json: 'JSON', ndjson: 'JSON Lines', arrow: 'Arrow' };
-const DB_LABELS = { postgres: 'PostgreSQL', sqlserver: 'SQL Server' };
+const DB_LABELS = { postgres: 'PostgreSQL', mssql: 'SQL Server', sqlserver: 'SQL Server', odbc: 'ODBC' };
 
 /** Onde cada fonte é usada, nos fluxos da biblioteca. Atualizado ao abrir a vista e depois de salvar. */
 export const usage = { map: {}, loaded: false };
@@ -108,7 +108,7 @@ export function allSources() {
   for (const c of store.connections) {
     out.push({
       kind: 'conn', key: `conn:${c.id}`, id: c.id, usageKey: null, name: c.name, raw: c,
-      meta: `${DB_LABELS[c.kind] || c.kind} · ${c.host}/${c.database}`,
+      meta: c.kind === 'odbc' ? `ODBC · ${c.odbc_dsn}` : `${DB_LABELS[c.kind] || c.kind} · ${c.host}/${c.database}`,
       state: c.has_password ? ok : { label: 'sem senha', tone: 'warn' },
       draggable: false,
     });

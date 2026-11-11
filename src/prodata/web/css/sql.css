@@ -103,7 +103,10 @@ body[data-view="sql"] .sql-view { display: grid; }
 .sql-state.partial { background: var(--warn-weak); color: var(--warn); }
 .sql-state.mismatch { background: var(--err-weak); color: var(--err); }
 .sql-sub { min-width: 0; font-size: var(--fs-sm); color: var(--text-2); }
-.sql-dialect { padding: 1px 7px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font: 500 var(--fs-xs) var(--mono); color: var(--text-2); cursor: help; }
+.sql-dialect { width: auto; max-width: 240px; height: 26px; font-size: var(--fs-xs); }
+.sql-unverified { display: flex; align-items: flex-start; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--warn-weak); font-size: var(--fs-sm); }
+.sql-unverified[hidden] { display: none; }
+.sql-unverified .icon { color: var(--warn); flex-shrink: 0; margin-top: 2px; }
 .sql-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
 .sql-notes { display: flex; flex-direction: column; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); font-size: var(--fs-sm); }
 .sql-notes[hidden] { display: none; }

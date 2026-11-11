@@ -30,7 +30,7 @@ from prodata.domain.execution import (
 )
 from prodata.domain.workflow import Node, Workflow
 from prodata.engine import constants as constants_engine
-from prodata.engine import graph
+from prodata.engine import graph, subflow
 from prodata.engine.cache import FrozenEntry, NodeEntry, ResultCache
 from prodata.engine.profiling import simple_type
 from prodata.errors import NotFoundError, ProdataError
@@ -61,6 +61,9 @@ class _Inputs:
 
 
 def _summarize(entry: NodeEntry) -> dict[str, AnchorSummary]:
+    if entry.summary is not None:
+        cached: dict[str, AnchorSummary] = entry.summary
+        return cached
     anchors: dict[str, AnchorSummary] = {}
     for port, df in entry.tables.items():
         nulls = df.null_count().row(0) if df.width else ()
@@ -81,6 +84,7 @@ def _summarize(entry: NodeEntry) -> dict[str, AnchorSummary]:
         anchors[port] = AnchorSummary(
             kind="model", row_count=1, col_count=len(bundle["feature_columns"]), metrics=bundle["metrics"]
         )
+    entry.summary = anchors
     return anchors
 
 
@@ -101,8 +105,20 @@ class WorkflowRunner:
         apis: ApiStore | None = None,
         constants: ConstantStore | None = None,
         jira: Any = None,
+        *,
+        state_dir: Path | None = None,
+        workflows: Any = None,
+        secret_key: Any = None,
+        guard: Any = None,
     ) -> None:
         self.jira = jira
+        # Spec 033: estado das caixas entre execuções, biblioteca (subfluxos) e chave do Mask.
+        self.state_dir = state_dir
+        self.workflows = workflows
+        self.secret_key = secret_key
+        self.guard = guard
+        self.chain: tuple[str, ...] = ()
+        self.injected: dict[str, tuple[pl.DataFrame, str]] | None = None
         self.constants = constants
         self.cache = cache
         self.datasets = datasets
@@ -425,7 +441,16 @@ class WorkflowRunner:
             self.apis,
             constants=resolution.values.get(node.id, {}) if resolution else {},
             jira=self.jira,
+            workflow_id=workflow.id,
+            node_id=node.id,
+            state_root=self.state_dir,
+            hold=hold,
+            input_fingerprints=inputs.fingerprints,
+            injected=self.injected,
+            secret_key=self.secret_key,
         )
+        ctx.run_subflow = lambda child: subflow.run(self, workflow, node, child, ctx)
+        ctx.subflow_signature = lambda child: subflow.signature(self, child)
         if progress is not None:
             ctx.report = lambda text: progress.__setitem__("detail", text)
         started = time.perf_counter()
@@ -509,7 +534,10 @@ class WorkflowRunner:
             else:
                 if edge.source_handle not in entry.tables:
                     raise SkippedError(f"A entrada [{port.label}] espera uma tabela.")
-                found.tables[port.id] = entry.tables[edge.source_handle]
+                try:
+                    found.tables[port.id] = entry.tables[edge.source_handle]
+                except ProdataError as exc:  # saiu da memória e o arquivo do cache sumiu
+                    raise SkippedError(f"Entrada [{port.label}] indisponível. {exc.message}") from exc
             found.fingerprints[port.id] = f"{fingerprints[edge.source]}:{edge.source_handle}"
 
         missing = [p.label for p in spec.inputs if p.required and p.id not in found.fingerprints]

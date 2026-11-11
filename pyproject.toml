@@ -1,6 +1,6 @@
 [project]
 name = "prodata"
-version = "0.7.2"
+version = "0.7.5"
 description = "Plataforma visual de pipelines de dados (ETL colunar, BI e AutoML) sobre Polars, DuckDB e Apache Arrow."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -17,8 +17,11 @@ dependencies = [
     "pyarrow>=26.0.0",
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.2",
+    "pyodbc>=5.2",
     "python-multipart>=0.0.32",
     "scikit-learn>=1.9.1",
+    "skops>=0.13",
+    "sqlglot>=30",
     "uvicorn[standard]>=0.54.0",
     "xlsxwriter>=3.3.1",
 ]
@@ -26,6 +29,7 @@ dependencies = [
 [project.scripts]
 prodata = "prodata.__main__:main"
 prodata-desktop = "prodata.desktop:main"
+prodata-cli = "prodata.cli:cli_only"
 
 [project.optional-dependencies]
 desktop = [
