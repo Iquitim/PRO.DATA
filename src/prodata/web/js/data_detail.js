@@ -10,6 +10,7 @@ import { refreshConstants } from './constants.js';
 import { constantEditor } from './constants_ui.js';
 import { KINDS, usageText, usesOf } from './data_sources.js';
 import { usageMap } from './data_map.js';
+import { aboutBlock, originalLine, orgChips, titleEditor } from './data_meta.js';
 import { addInputNode, openPreview, previewTable, removeDataset, uploadFiles } from './datasets.js';
 import { button, fmt, h } from './dom.js';
 import { icon } from './icons.js';
@@ -163,10 +164,14 @@ export function sourceDetail(source, ctx) {
   return h('div', { class: 'dv-detail' },
     h('header', { class: 'dv-head' },
       h('span', { class: 'dv-head-icon', style: { '--kind': kind.color } }, icon(kind.icon, 22)),
-      h('div', { class: 'dv-head-text' }, h('h2', {}, source.name), h('p', {}, `${kind.one[0].toUpperCase()}${kind.one.slice(1)} · ${source.meta}`)),
-      h('span', { class: ['dv-chip', `tone-${source.state.tone}`] }, icon(TONES[source.state.tone], 12), source.state.label),
-      h('button', { type: 'button', class: ['dv-chip', 'dv-chip-use', !uses.length && 'none'], onclick: () => ctx.setTab('usage') }, usageText(source)),
+      h('div', { class: 'dv-head-text' }, titleEditor(source, { editing: ctx.rename }),
+        h('p', {}, `${kind.one[0].toUpperCase()}${kind.one.slice(1)} · `, originalLine(source), source.info.label ? ' · ' : null, source.meta),
+        h('div', { class: 'dv-head-chips' },
+          h('span', { class: ['dv-chip', `tone-${source.state.tone}`] }, icon(TONES[source.state.tone], 12), source.state.label),
+          h('button', { type: 'button', class: ['dv-chip', 'dv-chip-use', !uses.length && 'none'], onclick: () => ctx.setTab('usage') }, usageText(source)),
+          orgChips(source))),
       h('div', { class: 'dv-head-actions' }, actionsFor(source, ctx))),
+    aboutBlock(source),
     h('nav', { class: 'dv-tabs', role: 'tablist', 'aria-label': 'Seções da fonte' }, tabs.map(([k, label]) => h('button', {
       type: 'button', role: 'tab', class: 'dv-tab', 'aria-selected': String(k === tab), dataset: { tab: k },
       onclick: () => ctx.setTab(k),

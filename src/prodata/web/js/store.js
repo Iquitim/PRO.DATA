@@ -17,6 +17,7 @@ export const store = {
   jiraConnections: [],
   jiraQueries: [],
   constants: [], // constantes compartilhadas, da vista Dados (spec 028)
+  organization: { folders: [], sources: {} }, // pastas, nomes de exibição e descrições da vista Dados (spec 034)
   workflow: null,
   filePath: null, // arquivo .prodata.json fora da biblioteca, quando aberto/salvo por "Salvar como"
 
@@ -290,7 +291,20 @@ export const jiraOf = (source) => (source?.startsWith(JIRA_PREFIX)
   ? store.jiraQueries.find((q) => q.id === source.slice(JIRA_PREFIX.length)) || null : null);
 
 /** Nome amigável de uma fonte: nome da consulta ou arquivo sem extensão. */
+/** Chave da vista Dados (`file:…`, `query:…`) para o valor de fonte que um fluxo guarda (spec 034). */
+export function sourceKey(value) {
+  if (!value) return null;
+  if (value.startsWith(QUERY_PREFIX)) return `query:${value.slice(QUERY_PREFIX.length)}`;
+  if (value.startsWith(API_PREFIX) || value.startsWith(JIRA_PREFIX)) return value;
+  return `file:${value}`;
+}
+
+/** Nome de exibição dado na vista Dados, ou '' quando a fonte usa o nome original. */
+export const displayName = (key) => store.organization.sources[key]?.label || '';
+
 export function sourceLabel(source) {
+  const shown = displayName(sourceKey(source));
+  if (shown) return shown;
   if (source?.startsWith(QUERY_PREFIX)) return queryOf(source)?.name || 'Consulta de banco';
   if (source?.startsWith(API_PREFIX)) return apiOf(source)?.name || 'API';
   if (source?.startsWith(JIRA_PREFIX)) return jiraOf(source)?.name || 'Jira';

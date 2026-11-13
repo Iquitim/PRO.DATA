@@ -90,6 +90,12 @@ export function closeMenu() {
 }
 
 /** items: [{label, icon, onSelect, danger, disabled, shortcut} | 'separator'] */
+/** Ícone com cor própria no menu, como a cor de uma pasta (spec 034). */
+function tinted(svg, color) {
+  if (color) svg.style.color = color;
+  return svg;
+}
+
 export function showMenu(x, y, items) {
   closeMenu();
   const menu = h('div', { class: 'menu', role: 'menu' },
@@ -102,7 +108,7 @@ export function showMenu(x, y, items) {
         disabled: item.disabled,
         onclick: () => { closeMenu(); item.onSelect(); },
       },
-      item.icon ? icon(item.icon, 15) : h('span', { class: 'icon' }),
+      item.icon ? tinted(icon(item.icon, 15), item.color) : h('span', { class: 'icon' }),
       h('span', {}, item.label),
       item.shortcut ? h('kbd', {}, item.shortcut) : null))));
   (document.querySelector('dialog[open]') || document.body).append(menu); // numa janela, fora dela ficaria por baixo

@@ -8,14 +8,16 @@ import { connectionEditor, queryEditor, refreshConnections, refreshQueries } fro
 import { refreshConstants } from './constants.js';
 import { constantEditor } from './constants_ui.js';
 import { sourceDetail } from './data_detail.js';
-import { allSources, KINDS, matches, refreshUsage, usageText, usesOf } from './data_sources.js';
+import { markOpened, organizedList } from './data_folders.js';
+import { allSources, KINDS, refreshUsage, usesOf } from './data_sources.js';
 import { accept, linkFile, refreshDatasets, uploadFiles } from './datasets.js';
 import { button, h } from './dom.js';
 import { icon } from './icons.js';
+import { forgetSources } from './organization.js';
 import { on, store } from './store.js';
 import { confirmDialog, showMenu, toast, toastError } from './ui.js';
 
-const ui = { key: null, tab: 'overview', search: '', creating: null };
+const ui = { key: null, tab: 'overview', search: '', creating: null, rename: false };
 let root = null;
 let handlers = { openFlow: async () => {}, showDesigner: () => {} };
 const fileInput = h('input', { type: 'file', multiple: true, hidden: true,
@@ -57,42 +59,26 @@ function addMenu(e) {
   ]);
 }
 
-function card(source) {
-  const kind = KINDS[source.kind];
-  const n = usesOf(source).length;
-  return h('button', {
-    type: 'button', class: ['dv-card-item', ui.key === source.key && 'active'], dataset: { key: source.key },
-    onclick: () => { openInData(source.key, ui.key === source.key ? ui.tab : 'overview'); renderDataView(); },
-  },
-  h('span', { class: 'dv-card-icon', style: { '--kind': kind.color } }, icon(kind.icon, 17)),
-  h('strong', { class: 'ellipsis', title: source.name }, source.name),
-  h('span', { class: ['dv-state', `tone-${source.state.tone}`] }, source.state.label),
-  h('span', { class: 'dv-card-meta ellipsis', title: source.meta }, source.meta),
-  h('span', { class: ['dv-card-use', !n && 'none'] }, usageText(source)));
+/** Abrir pela lista: lembra para "Mais recentes" e, se pedido, já põe o título em edição. */
+function openFromList(key, opts = {}) {
+  markOpened(key);
+  openInData(key, ui.key === key ? ui.tab : 'overview');
+  ui.rename = Boolean(opts.rename);
+  renderDataView();
 }
 
 function listPane() {
+  const list = organizedList({ selectedKey: ui.key, onOpen: openFromList });
   const search = h('input', {
-    type: 'search', class: 'input input-search', placeholder: 'Buscar fonte ou fluxo', 'aria-label': 'Buscar fontes', value: ui.search,
-    oninput: (e) => { ui.search = e.target.value; drawList(); },
+    type: 'search', class: 'input input-search', placeholder: 'Buscar fonte, pasta, responsável ou fluxo', 'aria-label': 'Buscar fontes', value: ui.search,
+    oninput: (e) => { ui.search = e.target.value; list.draw(ui.search); },
   });
-  const groups = h('div', { class: 'dv-groups' });
-  const drawList = () => {
-    const sources = allSources().filter((s) => matches(s, ui.search));
-    groups.replaceChildren(...Object.entries(KINDS).map(([kind, meta]) => {
-      const items = sources.filter((s) => s.kind === kind);
-      if (!items.length) return null;
-      return h('section', { class: 'dv-group' },
-        h('div', { class: 'dv-group-title', style: { '--kind': meta.color } }, meta.title, h('span', {}, String(items.length))),
-        items.map(card));
-    }).filter(Boolean), ...(sources.length ? [] : [h('p', { class: 'muted pad' }, 'Nenhuma fonte encontrada.')]));
-  };
-  drawList();
+  list.draw(ui.search);
   return h('aside', { class: 'dv-list' },
     h('div', { class: 'dv-list-head' },
       h('div', {}, h('h1', {}, 'Seus dados'), h('p', {}, 'Valem para todos os fluxos deste computador')),
       button({ icon: 'plus', label: 'Adicionar', variant: 'primary', onClick: addMenu })),
-    search, groups, fileInput);
+    search, list.el, fileInput);
 }
 
 /** Primeira vez, ou nenhuma fonte escolhida: explica os tipos de fonte e leva a cada um (RF-2809). */
@@ -179,6 +165,7 @@ async function removeSource(source, action) {
     toastError(err, 'Não foi possível excluir');
     return;
   }
+  await forgetSources([source.key]);
   if (vault) toast('Excluída, e a credencial saiu do cofre do Windows', { kind: 'success' });
   ui.key = null;
   await afterChange();
@@ -189,6 +176,7 @@ export function renderDataView() {
   const selected = ui.key ? sourceByKey(ui.key) : null;
   const ctx = {
     tab: ui.tab,
+    rename: ui.rename,
     setTab: (tab) => { ui.tab = tab; renderDataView(); },
     refresh: () => afterChange(),
     mountEditor: (kind, opts) => newSource(kind, opts),
@@ -199,13 +187,14 @@ export function renderDataView() {
     showDesigner: () => handlers.showDesigner(),
   };
   const main = ui.creating ? creatingPane() : selected ? sourceDetail(selected, ctx) : welcome();
+  ui.rename = false;
   root.replaceChildren(listPane(), h('main', { class: 'dv-main' }, main));
 }
 
 export function initDataView(el, opts) {
   root = el;
   handlers = { ...handlers, ...opts };
-  for (const event of ['datasets', 'queries', 'apis', 'connections', 'constants']) on(event, () => renderDataView());
+  for (const event of ['datasets', 'queries', 'apis', 'connections', 'constants', 'organization']) on(event, () => renderDataView());
 }
 
 /** Ao entrar na vista: dados de uso frescos, porque outro fluxo pode ter sido salvo. */

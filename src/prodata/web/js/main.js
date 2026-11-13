@@ -12,6 +12,7 @@ import { askExports } from './exports_ask.js';
 import { refreshApis } from './apis.js';
 import { refreshConnections, refreshQueries } from './connections.js';
 import { refreshConstants } from './constants.js';
+import { refreshOrganization } from './organization.js';
 import { openFlowConstants } from './constants_ui.js';
 import { renderSourcesPanel } from './data_panel.js';
 import { initDataView, openInData, showDataView } from './data_view.js';
@@ -743,6 +744,7 @@ async function boot() {
     refreshApis().catch((err) => toastError(err, 'Não foi possível listar as APIs')),
     refreshJira().catch((err) => toastError(err, 'Não foi possível listar as consultas do Jira')),
     refreshConstants().catch((err) => toastError(err, 'Não foi possível listar as constantes')),
+    refreshOrganization(),
   ]);
 
   const returning = Boolean(savedTabs());

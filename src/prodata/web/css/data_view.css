@@ -187,3 +187,99 @@ body[data-view="data"] .data-view { display: flex; }
 .jira-more summary { margin-bottom: 8px; color: var(--text-2); cursor: pointer; }
 .jira-status-group { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; align-items: center; }
 .jira-status-group small { margin: 0; }
+
+/* ------------------------------------------------------------------ organização (spec 034) */
+.org-list { display: flex; flex-direction: column; gap: 10px; }
+.org-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.org-segmented { display: inline-flex; padding: 2px; background: var(--surface-3); border-radius: 8px; }
+.org-seg { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; font: inherit; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.org-seg[aria-checked="true"] { color: var(--text); background: var(--surface); box-shadow: var(--shadow-sm); }
+.org-seg:focus-visible, .org-chip:focus-visible, .org-toggle:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.org-sort { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); }
+.org-sort select { padding: 3px 4px; font: inherit; font-size: var(--fs-xs); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.org-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.org-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; font: inherit; font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; }
+.org-chip b { font-weight: 700; color: var(--text-3); }
+.org-chip:hover { border-color: var(--border-strong); }
+.org-chip[aria-checked="true"] { color: var(--accent); background: var(--accent-weak); border-color: var(--accent); }
+.org-chip-problem { color: var(--warn); }
+.org-chip-problem[aria-checked="true"] { color: var(--warn); background: var(--warn-weak); border-color: var(--warn); }
+.org-chip-pinned svg { color: var(--warn); }
+.org-chip[aria-checked="true"] b { color: inherit; }
+.org-picked { position: sticky; top: -18px; z-index: 2; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--accent-weak); border: 1px solid var(--accent); border-radius: 8px; box-shadow: var(--shadow-sm); }
+.org-picked strong { margin-right: auto; white-space: nowrap; font-size: var(--fs-sm); color: var(--accent); }
+
+.org-group { display: flex; flex-direction: column; gap: 6px; padding: 4px; margin: -4px; border: 1px dashed transparent; border-radius: 10px; transition: background .12s, border-color .12s; }
+.org-list.dragging .org-group:not([data-group^="kind:"]) { border-color: var(--border-strong); }
+.org-group.drop-over { background: color-mix(in srgb, var(--folder, var(--accent)) 10%, transparent); border-style: solid; border-color: var(--accent) !important; }
+.org-folder-title { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.org-toggle { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; padding: 3px 2px; font: inherit; font-size: var(--fs-xs); color: var(--text-2); text-align: left; background: none; border: 0; border-radius: 6px; cursor: pointer; }
+.org-toggle strong { font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-2); }
+.org-folder-title.is-folder .org-toggle strong { font-size: var(--fs-sm); letter-spacing: 0; text-transform: none; color: var(--text); }
+.org-folder-icon { display: inline-flex; color: var(--folder); }
+.org-folder-title.is-folder .org-folder-icon { padding: 3px; background: color-mix(in srgb, var(--folder) 15%, var(--surface)); border-radius: 6px; }
+.org-count { min-width: 18px; padding: 0 6px; margin-left: 2px; font-size: var(--fs-2xs); font-weight: 700; line-height: 17px; text-align: center; color: var(--text-2); background: var(--surface-3); border-radius: 999px; }
+.org-empty-drop { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; font-size: var(--fs-xs); color: var(--text-3); border: 1.5px dashed var(--border-strong); border-radius: 8px; }
+.org-new-folder { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); background: none; border: 1.5px dashed var(--border); border-radius: 8px; cursor: pointer; }
+.org-new-folder:hover { color: var(--accent); border-color: var(--accent); }
+
+.dv-card-item.picked { background: var(--accent-weak); border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.dv-card-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.org-star { display: inline-flex; flex-shrink: 0; color: var(--warn); }
+.org-star svg { fill: currentColor; }
+.org-original { color: var(--text-3); }
+.dv-card-foot { display: flex; align-items: center; gap: 8px; grid-column: 2 / -1; min-width: 0; }
+.org-folder-pill { display: inline-flex; align-items: center; gap: 4px; max-width: 55%; overflow: hidden; font-size: var(--fs-2xs); color: var(--text-2); white-space: nowrap; text-overflow: ellipsis; }
+.org-folder-pill::before { width: 7px; height: 7px; flex-shrink: 0; content: ""; background: var(--folder); border-radius: 2px; }
+.org-drag-ghost { position: fixed; top: -100px; left: 0; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: var(--fs-sm); font-weight: 600; color: var(--accent-text); background: var(--accent); border-radius: 999px; }
+
+.org-tip { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: color-mix(in srgb, var(--accent) 6%, var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 10px; }
+.org-tip-art { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.org-tip-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.org-tip-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; font-size: var(--fs-2xs); color: var(--kind); background: color-mix(in srgb, var(--kind) 12%, var(--surface)); border-radius: 999px; }
+.org-tip-arrow { display: inline-flex; color: var(--text-3); }
+.org-tip-folder { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: var(--fs-sm); font-weight: 700; color: var(--ok); background: var(--ok-weak); border-radius: 8px; }
+.org-tip-folder b { padding: 0 6px; font-size: var(--fs-2xs); background: var(--surface); border-radius: 999px; }
+.org-tip-text strong { font-size: var(--fs-sm); }
+.org-tip-text p { margin: 2px 0 0; font-size: var(--fs-xs); color: var(--text-2); }
+
+/* Cabeçalho do detalhe */
+.dv-head-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.org-title-btn { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 0; font: inherit; color: inherit; text-align: left; background: none; border: 0; border-radius: 6px; cursor: text; }
+.org-title-pen { display: inline-flex; color: var(--text-3); opacity: 0; transition: opacity .12s; }
+.org-title-btn:hover .org-title-pen, .org-title-btn:focus-visible .org-title-pen { opacity: 1; }
+.org-title-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.org-title-input { width: 100%; max-width: 520px; font-size: var(--fs-xl); font-weight: 700; }
+.dv-head-text .org-title-help { margin: 6px 0 0; font-size: var(--fs-xs); }
+.org-title-help svg { vertical-align: -2px; }
+.org-original-line .mono { color: var(--text); }
+.org-folder-chip { color: var(--folder); background: color-mix(in srgb, var(--folder) 14%, var(--surface)); cursor: pointer; }
+.org-folder-chip.none { color: var(--text-2); background: none; box-shadow: inset 0 0 0 1px var(--border-strong); }
+.org-pin { color: var(--text-2); background: var(--surface-3); cursor: pointer; }
+.org-pin.on { color: var(--warn); background: var(--warn-weak); }
+.org-pin.on svg { fill: currentColor; }
+.org-about { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; }
+.org-about.editing { flex-direction: column; align-items: stretch; }
+.org-about.empty { padding: 0; background: none; border: 0; }
+.org-about-invite { display: flex; flex: 1; align-items: center; gap: 10px; padding: 10px 12px; font: inherit; color: var(--text-2); text-align: left; background: none; border: 1.5px dashed var(--border-strong); border-radius: 10px; cursor: pointer; }
+.org-about-invite:hover { color: var(--accent); border-color: var(--accent); }
+.org-about-invite strong { display: block; font-size: var(--fs-sm); color: var(--text); }
+.org-about-invite small { font-size: var(--fs-xs); }
+.org-about-plus { display: inline-flex; padding: 6px; color: var(--accent); background: var(--accent-weak); border-radius: 8px; }
+.org-about-text { flex: 1; min-width: 0; }
+.org-about-text p { margin: 0; font-size: var(--fs-sm); white-space: pre-wrap; overflow-wrap: anywhere; }
+.org-owner { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-2); }
+
+/* Janela da pasta */
+.org-swatches { display: flex; gap: 8px; }
+.org-swatch { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; color: var(--surface); background: var(--folder); border: 2px solid var(--surface); border-radius: 50%; box-shadow: 0 0 0 1px var(--border); cursor: pointer; }
+.org-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px var(--folder); }
+.org-swatch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.org-preview { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; }
+.org-preview-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: .06em; color: var(--text-3); text-transform: uppercase; }
+.org-preview .org-folder-title { gap: 6px; }
+.org-preview .org-folder-icon { padding: 3px; background: color-mix(in srgb, var(--folder) 15%, var(--surface)); border-radius: 6px; }
+.org-preview strong { font-size: var(--fs-sm); }
+.dv-card-item .dv-card-meta { grid-column: 2 / -1; }
+.org-dialog { gap: 14px; }
+.org-dialog .dialog-text { margin: 0; }

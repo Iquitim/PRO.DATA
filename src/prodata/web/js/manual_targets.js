@@ -15,6 +15,7 @@ export const TARGETS = {
   constantes: { view: 'designer', sel: '#canvasToolbar button', text: 'Constantes', tip: 'As constantes do fluxo ficam aqui' },
   etapa: { view: 'designer', sel: '#canvasToolbar button', text: 'Etapa', tip: 'Cria uma etapa. Atalho: G' },
   foco: { view: 'designer', sel: '.canvas-focus', tip: 'Só o fluxo na tela. Atalho: F11' },
+  organizar: { view: 'data', sel: '.org-segmented', tip: 'Agrupe a lista por pasta ou por tipo' },
   adicionar_fonte: { view: 'data', sel: '.data-view button', text: 'Adicionar', tip: 'Arquivo, banco, API ou constante' },
   editar_layout: { view: 'dashboard', sel: '.dash-actions button', text: 'Editar layout', tip: 'Mover, redimensionar e formatar' },
   baixar: { view: 'dashboard', sel: '.dash-download', tip: 'Imagem ou HTML' },

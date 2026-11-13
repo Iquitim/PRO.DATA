@@ -8,6 +8,7 @@ import { allSources, KINDS, matches } from './data_sources.js';
 import { addInputNode } from './datasets.js';
 import { button, h } from './dom.js';
 import { icon } from './icons.js';
+import { colorOf, folders } from './organization.js';
 import { on } from './store.js';
 
 const PANEL_KINDS = ['file', 'query', 'api'];
@@ -26,11 +27,22 @@ function item(source, openInData) {
   },
   h('span', { class: 'dataset-icon', style: { color: kind.color } }, icon(source.loop ? 'repeat' : kind.icon, 16)),
   h('button', { type: 'button', class: 'dataset-main', title: 'Abrir em Dados', onclick: () => openInData(source.key) },
-    h('span', { class: 'dataset-name' }, source.name),
-    h('span', { class: 'dataset-meta' }, source.meta)),
+    h('span', { class: 'dataset-name' }, source.title),
+    h('span', { class: 'dataset-meta' }, source.info.label ? `${source.name} · ${source.meta}` : source.meta)),
   h('div', { class: 'dataset-actions' },
     button({ icon: 'plus', title: source.loop ? 'Adicionar API Loop ao fluxo' : 'Adicionar ao fluxo', size: 'sm', variant: 'ghost', disabled: source.state.tone === 'err', onClick: add }),
     button({ icon: 'chevron-right', title: 'Abrir em Dados', size: 'sm', variant: 'ghost', onClick: () => openInData(source.key) })));
+}
+
+/** Com pastas na vista Dados, o painel agrupa por pasta, na mesma ordem; sem pastas, por tipo (spec 034). */
+function groupsOf(sources) {
+  const byName = (a, b) => a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' });
+  if (!folders().length) return PANEL_KINDS.map((kind) => [KINDS[kind].title, null, sources.filter((s) => s.kind === kind)]);
+  const known = new Set(folders().map((f) => f.id));
+  return [
+    ...folders().map((f) => [f.name, colorOf(f), sources.filter((s) => s.info.folder === f.id).sort(byName)]),
+    ['Sem pasta', null, sources.filter((s) => !known.has(s.info.folder)).sort(byName)],
+  ];
 }
 
 /** `openInData(key)`: leva à vista Dados com a fonte escolhida. */
@@ -40,13 +52,12 @@ export function renderSourcesPanel(root, { openInData }) {
   const draw = () => {
     const sources = allSources().filter((s) => PANEL_KINDS.includes(s.kind) && matches(s, query));
     list.replaceChildren(...(sources.length
-      ? PANEL_KINDS.flatMap((kind) => {
-        const items = sources.filter((s) => s.kind === kind);
-        return items.length ? [h('div', { class: 'panel-subtitle' }, KINDS[kind].title), ...items.map((s) => item(s, openInData))] : [];
-      })
+      ? groupsOf(sources).flatMap(([title, color, items]) => (items.length
+        ? [h('div', { class: 'panel-subtitle', style: color ? { '--folder': color } : null }, title), ...items.map((s) => item(s, openInData))]
+        : []))
       : [h('p', { class: 'muted pad' }, query ? 'Nenhuma fonte encontrada.' : 'Nenhuma fonte ainda. Cadastre na vista Dados.')]));
   };
-  for (const event of ['datasets', 'queries', 'apis', 'connections']) on(event, draw);
+  for (const event of ['datasets', 'queries', 'apis', 'connections', 'organization']) on(event, draw);
   root.replaceChildren(
     h('div', { class: 'pad stack-sm' },
       h('input', { type: 'search', class: 'input input-search', placeholder: 'Buscar fonte', 'aria-label': 'Buscar fonte', oninput: (e) => { query = e.target.value; draw(); } }),

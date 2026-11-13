@@ -81,7 +81,7 @@ function boxEntries() {
 
 function sourceEntries() {
   return allSources().map((s) => ({
-    group: 'Fontes', icon: KINDS[s.kind]?.icon || 'file', name: s.name, detail: KINDS[s.kind]?.one, end: 'abrir em Dados',
+    group: 'Fontes', icon: KINDS[s.kind]?.icon || 'file', name: s.title, detail: s.info.label ? `${KINDS[s.kind]?.one} · ${s.name}` : KINDS[s.kind]?.one, end: 'abrir em Dados',
     run: () => { openInData(s.key); handlers.setView('data'); },
   }));
 }

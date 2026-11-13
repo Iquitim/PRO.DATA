@@ -190,3 +190,5 @@
 
 /* Soma ou contagem da coluna no cabeçalho (spec 021) */
 .th-total { margin: 1px 0 2px; font: 500 var(--fs-2xs) var(--mono); color: var(--text-2); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dataset-list .panel-subtitle[style] { display: flex; align-items: center; gap: 6px; }
+.dataset-list .panel-subtitle[style]::before { width: 8px; height: 8px; content: ""; background: var(--folder); border-radius: 2px; }

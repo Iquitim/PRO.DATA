@@ -5,6 +5,7 @@ import { api } from './api.js';
 import { placeholdersOf } from './apis.js';
 import { showValue, TYPES } from './constants.js';
 import { fmt } from './dom.js';
+import { folderOf, infoOf } from './organization.js';
 import { API_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
 
 export const KINDS = {
@@ -119,8 +120,19 @@ export function allSources() {
       meta: `${TYPES[c.type]} · ${showValue(c)}`, state: ok, draggable: false,
     });
   }
+  // Organização (spec 034): o nome de exibição só muda a tela; `name` continua sendo o nome original.
+  for (const s of out) {
+    s.info = infoOf(s.key);
+    s.title = s.info.label || s.name;
+  }
   return out;
 }
+
+/** Algo impede a fonte de funcionar: arquivo sumido, sem conexão, sem senha, sem token, carga parada. */
+export const hasProblem = (source) => source.state.tone === 'warn' || source.state.tone === 'err';
+
+/** Nenhum fluxo usa. Conexões com o Jira ficam de fora: quem as usa são as consultas. */
+export const isUnused = (source) => usage.loaded && source.kind !== 'jiraconn' && !usesOf(source).length;
 
 /** "usada em 2 fluxos" ou "sem uso": o selo do cartão. */
 export function usageText(source) {
@@ -131,6 +143,9 @@ export function usageText(source) {
 export function matches(source, query) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return `${source.name} ${source.meta} ${source.raw?.description || ''}`.toLowerCase().includes(q)
+  const info = source.info || {};
+  const folder = folderOf(info.folder)?.name || '';
+  return [source.title, source.name, source.meta, source.raw?.description, info.description, info.owner, folder]
+    .filter(Boolean).join(' ').toLowerCase().includes(q)
     || usesOf(source).some((u) => u.workflow.toLowerCase().includes(q));
 }

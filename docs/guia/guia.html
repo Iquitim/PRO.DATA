@@ -328,6 +328,32 @@
     <div class="frame"><img src="../../src/prodata/web/manual/img/dados-mapa.png" alt="Mapa de uso de um arquivo"></div>
     <figcaption>O arquivo de clientes alimenta 17 caixas e 5 visuais do exemplo. Mudar o arquivo muda tudo isso.</figcaption>
   </figure>
+  <h3>Organizar em pastas</h3>
+  <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="organizar">Mostrar onde fica</button></div>
+  <p>Com muitas fontes, agrupe por <strong>assunto</strong>: uma pasta <em>Vendas</em>, outra <em>Metas e indicadores</em>, outra <em>Numerário</em>. Uma pasta junta fontes de qualquer tipo, como o arquivo, a consulta do banco e a API do mesmo tema. Crie com <strong>Nova pasta</strong>, no fim da lista, e <strong>arraste os cartões</strong> até ela. Para levar várias de uma vez, marque com <strong>Ctrl+clique</strong> e use <em>Mover para</em> na barra que aparece. O botão direito no cartão também move e fixa.</p>
+  <figure>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-pastas.png" alt="Vista Dados organizada em pastas"></div>
+    <figcaption>Fontes por assunto, com uma fixada no topo. A fonte aberta tem nome de exibição, descrição e responsável.</figcaption>
+  </figure>
+  <p><strong>Nome de exibição.</strong> Clique no título da fonte e dê um nome que diga o que ela é: <em>Metas por região</em> em vez de <code>metas_regionais_br.csv</code>. O nome original continua logo abaixo, e é ele que os fluxos usam, então nada quebra. O novo nome aparece na lista, no painel <em>Fontes</em> do Designer, na escolha de fonte do <em>Input Data</em> e na caixa que você cria a partir da fonte. Deixe o campo vazio para voltar ao original.</p>
+  <p><strong>Descrição e responsável.</strong> Em <em>Descrever esta fonte</em>, conte o que ela contém, de onde vem e quando atualiza, e quem cuida dela. A busca encontra a fonte também por esses textos e pelo nome da pasta.</p>
+  <figure>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-nome-exibicao.png" alt="Título da fonte em edição"></div>
+    <figcaption>O título vira campo. A explicação lembra que os fluxos continuam usando o nome do arquivo.</figcaption>
+  </figure>
+  <table>
+    <tr><th>Na lista</th><th>Para que serve</th></tr>
+    <tr><td class="tool">Pastas · Tipos</td><td>Alterna entre agrupar por assunto e agrupar por tipo de fonte. Em <em>Tipos</em>, cada cartão mostra a pasta dele.</td></tr>
+    <tr><td class="tool">Com problema</td><td>Só o que precisa de atenção: arquivo não encontrado, conexão sem senha, segredo ou token faltando, carga do Jira parada.</td></tr>
+    <tr><td class="tool">Sem uso</td><td>Fontes que nenhum fluxo da biblioteca lê: candidatas a limpeza.</td></tr>
+    <tr><td class="tool">Fixadas</td><td>As fontes do dia a dia, sempre no topo, com uma estrela.</td></tr>
+    <tr><td class="tool">Ordem</td><td><em>Nome</em>, <em>Mais usadas</em> (em mais fluxos) ou <em>Mais recentes</em> (arquivo modificado ou fonte aberta há pouco).</td></tr>
+  </table>
+  <figure class="m50" style="max-width:36%">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-nova-pasta.png" alt="Janela de nova pasta"></div>
+    <figcaption>Nome, cor e a prévia de como a pasta vai aparecer.</figcaption>
+  </figure>
+  <div class="callout ok"><strong>Só a tela muda</strong>Pastas, nomes de exibição e descrições ficam neste computador, junto com as fontes, e não entram nos fluxos. Excluir uma pasta devolve as fontes para <em>Sem pasta</em>: nenhuma fonte é apagada e nenhum fluxo muda.</div>
   <h3>Arquivos</h3>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="adicionar_fonte">Mostrar onde fica</button></div>
   <p>Envie arquivos pela vista <strong>Dados</strong>, em <strong>Adicionar</strong>, ou solte-os direto no canvas. Antes de usar, a <strong>prévia</strong> mostra o que foi detectado e as primeiras linhas — e qualquer ajuste aparece na hora.</p>
@@ -663,17 +689,13 @@
     </figure>
   </div>
   <h3>O que sai da caixa</h3>
-  <div class="two-col side-figure">
-    <div>
-      <p><strong>P</strong> leva as linhas que passaram em todas as regras e segue no fluxo. <strong>F</strong> leva as que falharam em pelo menos uma, com duas colunas a mais: <code>regra</code> e <code>motivo</code>, como <em>"Vazio em [setor]"</em>. Ligue o F a um Output Data para mandar a lista de correções a quem cuida do cadastro.</p>
-      <p>Depois de executar, a caixa ganha no canvas um selo vermelho com quantas linhas falharam, e o esquema <strong>Como funciona</strong> mostra as contas da última execução, regra por regra. As células reprovadas ficam em vermelho na amostra.</p>
-      <p>Para as regras de formato (CPF, e-mail, data…), o vazio passa: use <strong>Não vazio</strong> para cobrar o preenchimento. Assim cada falha tem um motivo só.</p>
-    </div>
-    <figure>
-      <div class="frame"><img src="../../src/prodata/web/manual/img/dq-resultado.png" alt="Esquema do Data Quality depois de executar"></div>
-      <figcaption>Quantas linhas passaram e quantas falharam, e em qual regra.</figcaption>
-    </figure>
-  </div>
+  <p><strong>P</strong> leva as linhas que passaram em todas as regras e segue no fluxo. <strong>F</strong> leva as que falharam em pelo menos uma, com duas colunas a mais: <code>regra</code> e <code>motivo</code>, como <em>"Vazio em [setor]"</em>. Ligue o F a um Output Data para mandar a lista de correções a quem cuida do cadastro.</p>
+  <p>Depois de executar, a caixa ganha no canvas um selo vermelho com quantas linhas falharam, e o esquema <strong>Como funciona</strong> mostra as contas da última execução, regra por regra. As células reprovadas ficam em vermelho na amostra.</p>
+  <p>Para as regras de formato (CPF, e-mail, data…), o vazio passa: use <strong>Não vazio</strong> para cobrar o preenchimento. Assim cada falha tem um motivo só.</p>
+  <figure class="m50" style="max-width:46%">
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dq-resultado.png" alt="Esquema do Data Quality depois de executar"></div>
+    <figcaption>Quantas linhas passaram e quantas falharam, e em qual regra.</figcaption>
+  </figure>
   <div class="try"><strong>Experimente</strong><ol><li>Arraste <em>Data Quality</em> e ligue à saída de <em>Clientes</em>.</li><li>Clique no cartão <strong>Não vazio</strong> e escolha <code>setor</code>.</li><li>Execute até a caixa: as linhas sem setor saem pelo F, cada uma com o motivo.</li></ol></div>
   <h3>Parar o fluxo quando o dado não presta</h3>
   <p>Separar P e F não impede que o relatório saia com metade da base. Em <strong>Controle</strong>, o Data Quality pode <strong>interromper o fluxo</strong>: se qualquer linha falhar, ou só quando a falha passar de uma porcentagem que você aceita. A caixa fica em erro, diz quantas linhas falharam e em quais regras, e nada do que vem depois dela executa.</p>

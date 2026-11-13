@@ -41,6 +41,7 @@ from prodata.samples.workflows import (
 )
 from prodata.services.audit import setup_audit
 from prodata.services.constants import ConstantStore
+from prodata.services.organization import OrganizationStore
 from prodata.services.trust import TrustRegistry
 from prodata.services.usage import UsageIndex
 from prodata.services.workflows import WorkflowRepository
@@ -108,6 +109,7 @@ def build_services(settings: Settings) -> Services:
         trust=trust,
         usage=UsageIndex(settings.workflows_dir),
         constants=constants,
+        organization=OrganizationStore(settings.storage_dir / "organizacao.json"),
     )
 
 

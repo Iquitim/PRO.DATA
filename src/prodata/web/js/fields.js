@@ -15,7 +15,7 @@ import { columnValues, renameLabels } from './fields_values.js';
 import { fileField, modelField, modelSaveField, modelVersionsField, subflowField } from './fields_extra.js';
 import { formulaEditor } from './formula_editor.js';
 import { openLargeFormula } from './formula_large.js';
-import { API_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
+import { API_PREFIX, displayName, JIRA_PREFIX, QUERY_PREFIX, sourceKey, store } from './store.js';
 import { typeLabel, typeName } from './types.js';
 
 
@@ -281,6 +281,12 @@ function template(field, value, set, ctx, id) {
 
 // ------------------------------------------------------------------ arquivos
 
+/** "Extrato do banco (extrato_0412.xlsx)": o nome de exibição da vista Dados, com o original entre parênteses (spec 034). */
+function shownAs(value, original) {
+  const shown = displayName(sourceKey(value));
+  return shown ? `${shown} (${original})` : original;
+}
+
 function dataset(field, value, set, ctx, id) {
   const files = ctx.datasets || [];
   const queries = ctx.queries || [];
@@ -292,13 +298,13 @@ function dataset(field, value, set, ctx, id) {
     h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
       h('option', { value: '' }, files.length || queries.length || apis.length ? 'Escolha uma fonte…' : 'Nenhuma fonte cadastrada na vista Dados'),
       files.length ? h('optgroup', { label: 'Arquivos' },
-        files.map((d) => h('option', { value: d.name, selected: d.name === value }, d.name))) : null,
+        files.map((d) => h('option', { value: d.name, selected: d.name === value }, shownAs(d.name, d.name)))) : null,
       queries.length ? h('optgroup', { label: 'Consultas de banco' },
-        queries.map((q) => h('option', { value: `${QUERY_PREFIX}${q.id}`, selected: `${QUERY_PREFIX}${q.id}` === value }, q.name))) : null,
+        queries.map((q) => h('option', { value: `${QUERY_PREFIX}${q.id}`, selected: `${QUERY_PREFIX}${q.id}` === value }, shownAs(`${QUERY_PREFIX}${q.id}`, q.name)))) : null,
       apis.length ? h('optgroup', { label: 'APIs' },
-        apis.map((a) => h('option', { value: `${API_PREFIX}${a.id}`, selected: `${API_PREFIX}${a.id}` === value }, a.name))) : null,
+        apis.map((a) => h('option', { value: `${API_PREFIX}${a.id}`, selected: `${API_PREFIX}${a.id}` === value }, shownAs(`${API_PREFIX}${a.id}`, a.name)))) : null,
       jira.length ? h('optgroup', { label: 'Jira' },
-        jira.map((q) => h('option', { value: `${JIRA_PREFIX}${q.id}`, selected: `${JIRA_PREFIX}${q.id}` === value }, q.name))) : null,
+        jira.map((q) => h('option', { value: `${JIRA_PREFIX}${q.id}`, selected: `${JIRA_PREFIX}${q.id}` === value }, shownAs(`${JIRA_PREFIX}${q.id}`, q.name)))) : null,
       value && !known ? h('option', { value, selected: true }, `${value} (não encontrado)`) : null),
     ctx.onPreview ? button({ icon: ctx.isQuery ? 'edit' : 'eye', title: ctx.isQuery ? 'Editar a fonte e ver prévia' : 'Pré-visualizar e ajustar leitura', disabled: !known, onClick: ctx.onPreview }) : null,
     ctx.onNewQuery ? button({ icon: 'plus', title: 'Nova consulta de banco', onClick: ctx.onNewQuery }) : null);
