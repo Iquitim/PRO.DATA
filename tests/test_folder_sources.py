@@ -64,10 +64,12 @@ def test_save_makes_an_id_and_refuses_duplicates(store: DatasetStore, month: Pat
     [
         ({"folder": "relativa"}, InvalidInputError),
         ({"pattern": "../*.csv"}, InvalidInputError),
-        ({"folder": "C:/nao/existe/mesmo"}, NotFoundError),
+        ({"folder": "SUMIDA"}, NotFoundError),  # caminho completo nos dois sistemas: vira tmp/sumida
     ],
 )
 def test_save_checks_the_folder(store: DatasetStore, month: Path, changes: dict, error: type) -> None:
+    if changes.get("folder") == "SUMIDA":
+        changes = {"folder": str(month.parent / "sumida")}
     with pytest.raises(error):
         store.folders.save(source(month, **changes))
 
