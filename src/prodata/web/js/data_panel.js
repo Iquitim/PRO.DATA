@@ -6,16 +6,18 @@ import { DND_DATASET } from './canvas.js';
 import { addQueryNode } from './connections.js';
 import { allSources, KINDS, matches } from './data_sources.js';
 import { addInputNode } from './datasets.js';
+import { addFolderNode } from './folder_sources.js';
 import { button, h } from './dom.js';
 import { icon } from './icons.js';
 import { colorOf, folders } from './organization.js';
 import { on } from './store.js';
 
-const PANEL_KINDS = ['file', 'query', 'api'];
+const PANEL_KINDS = ['file', 'folder', 'query', 'api'];
 
 function item(source, openInData) {
   const kind = KINDS[source.kind];
-  const add = () => (source.kind === 'file' ? addInputNode(source.id) : source.kind === 'query' ? addQueryNode(source.raw) : addApiNode(source.raw));
+  const add = () => (source.kind === 'file' ? addInputNode(source.id) : source.kind === 'folder' ? addFolderNode(source.raw)
+    : source.kind === 'query' ? addQueryNode(source.raw) : addApiNode(source.raw));
   return h('div', {
     class: 'dataset-item', draggable: source.draggable ? 'true' : 'false',
     title: source.draggable ? 'Arraste para o canvas para criar um Input Data' : source.loop ? 'Use o + para criar um API Loop' : source.state.label,
@@ -57,7 +59,7 @@ export function renderSourcesPanel(root, { openInData }) {
         : []))
       : [h('p', { class: 'muted pad' }, query ? 'Nenhuma fonte encontrada.' : 'Nenhuma fonte ainda. Cadastre na vista Dados.')]));
   };
-  for (const event of ['datasets', 'queries', 'apis', 'connections', 'organization']) on(event, draw);
+  for (const event of ['datasets', 'queries', 'apis', 'connections', 'organization', 'folders']) on(event, draw);
   root.replaceChildren(
     h('div', { class: 'pad stack-sm' },
       h('input', { type: 'search', class: 'input input-search', placeholder: 'Buscar fonte', 'aria-label': 'Buscar fonte', oninput: (e) => { query = e.target.value; draw(); } }),

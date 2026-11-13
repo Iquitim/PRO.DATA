@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from novas_075 import part_new_tools  # noqa: E402
 from organizar_dados import part_organize as organize  # noqa: E402
+from pasta_dados import part_folder_source as folder_source  # noqa: E402
 
 PORT = 8796
 FAKE_JIRA = 8797
@@ -539,13 +540,17 @@ def part_075(pg: Pg, tmp: Path) -> None:
     part_new_tools(pg, tmp, shot)
 
 
+def part_folder(pg: Pg, tmp: Path) -> None:
+    folder_source(pg, tmp, shot)
+
+
 def part_organize(pg: Pg) -> None:
     organize(pg, shot)
 
 
 def PARTS(tmp):  # noqa: N802
     every = ((part_screen, ()), (part_cache_dashboard, ()), (part_sql, ()), (part_tools, ()), (part_quality_lists, ()), (part_data_trust, (tmp,)), (part_manual, ()))
-    every = (*every, (part_jira, ()), (part_replay, ()), (part_075, (tmp,)), (part_organize, ()))
+    every = (*every, (part_jira, ()), (part_replay, ()), (part_075, (tmp,)), (part_folder, (tmp,)), (part_organize, ()))
     only = os.environ.get("IMAGENS_SO")
     return [e for e in every if not only or e[0].__name__ in only.split(",")]
 

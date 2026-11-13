@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from prodata.errors import ConflictError, InvalidInputError, NotFoundError, TooLargeError
 from prodata.ingestion.detect import EXTENSIONS
+from prodata.ingestion.folders import FolderSources, source_folder_id
 
 CHUNK = 1024 * 1024
 
@@ -55,6 +56,8 @@ class DatasetStore:
         self.root.mkdir(parents=True, exist_ok=True)
         # Vínculos (spec 017): nome → caminho absoluto de um arquivo escolhido pelo usuário.
         self._links_file = root.with_name(root.name + "_vinculos.json")
+        # Pastas de arquivos (spec 035): vários arquivos de um padrão, lidos onde estão.
+        self.folders = FolderSources(root.with_name(root.name + "_pastas.json"))
 
     # ------------------------------------------------------------------ vínculos (spec 017)
 
@@ -93,6 +96,29 @@ class DatasetStore:
         links[label] = str(path.resolve())
         self._save_links(links)
         return self._info(label, path.resolve(), linked=True)
+
+    def link_many(self, paths: list[Path]) -> tuple[list[DatasetInfo], list[str]]:
+        """Vincula vários arquivos de uma vez (spec 035, "Um por arquivo").
+
+        Devolve os vinculados e os que já estavam vinculados (pulados). Nome repetido ganha um número.
+        """
+        known = {str(Path(p)).lower() for p in self._links().values()}
+        linked: list[DatasetInfo] = []
+        skipped: list[str] = []
+        for path in paths:
+            if str(path.resolve()).lower() in known:
+                skipped.append(path.name)
+                continue
+            stem, suffix = Path(sanitize_filename(path.name)).stem, path.suffix.lower()
+            for n in range(1, 100):
+                try:
+                    linked.append(self.link(str(path), stem + (f"_{n}" if n > 1 else "") + suffix))
+                    break
+                except ConflictError:
+                    continue
+            else:
+                raise ConflictError(f"Não foi possível dar um nome livre a {path.name}.")
+        return linked, skipped
 
     def _info(self, name: str, path: Path, *, linked: bool) -> DatasetInfo:
         fmt = EXTENSIONS.get(path.suffix.lower(), "csv")
@@ -139,6 +165,9 @@ class DatasetStore:
 
     def signature(self, name: str) -> str:
         """Muda sempre que o conteúdo do arquivo muda; entra no fingerprint do nó."""
+        folder_id = source_folder_id(name)
+        if folder_id is not None:
+            return self.folders.signature(folder_id)
         stat = self.resolve(name).stat()
         return f"{stat.st_size}:{stat.st_mtime_ns}"
 

@@ -22,6 +22,7 @@ from prodata.engine.sql.fragment import (
     slug,
     sql_for,
 )
+from prodata.ingestion.folders import source_folder_id
 from prodata.ingestion.options import ReadOptions
 from prodata.ingestion.readers import read_table, resolve_options
 from prodata.nodes.io import (
@@ -135,6 +136,11 @@ def input_data_sql(ctx: SqlContext, cfg: InputDataConfig) -> dict[str, Fragment]
         raise ValueError("Escolha uma fonte no campo 'Fonte'.")
     if cfg.dataset.startswith("jira:"):
         return {"out": _database_source(ctx, "Consulta Jira", cfg.limit, "do Jira", "do Jira")}
+    folder_id = source_folder_id(cfg.dataset)
+    if folder_id is not None:
+        assert ctx.datasets is not None
+        name = ctx.datasets.folders.get(folder_id).name
+        return {"out": _database_source(ctx, name, cfg.limit, "da pasta", "uma pasta de arquivos")}
     api_id = source_api_id(cfg.dataset)
     if api_id is not None:
         assert ctx.apis is not None

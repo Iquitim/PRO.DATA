@@ -121,6 +121,15 @@ export const api = {
   trustState: (workflow) => request('POST', '/api/trust/state', { workflow }),
   usage: () => request('GET', '/api/usage'),
   organization: () => request('GET', '/api/organization'),
+  folderSources: () => request('GET', '/api/folders'),
+  createFolderSource: (source) => request('POST', '/api/folders', source),
+  updateFolderSource: (id, source) => request('PUT', `/api/folders/${enc(id)}`, source),
+  deleteFolderSource: (id) => request('DELETE', `/api/folders/${enc(id)}`),
+  linkEachFile: (folder, pattern) => request('POST', '/api/folders/link-each', { folder, pattern }),
+  previewFolder: (source, rows = 100) => {
+    const { status, ...body } = source;
+    return request('POST', `/api/folders/preview?rows=${rows}`, { source: body });
+  },
   addFolder: (name, color) => request('POST', '/api/organization/folders', { name, color }),
   updateFolder: (id, name, color) => request('PUT', `/api/organization/folders/${enc(id)}`, { name, color }),
   moveFolder: (id, position) => request('POST', `/api/organization/folders/${enc(id)}/move`, { position }),

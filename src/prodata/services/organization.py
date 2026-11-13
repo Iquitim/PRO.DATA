@@ -22,7 +22,7 @@ from prodata.errors import InvalidInputError, NotFoundError
 log = logging.getLogger(__name__)
 
 Color = Literal["azul", "verde", "ambar", "roxo", "vermelho", "cinza"]
-KEY = re.compile(r"^(file|query|api|jira|jiraconn|conn|const):.{1,300}$", re.S)
+KEY = re.compile(r"^(file|folder|query|api|jira|jiraconn|conn|const):.{1,300}$", re.S)
 MAX_FOLDERS = 100
 MAX_SOURCES = 5000
 

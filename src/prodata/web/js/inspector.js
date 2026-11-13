@@ -14,9 +14,10 @@ import { explainerEl } from './explainers.js';
 import { isGuided, recipeOf, recipePatch } from './multirow_recipes.js';
 import { renderFields } from './fields.js';
 import { formatOf, openPreview } from './datasets.js';
+import { convertLegacyFolder } from './folder_sources.js';
 import { icon } from './icons.js';
 import {
-  API_PREFIX, apiOf, JIRA_PREFIX, mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
+  API_PREFIX, apiOf, FOLDER_PREFIX, JIRA_PREFIX, mutate, node, nodeResult, on, QUERY_PREFIX, queryOf, select, selectedIds, selectMany, sourceLabel, store, toolOf, upstreamColumns,
 } from './store.js';
 import { showMenu, toast, toastError } from './ui.js';
 
@@ -273,9 +274,11 @@ function sourceContext(n, spec) {
   const cfg = n.config;
   const isApi = Boolean(cfg.dataset?.startsWith(API_PREFIX));
   const isJira = Boolean(cfg.dataset?.startsWith(JIRA_PREFIX));
-  const isQuery = isApi || isJira || Boolean(cfg.dataset?.startsWith(QUERY_PREFIX));
+  const isFolder = Boolean(cfg.dataset?.startsWith(FOLDER_PREFIX));
+  const isQuery = isApi || isJira || isFolder || Boolean(cfg.dataset?.startsWith(QUERY_PREFIX));
   const ctx = {
     queries: store.queries,
+    folders: store.folderSources,
     apis: store.apis,
     jira: store.jiraQueries,
     needsLoop: (a) => placeholdersOf(a).length > 0,
@@ -283,7 +286,7 @@ function sourceContext(n, spec) {
     fileOptions: !isQuery,
     onNewQuery: () => openQueryEditor({ onSaved: (saved) => setSource(n, `${QUERY_PREFIX}${saved.id}`) }),
   };
-  if (isJira) return ctx; // o cadastro fica na vista Dados
+  if (isJira || isFolder) return ctx; // o cadastro fica na vista Dados
   if (isApi) {
     const a = apiOf(cfg.dataset);
     ctx.onPreview = () => a && openApiEditor({ source: a, onSaved: () => {} });
@@ -463,9 +466,12 @@ function nodePanel(n) {
       button({ icon: 'target', title: 'Executar até aqui', variant: 'ghost', onClick: () => handlers.runTo(n.id) }),
       more),
     h('p', { class: 'inspector-desc' }, spec.description),
-    spec.hidden ? banner('muted', 'info', 'Ferramenta antiga, fora da paleta.',
-      'O Input Data agora lê consultas de banco cadastradas na vista Dados.',
-      button({ icon: 'refresh', label: 'Converter para Input Data', size: 'sm', onClick: () => convertLegacy(n) })) : null,
+    spec.hidden && n.type === 'io.input_folder' ? banner('muted', 'info', 'Ferramenta antiga, fora da paleta.',
+      'A pasta agora é cadastrada na vista Dados: aparece no mapa de uso, avisa quando some e é lida pelo Input Data.',
+      button({ icon: 'directory', label: 'Levar para a vista Dados', size: 'sm', onClick: () => convertLegacyFolder(n, spec.name) }))
+      : spec.hidden ? banner('muted', 'info', 'Ferramenta antiga, fora da paleta.',
+        'O Input Data agora lê consultas de banco cadastradas na vista Dados.',
+        button({ icon: 'refresh', label: 'Converter para Input Data', size: 'sm', onClick: () => convertLegacy(n) })) : null,
     cacheBanner(n),
     statusBanner(n),
     sourceBanner(n),

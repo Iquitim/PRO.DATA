@@ -6,10 +6,11 @@ import { placeholdersOf } from './apis.js';
 import { showValue, TYPES } from './constants.js';
 import { fmt } from './dom.js';
 import { folderOf, infoOf } from './organization.js';
-import { API_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
+import { API_PREFIX, FOLDER_PREFIX, JIRA_PREFIX, QUERY_PREFIX, store } from './store.js';
 
 export const KINDS = {
   file: { title: 'Arquivos', one: 'arquivo', color: 'var(--cat-inout)', icon: 'file' },
+  folder: { title: 'Pastas de arquivos', one: 'pasta de arquivos', color: 'var(--cat-inout)', icon: 'directory' },
   query: { title: 'Consultas de banco', one: 'consulta', color: 'var(--cat-transform)', icon: 'server' },
   api: { title: 'APIs', one: 'API', color: 'var(--cat-ml)', icon: 'globe' },
   jira: { title: 'Consultas do Jira', one: 'consulta do Jira', color: 'var(--cat-transform)', icon: 'list' },
@@ -36,6 +37,15 @@ export async function refreshUsage() {
 }
 
 const ok = { label: 'ok', tone: 'ok' };
+
+/** Situação curta para o cartão: quantos arquivos, ou o que está errado. */
+export function folderState(source) {
+  const st = source.status || {};
+  if (st.missing) return { label: 'pasta não encontrada', tone: 'err' };
+  if (st.error) return { label: 'padrão inválido', tone: 'err' };
+  if (!st.files) return { label: 'nenhum arquivo', tone: 'warn' };
+  return { label: `${st.files} arquivo${st.files > 1 ? 's' : ''}`, tone: 'ok' };
+}
 
 function hostOf(url) {
   try { return new URL(url.replace(/\{[^}]*\}/g, 'x')).hostname; } catch { return url; }
@@ -71,6 +81,15 @@ export function allSources() {
           : `${FORMAT_LABELS[d.format] || d.format} · ${fmt.bytes(d.size_bytes)}`,
       state: d.missing ? { label: 'não encontrado', tone: 'err' } : d.linked_path ? { label: 'vinculado', tone: 'info' } : ok,
       draggable: !d.missing, dragValue: d.name,
+    });
+  }
+  for (const f of store.folderSources) {
+    const state = folderState(f);
+    out.push({
+      kind: 'folder', key: `${FOLDER_PREFIX}${f.id}`, id: f.id, usageKey: `${FOLDER_PREFIX}${f.id}`, name: f.name, raw: f,
+      meta: f.status?.missing ? `não encontrada: ${f.folder}` : `${f.pattern} · ${f.folder.split(/[\\/]/).filter(Boolean).pop() || f.folder}`,
+      state: state.tone === 'ok' ? { label: state.label, tone: 'ok' } : state,
+      draggable: state.tone !== 'err', dragValue: `${FOLDER_PREFIX}${f.id}`,
     });
   }
   for (const q of store.queries) {

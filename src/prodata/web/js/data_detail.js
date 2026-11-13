@@ -8,11 +8,13 @@ import { addApiNode, apiEditor, removeApi } from './apis.js';
 import { addQueryNode, connectionEditor, queryEditor, removeConnection, removeQuery } from './connections.js';
 import { refreshConstants } from './constants.js';
 import { constantEditor } from './constants_ui.js';
+import { addFolderNode, folderEditor, folderOverview, removeFolderSource } from './folder_sources.js';
 import { KINDS, usageText, usesOf } from './data_sources.js';
 import { usageMap } from './data_map.js';
 import { aboutBlock, originalLine, orgChips, titleEditor } from './data_meta.js';
 import { addInputNode, openPreview, previewTable, removeDataset, uploadFiles } from './datasets.js';
 import { button, fmt, h } from './dom.js';
+import { columnQuality, stat } from './data_stats.js';
 import { icon } from './icons.js';
 
 const TONES = { ok: 'check', warn: 'alert', err: 'alert', info: 'link' };
@@ -20,6 +22,7 @@ const TONES = { ok: 'check', warn: 'alert', err: 'alert', info: 'link' };
 /** Desenho do caminho de cada tipo de fonte: o "Como funciona" (RF-2810). */
 const HOW = {
   file: [['Arquivo', 'vendas.xlsx'], ['Tabela', 'linhas e colunas']],
+  folder: [['Pasta', 'D:\\Fechamento'], ['Arquivos', 'vendas_*.xlsx'], ['Tabela', 'um embaixo do outro']],
   query: [['Banco', 'conexão'], ['Consulta', 'SELECT …'], ['Tabela', 'linhas e colunas']],
   jira: [['Jira', 'projetos e filtros'], ['Consulta', 'sem escrever JQL'], ['Tabela', 'só o que mudou']],
   jiraconn: [['Token', 'só leitura, no cofre'], ['Consultas', 'uma ou mais'], ['Fluxos', 'Input Data']],
@@ -30,6 +33,7 @@ const HOW = {
 const HOW_TEXT = {
   jira: 'A consulta lê demandas, histórico ou comentários do Jira, sem alterar nada, e vira uma tabela no Input Data. A primeira carga traz tudo; as seguintes, só o que mudou. Se cair no meio, continua de onde parou.',
   jiraconn: 'A conexão guarda o endereço do Jira e, no cofre do Windows, o e-mail e o token. O PRO.DATA só faz leituras, e o Jira só mostra o que a sua conta pode ver.',
+  folder: 'Cada arquivo da pasta que casa com o padrão entra inteiro, um embaixo do outro, com as colunas alinhadas pelo nome. A coluna do nome do arquivo diz de onde veio cada linha. Entrou um arquivo novo no mês? A próxima execução já o inclui. A pasta é lida onde está: nada é copiado nem alterado.',
   file: 'Um arquivo enviado vira uma cópia guardada no PRO.DATA. Um arquivo vinculado é lido onde está, sempre na versão mais nova.',
   query: 'A consulta pergunta ao banco, só para ler, e a resposta vira uma tabela no Input Data. A senha fica no cofre do Windows.',
   api: 'O PRO.DATA faz o pedido, recebe a resposta e transforma a lista que ela traz numa tabela. Com uma variável, como {sigla}, entra no fluxo como API Loop.',
@@ -45,31 +49,6 @@ export function howItWorks(kind) {
         i ? h('span', { class: 'dv-link', style: { '--line': color }, 'aria-hidden': 'true' }) : null,
         h('span', { class: 'dv-how-box' }, h('b', {}, title), h('small', { class: 'mono' }, sample))))),
     h('p', { class: 'dv-how-text' }, HOW_TEXT[kind]));
-}
-
-function stat(label, value, hint = '') {
-  return h('div', { class: 'dv-stat' }, h('span', {}, label), h('strong', {}, value), hint ? h('small', {}, hint) : null);
-}
-
-/** Barras de qualidade por coluna, na amostra lida: verde preenchido, âmbar texto vazio, vermelho sem valor. */
-function columnQuality(preview) {
-  const total = preview.rows.length || 1;
-  return h('section', { class: 'dv-card stack-sm' },
-    h('h3', {}, 'Qualidade das colunas'),
-    h('p', { class: 'field-help' }, `Nas primeiras ${fmt.int(preview.rows.length)} linhas · verde: preenchido · âmbar: texto vazio · vermelho: sem valor`),
-    preview.columns.slice(0, 14).map((c) => {
-      const values = preview.rows.map((r) => r[c.name]);
-      const nul = values.filter((v) => v === null || v === undefined).length;
-      const empty = values.filter((v) => typeof v === 'string' && !v.trim()).length;
-      const pct = (n) => `${(n / total) * 100}%`;
-      return h('div', { class: 'dv-quality' },
-        h('span', { class: 'mono ellipsis', title: c.name }, c.name),
-        h('span', { class: 'dv-quality-bar', title: `${nul} sem valor · ${empty} texto vazio` },
-          h('span', { class: 'q-ok', style: { width: pct(total - nul - empty) } }),
-          h('span', { class: 'q-empty', style: { width: pct(empty) } }),
-          h('span', { class: 'q-null', style: { width: pct(nul) } })),
-        h('span', { class: 'muted' }, `${Math.round(((total - nul - empty) / total) * 100)}%`));
-    }));
 }
 
 function fileOverview(source) {
@@ -102,6 +81,7 @@ function editorPane(source, ctx) {
   const done = (saved) => ctx.afterSave(source.kind, saved);
   const editor = source.kind === 'api' ? apiEditor({ source: source.raw, onSaved: done }, host)
     : source.kind === 'jira' ? jiraQueryEditor({ query: source.raw, onSaved: done }, host)
+    : source.kind === 'folder' ? folderEditor(source.raw, { onSaved: done }, host)
     : source.kind === 'jiraconn' ? jiraConnectionEditor(source.raw, { onSaved: done }, host)
     : source.kind === 'query' ? queryEditor({ query: source.raw, onSaved: done }, host)
       : source.kind === 'const' ? constantEditor(source.raw, { uses: usesOf(source), onSaved: done }, host)
@@ -127,6 +107,10 @@ function actionsFor(source, ctx) {
     api: [
       button({ icon: 'plus', label: source.loop ? 'Adicionar API Loop ao fluxo' : 'Adicionar ao fluxo', onClick: add(() => addApiNode(source.raw)) }),
       button({ icon: 'trash', label: 'Excluir', variant: 'ghost', onClick: () => ctx.remove(source, () => removeApi(source.raw)) }),
+    ],
+    folder: [
+      button({ icon: 'plus', label: 'Adicionar ao fluxo', disabled: source.state.tone === 'err', onClick: add(() => addFolderNode(source.raw)) }),
+      button({ icon: 'trash', label: 'Esquecer a pasta', variant: 'ghost', onClick: () => ctx.remove(source, () => removeFolderSource(source.raw)) }),
     ],
     const: [
       button({ icon: 'trash', label: 'Excluir', variant: 'ghost',
@@ -154,10 +138,12 @@ export function sourceDetail(source, ctx) {
   const uses = usesOf(source);
   const tabs = source.kind === 'file'
     ? [['overview', 'Visão geral'], ['usage', 'Onde é usada'], ['how', 'Como funciona']]
+    : source.kind === 'folder' ? [['overview', 'Visão geral'], ['edit', 'Cadastro'], ['usage', 'Onde é usada'], ['how', 'Como funciona']]
     : [['overview', 'Cadastro'], ['usage', 'Onde é usada'], ['how', 'Como funciona']];
   const tab = tabs.some(([k]) => k === ctx.tab) ? ctx.tab : 'overview';
   const content = {
-    overview: () => (source.kind === 'file' ? fileOverview(source) : editorPane(source, ctx)),
+    overview: () => (source.kind === 'file' ? fileOverview(source) : source.kind === 'folder' ? folderOverview(source.raw) : editorPane(source, ctx)),
+    edit: () => editorPane(source, ctx),
     usage: () => usageMap(source, uses, ctx.openFlow),
     how: () => howItWorks(source.kind),
   }[tab]();

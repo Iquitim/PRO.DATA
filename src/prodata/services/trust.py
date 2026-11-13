@@ -149,7 +149,9 @@ def summary(workflow: Workflow, names: dict[str, str]) -> list[dict[str, Any]]:
         if node.type == "io.input_data":
             source = str(cfg.get("dataset") or "")
             kind = (
-                "api"
+                "folder"
+                if source.startswith("folder:")
+                else "api"
                 if source.startswith(("api:", "jira:"))
                 else "query"
                 if source.startswith("sql:")

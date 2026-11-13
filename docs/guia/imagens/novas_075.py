@@ -26,7 +26,6 @@ NODES = """
 const T = (id, label, y, columns, rows, x = 60) => ({ id, type: 'io.text_input', label, x, y, config: { table: { columns, rows } } });
 const Y = 1500;
 wf.nodes.push(
-  { id: 'x_folder', type: 'io.input_folder', label: 'Vendas do mês', x: 60, y: Y, config: { folder: FOLDER, pattern: 'vendas_*.csv', file_column: 'arquivo' } },
   { id: 'x_gen', type: 'io.generate_rows', label: 'Calendário', x: 360, y: Y, config: { start_date: '2026-10-01', end_date: '2026-10-31' } },
   T('x_a', 'Lançamentos', Y + 130, ['id', 'valor'], [[1, 1200.5], [2, 830], [3, 410.25], [4, 95]]),
   T('x_b', 'Relatório', Y + 230, ['id', 'valor'], [[1, 1200.5], [2, 830], [3, 410.25]]),
@@ -53,7 +52,6 @@ E('x_txt', 'x_regex', 'in'); E('x_txt', 'x_multi', 'in'); E('x_txt', 'x_mask', '
 E('x_ped', 'x_join', 'L'); E('x_cad', 'x_join', 'R');
 """
 SHOTS = {
-    "x_folder": "explain-folder",
     "x_gen": "explain-generate",
     "x_rec": "explain-reconcile",
     "x_cmp": "explain-compare",

@@ -26,6 +26,7 @@ from prodata.engine import constants as constants_engine
 from prodata.errors import InvalidInputError
 from prodata.forms import ui
 from prodata.ingestion.datasets import resolve_inside, sanitize_filename
+from prodata.ingestion.folders import odd_warning, read_folder, source_folder_id
 from prodata.ingestion.options import ReadOptions
 from prodata.ingestion.readers import read_table
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
@@ -79,6 +80,8 @@ def _source_annotation(cfg: InputDataConfig) -> str:
         return "Escolha uma fonte"
     if source_jira_id(cfg.dataset):
         return "Jira"
+    if source_folder_id(cfg.dataset):
+        return "Pasta de arquivos"
     if source_api_id(cfg.dataset):
         return "API"
     return "Consulta de banco" if source_query_id(cfg.dataset) else cfg.dataset
@@ -102,7 +105,7 @@ def _source_on_request(ctx: NodeContext, cfg: InputDataConfig) -> str | None:
     name="Input Data",
     category="inout",
     icon="database",
-    description="Lê qualquer fonte cadastrada na vista Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), consultas de banco ou APIs.",
+    description="Lê qualquer fonte cadastrada na vista Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), pastas de arquivos, consultas de banco ou APIs.",
     config=InputDataConfig,
     inputs=[],
     outputs=[Port("out", "O", "Dados")],
@@ -115,6 +118,9 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
         raise ValueError("Escolha uma fonte no campo 'Fonte'.")
     if source_jira_id(cfg.dataset) is not None:
         return _read_jira(ctx, cfg)
+    folder_id = source_folder_id(cfg.dataset)
+    if folder_id is not None:
+        return _read_folder(ctx, folder_id, cfg.limit)
     api_id = source_api_id(cfg.dataset)
     if api_id is not None:
         if ctx.apis is None:
@@ -145,6 +151,24 @@ def input_data(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:
     if info.linked_path:
         extra["source_linked"] = info.linked_path
     return NodeOutput(tables={"out": df}, extra=extra)
+
+
+def _read_folder(ctx: NodeContext, folder_id: str, limit: int) -> NodeOutput:
+    """Pasta de arquivos da aba Dados (spec 035): as opções de leitura são as do cadastro."""
+    source = ctx.datasets.folders.get(folder_id)
+    files = source.files()
+    if not files:
+        raise InvalidInputError(f"Nenhum arquivo em {source.folder} casa com '{source.pattern}'.")
+    table, odd = read_folder(files, source, source.file_column, limit=limit or None, report=ctx.report)
+    extra: dict[str, Any] = {
+        "source": source.name,
+        "source_read_at": _now(),
+        "source_linked": source.folder,
+        "folder_files": [p.name for p in files],
+    }
+    if odd:
+        extra["warnings"] = [odd_warning(odd, files[0].name)]
+    return NodeOutput(tables={"out": table}, extra=extra)
 
 
 def _read_jira(ctx: NodeContext, cfg: InputDataConfig) -> NodeOutput:

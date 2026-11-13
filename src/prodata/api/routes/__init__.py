@@ -7,6 +7,7 @@ from prodata.api.routes import (
     datasets,
     execution,
     files,
+    folders,
     jira,
     models,
     organization,
@@ -20,6 +21,7 @@ from prodata.api.routes import (
 routers = [
     catalog.router,
     datasets.router,
+    folders.router,
     connections.router,
     constants.router,
     queries.router,

@@ -15,7 +15,7 @@ import { columnValues, renameLabels } from './fields_values.js';
 import { fileField, modelField, modelSaveField, modelVersionsField, subflowField } from './fields_extra.js';
 import { formulaEditor } from './formula_editor.js';
 import { openLargeFormula } from './formula_large.js';
-import { API_PREFIX, displayName, JIRA_PREFIX, QUERY_PREFIX, sourceKey, store } from './store.js';
+import { API_PREFIX, displayName, FOLDER_PREFIX, JIRA_PREFIX, QUERY_PREFIX, sourceKey, store } from './store.js';
 import { typeLabel, typeName } from './types.js';
 
 
@@ -292,13 +292,16 @@ function dataset(field, value, set, ctx, id) {
   const queries = ctx.queries || [];
   const apis = (ctx.apis || []).filter((a) => !ctx.needsLoop?.(a));
   const jira = ctx.jira || [];
-  const known = files.some((d) => d.name === value) || queries.some((q) => `${QUERY_PREFIX}${q.id}` === value)
+  const folders = ctx.folders || [];
+  const known = folders.some((f) => `${FOLDER_PREFIX}${f.id}` === value) || files.some((d) => d.name === value) || queries.some((q) => `${QUERY_PREFIX}${q.id}` === value)
     || apis.some((a) => `${API_PREFIX}${a.id}` === value) || jira.some((q) => `${JIRA_PREFIX}${q.id}` === value);
   return h('div', { class: 'row' },
     h('select', { id, class: ['input', value && !known && 'invalid'], onchange: (e) => set(e.target.value) },
       h('option', { value: '' }, files.length || queries.length || apis.length ? 'Escolha uma fonte…' : 'Nenhuma fonte cadastrada na vista Dados'),
       files.length ? h('optgroup', { label: 'Arquivos' },
         files.map((d) => h('option', { value: d.name, selected: d.name === value }, shownAs(d.name, d.name)))) : null,
+      folders.length ? h('optgroup', { label: 'Pastas de arquivos' },
+        folders.map((f) => h('option', { value: `${FOLDER_PREFIX}${f.id}`, selected: `${FOLDER_PREFIX}${f.id}` === value }, shownAs(`${FOLDER_PREFIX}${f.id}`, f.name)))) : null,
       queries.length ? h('optgroup', { label: 'Consultas de banco' },
         queries.map((q) => h('option', { value: `${QUERY_PREFIX}${q.id}`, selected: `${QUERY_PREFIX}${q.id}` === value }, shownAs(`${QUERY_PREFIX}${q.id}`, q.name)))) : null,
       apis.length ? h('optgroup', { label: 'APIs' },

@@ -1,6 +1,6 @@
 # PRO.DATA: contexto para assistentes de IA
 
-Versão do programa: 0.7.6. Este arquivo é gerado a partir do código.
+Versão do programa: 0.7.7. Este arquivo é gerado a partir do código.
 
 Você está ajudando alguém que usa o PRO.DATA, um programa de Windows para montar fluxos visuais de dados, parecido com o Alteryx. A pessoa pode enviar um fluxo (arquivo `.prodata.json`) e pedir para explicar, corrigir ou mudar. Use este documento para responder com um fluxo que abre e executa de primeira.
 
@@ -330,7 +330,7 @@ Formato de cada campo: `nome` (padrão). Campos com "aparece se" só valem naque
 
 #### `io.input_data`: Input Data
 
-Lê qualquer fonte cadastrada na vista Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), consultas de banco ou APIs.
+Lê qualquer fonte cadastrada na vista Dados: arquivos (CSV, Excel, Parquet, JSON, Arrow), pastas de arquivos, consultas de banco ou APIs.
 
 Entradas: nenhuma. Saídas: `out` (Dados).
 
@@ -397,28 +397,6 @@ Entradas: `in` (Entrada), `in2` (Planilha 2, opcional, conforme a configuração
 - `template_header` (true): Gravar o cabeçalho. Aparece se `format` em excel
 - `template_clear` (true): Limpar linhas antigas abaixo dos dados. Aparece se `format` em excel
 - `if_exists` ("ask"): Se o arquivo já existir. Opções: `ask`, `replace`, `new_file`, `add_sheet`. "Adicionar planilha" só vale para Excel: vários Output Data podem montar um arquivo só
-
-#### `io.input_folder`: Input Folder
-
-Lê todos os arquivos de uma pasta que casam com um padrão de nome, como vendas_*.xlsx, e empilha as linhas.
-
-Entradas: nenhuma. Saídas: `out` (Dados).
-
-- `format` ("auto"): Formato. Opções: `auto`, `csv`, `excel`, `parquet`, `json`, `ndjson`, `arrow`. 'auto' detecta pela extensão e pelo conteúdo
-- `delimiter` ("auto"): Delimitador. Opções: `auto`, `,`, `;`, `	`, `|`. Aparece se `$format` em csv
-- `encoding` ("auto"): Encoding. Opções: `auto`, `utf-8`, `utf-8-sig`, `cp1252`, `latin-1`. Aparece se `$format` em csv
-- `decimal` ("auto"): Separador decimal. Opções: `auto`, `.`, `,`. Aparece se `$format` em csv
-- `sheet` (""): Aba. Aparece se `$format` em excel. Vazio = primeira aba
-- `skip_rows` (0): Pular linhas iniciais. De 0 a …. Aparece se `$format` em csv, excel. Linhas acima da tabela (título, logotipo…). No Excel, contadas desde a linha 1: cabeçalho na linha 4 → pular 3
-- `skip_columns` (0): Pular colunas iniciais. De 0 a …. Aparece se `$format` em csv, excel. Descarta as N primeiras colunas que aparecem na prévia. No Excel, colunas vazias à esquerda da tabela já são ignoradas sozinhas: só conte as que têm conteúdo
-- `has_header` (true): Primeira linha é cabeçalho. Aparece se `$format` em csv, excel. A primeira linha depois das puladas tem os nomes das colunas
-- `null_values` (""): Valores nulos. Aparece se `$format` em csv. Separados por vírgula, ex.: NA, NULL, -
-- `infer_schema_rows` (10000): Linhas para inferir tipos. De 0 a …. 0 = arquivo inteiro
-- `parse_dates` (true): Detectar datas. Aparece se `$format` em csv
-- `folder` (""): Pasta. Caminho completo. O PRO.DATA só lê: nunca grava, move ou apaga o que está nela
-- `pattern` ("*.xlsx"): Arquivos. Padrão do nome: * vale qualquer trecho e ? um caractere. Ex.: vendas_*.xlsx
-- `file_column` ("arquivo"): Coluna com o nome do arquivo. Vazio = não criar. Serve para saber de qual arquivo veio cada linha
-- `limit` (0): Limite de linhas por arquivo. De 0 a …. 0 = todas as linhas
 
 #### `io.generate_rows`: Generate Rows
 
@@ -914,4 +892,4 @@ Entradas: nenhuma. Saídas: `M` (Modelo), `I` (Importância das variáveis).
 
 ### Ferramentas antigas
 
-Ainda abrem em fluxos antigos, mas não use em caixas novas: `io.database_input`.
+Ainda abrem em fluxos antigos, mas não use em caixas novas: `io.database_input`, `io.input_folder`.

@@ -170,7 +170,7 @@
     <div class="rule"></div>
     <p class="lead">Troque o copiar e colar por um processo visual, que se refaz com um clique e mostra de onde veio cada número. Sem programar, com tudo rodando no seu computador.</p>
     <div class="shot"><img src="../../src/prodata/web/manual/img/flow-crop.png" alt="Fluxo de dados no PRO.DATA"></div>
-    <div class="meta"><span>Versão 0.7.6 · Windows</span><span>Novembro de 2026</span></div>
+    <div class="meta"><span>Versão 0.7.7 · Windows</span><span>Novembro de 2026</span></div>
   </div>
 </section>
 
@@ -190,7 +190,7 @@
     <tr><td>Enviar um print do gráfico</td><td>Dashboard em imagem ou em HTML, com filtros que funcionam no arquivo</td></tr>
   </table>
   <div class="stat-row">
-    <div class="stat"><b>44</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
+    <div class="stat"><b>43</b><span>ferramentas prontas, da leitura de dados ao Machine Learning</span></div>
     <div class="stat"><b>0</b><span>linhas de código necessárias no uso do dia a dia</span></div>
     <div class="stat"><b>1</b><span>clique para refazer o processo inteiro com dados novos</span></div>
     <div class="stat"><b>100%</b><span>do processamento no seu computador, sem nuvem</span></div>
@@ -369,9 +369,26 @@
     <tr><td class="tool">Parquet · Arrow</td><td>Formatos analíticos de alto desempenho.</td></tr>
     <tr><td class="tool">JSON · JSON Lines</td><td>Lista de registros ou um registro por linha (detectado automaticamente).</td></tr>
     <tr><td class="tool">Tabela digitada</td><td>A ferramenta <em>Text Input</em> oferece uma grade para digitar ou colar do Excel (tabelas de-para, metas, parâmetros).</td></tr>
-    <tr><td class="tool">Pasta inteira</td><td>A ferramenta <em>Input Folder</em> lê todos os arquivos de uma pasta que casam com um padrão de nome, como <code>vendas_*.xlsx</code>, e empilha as linhas.</td></tr>
+    <tr><td class="tool">Pasta inteira</td><td>Cadastre uma <strong>pasta de arquivos</strong> na vista Dados: todos os arquivos que casam com um padrão de nome, como <code>vendas_*.xlsx</code>, viram uma tabela só. Veja abaixo.</td></tr>
     <tr><td class="tool">Linhas geradas</td><td>A ferramenta <em>Generate Rows</em> cria um calendário entre duas datas ou números em sequência, sem ler arquivo.</td></tr>
   </table>
+  <h3>Uma pasta inteira</h3>
+  <p>No fechamento, os arquivos chegam um por filial ou um por dia. Em vez de cadastrar um por um, em <strong>Adicionar</strong> escolha <strong>Pasta de arquivos</strong>, informe a pasta e o padrão do nome, como <code>vendas_*.xlsx</code> (<code>*</code> vale qualquer trecho), e escolha o que fazer com os arquivos:</p>
+  <table>
+    <tr><th>Opção</th><th>O que faz</th><th>Quando usar</th></tr>
+    <tr><td class="tool">Uma tabela só</td><td>Empilha todos os arquivos numa fonte, com as colunas alinhadas pelo nome. Os arquivos que chegarem depois entram sozinhos.</td><td>Arquivos com as mesmas colunas: um por filial, por dia ou por mês.</td></tr>
+    <tr><td class="tool">Um por arquivo</td><td>Cada arquivo vira uma fonte separada, vinculada onde está, e todas ficam juntas numa pasta da organização. Vale para os arquivos de hoje.</td><td>Arquivos diferentes entre si, como cadastros e relatórios de assuntos distintos.</td></tr>
+  </table>
+  <p>Enquanto você digita, o cadastro desenha o que vai acontecer e lista os arquivos. Se os arquivos tiverem colunas diferentes, ele sugere <em>Um por arquivo</em>; arquivos que já estão vinculados aparecem marcados e não são vinculados de novo.</p>
+  <figure>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-pasta-separados.png" alt="Cadastro no modo Um por arquivo"></div>
+    <figcaption>Em <em>Um por arquivo</em>, a lista mostra as fontes que serão criadas e a pasta da organização onde elas vão ficar.</figcaption>
+  </figure>
+  <p><strong>Uma tabela só, no fluxo.</strong> A pasta entra pelo <em>Input Data</em>, como qualquer fonte. A coluna <code>arquivo</code> diz de onde veio cada linha; coluna que falta num arquivo fica vazia, e a vista Dados e a caixa avisam quais arquivos destoam. A pasta é lida onde está: o PRO.DATA nunca grava, move ou apaga nada nela, e o limite é de 500 arquivos. Se ela sumir ou nenhum arquivo casar, o cartão avisa e a fonte entra no filtro <em>Com problema</em>.</p>
+  <figure>
+    <div class="frame"><img src="../../src/prodata/web/manual/img/dados-pasta.png" alt="Pasta de arquivos aberta na vista Dados"></div>
+    <figcaption>A pasta aberta: os arquivos que entram, o que tem colunas diferentes, a qualidade das colunas e a prévia já empilhada.</figcaption>
+  </figure>
   <h3>Bancos de dados</h3>
   <p>Cadastre conexões com <strong>PostgreSQL</strong>, <strong>SQL Server</strong> ou <strong>ODBC</strong> e teste com um clique. Depois, na própria vista <strong>Dados</strong>, crie <strong>consultas de banco</strong>: escolha uma tabela da lista ou escreva o SQL, veja a prévia e dê um nome. A consulta fica ao lado dos arquivos e é usada exatamente como eles: arraste para o canvas ou escolha no <em>Input Data</em>, a mesma ferramenta que lê arquivos.</p>
   <figure class="m50" style="max-width:40%">
@@ -402,7 +419,7 @@
   </figure>
   <div class="callout ok"><strong>Só refaz o que usa a constante</strong>Ao mudar o valor, só as caixas que usam a constante (e as que vêm depois delas) são executadas de novo. O fluxo guarda o valor de cada compartilhada que usa: enviado a outra pessoa, ele roda com esse valor e avisa que a constante não está cadastrada no computador dela.</div>
 
-  <div class="try"><strong>Experimente</strong><ol><li>Abra a vista <strong>Dados</strong> e clique em <code>metas_regionais_br.csv</code>.</li><li>Veja na prévia o que foi detectado sozinho: separador, codificação e decimal.</li><li>Abra <em>Onde é usada</em>: o mapa mostra as caixas do exemplo que dependem dele.</li></ol></div>
+  <div class="try"><strong>Experimente</strong><ol><li>Abra a vista <strong>Dados</strong> e clique em <code>metas_regionais_br.csv</code>.</li><li>Veja na prévia o que foi detectado sozinho: separador, codificação e decimal.</li><li>Abra <em>Onde é usada</em>: o mapa mostra as caixas do exemplo que dependem dele.</li><li>Em <strong>Adicionar → Pasta de arquivos</strong>, aponte para uma pasta sua com vários arquivos e alterne entre <em>Uma tabela só</em> e <em>Um por arquivo</em>: o desenho e a lista mostram o que cada opção faz antes de você confirmar. Nada é criado até você clicar no botão.</li></ol></div>
 </section>
 
 <!-- ================================================================ 5. APIS -->
@@ -503,7 +520,7 @@
   <div class="eyebrow">7 · Ferramentas</div>
   <h2>Montando o fluxo</h2>
   <div class="manual-only m-acts"><button type="button" class="manual-only m-act" data-show="tab_ferramentas">Mostrar onde fica</button></div>
-  <p class="intro">Um fluxo é feito de caixas ligadas por fios. Este capítulo mostra o que vale para todas: como configurar, como entender o que cada uma faz, como escrever fórmulas e como editar com agilidade. A lista das 44 ferramentas está no capítulo 21.</p>
+  <p class="intro">Um fluxo é feito de caixas ligadas por fios. Este capítulo mostra o que vale para todas: como configurar, como entender o que cada uma faz, como escrever fórmulas e como editar com agilidade. A lista das 43 ferramentas está no capítulo 21.</p>
   <div class="goal"><b>Ao final:</b> <span>você configura qualquer caixa, lê o esquema <strong>Como funciona</strong> dela e escreve fórmulas sem decorar funções.</span></div>
 
   <h3>Configurando uma caixa</h3>
@@ -956,19 +973,15 @@
   <p class="intro">Todo mês chegam arquivos novos, o relatório tem o mesmo formato e alguém precisa rodar tudo. Este capítulo junta as peças que tiram esse trabalho da sua mão.</p>
   <div class="goal"><b>Ao final:</b> <span>o fluxo lê a pasta do mês, grava no modelo de Excel da área, reaproveita etapas e roda sozinho pelo Agendador do Windows.</span></div>
   <h3>Uma pasta inteira de uma vez</h3>
-  <div class="side feature">
-    <div>
-      <p>No fechamento, os arquivos costumam chegar um por filial ou um por dia. Em vez de uma caixa por arquivo, use o <strong>Input Folder</strong>: escolha a pasta e escreva o padrão do nome, como <code>vendas_*.xlsx</code> (<code>*</code> vale qualquer trecho).</p>
-      <ul>
-        <li>Todos os arquivos que casam entram, um embaixo do outro, com as colunas alinhadas pelo nome.</li>
-        <li>A coluna <code>arquivo</code> diz de onde veio cada linha.</li>
-        <li>Arquivo novo, removido ou alterado: a caixa refaz sozinha na execução seguinte.</li>
-        <li>Coluna que falta num arquivo fica vazia, e a caixa avisa quais arquivos destoam.</li>
-        <li>O PRO.DATA só lê a pasta: nunca grava, move ou apaga. O limite é de 500 arquivos.</li>
-      </ul>
-    </div>
-    <figure><div class="frame"><img src="../../src/prodata/web/manual/img/explain-folder.png" alt="Esquema do Input Folder"></div><figcaption>Passe o mouse num arquivo para ver as linhas que vieram dele.</figcaption></figure>
-  </div>
+  <p>Cadastre a pasta do mês uma vez, na vista Dados, como <strong>Pasta de arquivos</strong> na opção <em>Uma tabela só</em> (capítulo 4), e leia com o <em>Input Data</em>. No mês seguinte, basta os arquivos novos chegarem.</p>
+  <ul>
+    <li>Arquivo novo, removido ou alterado: a caixa refaz sozinha na execução seguinte, também pela linha de comando.</li>
+    <li>Sem mudança na pasta, a execução aproveita o resultado guardado.</li>
+    <li>A mesma pasta serve a vários fluxos, aparece no mapa de uso e avisa quando some.</li>
+    <li>Num computador sem o cadastro, a caixa explica que a pasta precisa ser cadastrada na vista Dados.</li>
+  </ul>
+  <figure class="m80"><div class="frame"><img src="../../src/prodata/web/manual/img/dados-pasta-cadastro.png" alt="Cadastro de uma pasta de arquivos"></div><figcaption>Enquanto você digita, a lista mostra os arquivos que entram e marca o que tem colunas diferentes.</figcaption></figure>
+  <div class="callout tip"><strong>Já usa a caixa Input Folder?</strong>Ela saiu da paleta, mas os fluxos que a usam continuam executando igual. No Configurar dela, <strong>Levar para a vista Dados</strong> cadastra a pasta com a mesma configuração e troca a caixa por um Input Data, no mesmo lugar e com os mesmos fios.</div>
   <h3>Calendário e sequências</h3>
   <div class="side feature slim">
     <div>
@@ -1128,8 +1141,8 @@
   <h2>Instalação e requisitos</h2>
   <h3>Duas formas de usar</h3>
   <div class="grid-2">
-    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.6-setup.exe</code> (199 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
-    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.6-portable.zip</code> (282 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
+    <div class="card"><h4>Instalador</h4><p><code>PRO.DATA-0.7.7-setup.exe</code> (200 MB). Instala só para o seu usuário, sem pedir administrador, cria atalho no Menu Iniciar e aparece em <em>Aplicativos</em> para desinstalar.</p></div>
+    <div class="card"><h4>Versão portátil</h4><p><code>PRO.DATA-0.7.7-portable.zip</code> (283 MB). Descompacte e abra <code>PRO.DATA.exe</code>. Nada é instalado — ideal para testar.</p></div>
     <div class="card"><h4>Ao abrir</h4><p>Uma tela com o escudo aparece no mesmo instante e mostra cada passo da abertura (motor de dados, servidor local, janela). Na primeira vez depois de instalar, o antivírus pode deixar a abertura mais lenta.</p></div>
   </div>
   <h3>Requisitos</h3>
@@ -1157,9 +1170,9 @@
     <div>
       <h3>Incluído nesta versão</h3>
       <ul class="scope-in">
-        <li>Fluxos visuais com 44 ferramentas, inclusive subfluxos</li>
+        <li>Fluxos visuais com 43 ferramentas, inclusive subfluxos</li>
         <li>Arquivos CSV, Excel, Parquet, JSON e Arrow</li>
-        <li>Leitura de uma pasta inteira por padrão de nome</li>
+        <li>Pastas de arquivos na vista Dados: todos os arquivos de um padrão de nome numa tabela só</li>
         <li>Consultas a PostgreSQL, SQL Server e, por ODBC, a outros bancos</li>
         <li>APIs em JSON, CSV ou XML, com paginação e uma chamada por linha</li>
         <li>Exportação nesses formatos, em qualquer pasta, e Excel num modelo já formatado</li>
@@ -1209,16 +1222,16 @@
 <section class="chapter">
   <div class="eyebrow">21 · Referência</div>
   <h2>Todas as ferramentas</h2>
-  <p class="intro">As 44 ferramentas, por família. Algumas têm mais de uma saída: o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
+  <p class="intro">As 43 ferramentas, por família. Algumas têm mais de uma saída: o <em>Filter</em> separa o que atende à condição (T) do que não atende (F), e o <em>Join</em> separa o que só existe à esquerda (L), o que casou (J) e o que só existe à direita (R).</p>
   <table>
     <tr><th style="width:23%">Ferramenta</th><th>Para que serve</th></tr>
     <tr><td colspan="2"><span class="tag">Entrada e saída</span></td></tr>
-    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da vista Dados: arquivos (com detecção automática de formato) consultas de banco ou APIs.</td></tr>
+    <tr><td class="tool">Input Data</td><td>Lê qualquer fonte da vista Dados: arquivos (com detecção automática de formato), pastas de arquivos, consultas de banco ou APIs.</td></tr>
     <tr><td class="tool">API Loop</td><td>Chama uma API para cada linha da tabela e junta as respostas, com as falhas numa saída própria.</td></tr>
     <tr><td class="tool">Text Input</td><td>Tabela pequena digitada ou colada (de-para, metas).</td></tr>
     <tr><td class="tool">Browse</td><td>Ponto de inspeção para conferir os dados no meio do fluxo.</td></tr>
     <tr><td class="tool">Output Data</td><td>Exporta para Excel, CSV, Parquet, JSON ou Arrow, na pasta que você escolher, com um <strong>rótulo de confidencialidade</strong>. No Excel, ligue várias tabelas na mesma caixa: cada uma vira uma planilha. Se o arquivo já existe, pergunta: substituir ou criar um novo.</td></tr>
-    <tr><td class="tool">Input Folder · Generate Rows</td><td>Lê uma pasta inteira por padrão de nome; cria um calendário ou uma sequência de números. Veja o capítulo 15.</td></tr>
+    <tr><td class="tool">Generate Rows</td><td>Cria um calendário ou uma sequência de números, sem ler arquivo. Veja o capítulo 15.</td></tr>
     <tr><td colspan="2"><span class="tag">Preparação</span></td></tr>
     <tr><td class="tool">Select</td><td>Escolhe, renomeia, reordena (arrastando) e muda o tipo das colunas. Entende números no padrão brasileiro, datas como 29/10/2026 e sim/não, e avisa quantos valores não converteram.</td></tr>
     <tr><td class="tool">Filter</td><td>Separa linhas por condição, com modo simples ou expressão.</td></tr>

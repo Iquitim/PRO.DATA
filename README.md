@@ -47,7 +47,7 @@ localmente.
 - **Replay analítico**: linha do tempo no dashboard, corrida de barras, bolhas, Sankey,
   destaques com critério, história em cenas, GIF por gráfico e HTML com tudo isso.
 - **Lições guiadas** no Manual, cada uma num fluxo próprio.
-- **44 ferramentas** na paleta, em 6 famílias: entrada/saída, preparação (com
+- **43 ferramentas** na paleta, em 6 famílias: entrada/saída, preparação (com
   Text To Columns, Record ID, Running Total, Multi-Row Formula e Data Quality), combinação e transformação (Join
   com saídas L/J/R, Cross Tab, Transpose, Append Fields, Summarize, Union, SQL via
   DuckDB, Fuzzy Match), conferência e reúso (Reconcile, Compare Runs, Subflow), BI (Chart, KPI Card, Venn e Table)

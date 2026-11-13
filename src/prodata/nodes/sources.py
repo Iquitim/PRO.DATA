@@ -1,20 +1,21 @@
-"""Entradas sem fonte cadastrada (spec 033): uma pasta inteira e linhas geradas."""
+"""Entradas sem fonte cadastrada (spec 033): linhas geradas e a caixa antiga de pasta.
+
+Desde a spec 035, a pasta é cadastrada na aba Dados e lida pelo Input Data. A caixa Input Folder fica fora
+da paleta, só para os fluxos que já a usam continuarem executando.
+"""
 
 from __future__ import annotations
 
-import fnmatch
 from datetime import date, datetime
-from pathlib import Path
 from typing import Any, Literal
 
 import polars as pl
 from pydantic import Field
 
-from prodata.errors import InvalidInputError
+from prodata.errors import InvalidInputError, NotFoundError
 from prodata.forms import ui
-from prodata.ingestion.detect import EXTENSIONS
+from prodata.ingestion.folders import files_signature, folder_files, odd_warning, read_folder
 from prodata.ingestion.options import ReadOptions
-from prodata.ingestion.readers import read_table
 from prodata.nodes.base import NodeContext, NodeOutput, Port, ToolConfig, tool
 
 MAX_FILES = 500
@@ -44,43 +45,11 @@ class InputFolderConfig(ReadOptions, ToolConfig):
     limit: int = Field(0, ge=0, title="Limite de linhas por arquivo", description="0 = todas as linhas.")
 
 
-def folder_files(cfg: InputFolderConfig) -> list[Path]:
-    """Arquivos da pasta que casam com o padrão, em ordem de nome. Só a pasta escolhida, sem subpastas."""
-    raw = cfg.folder.strip()
-    if not raw:
-        raise InvalidInputError("Escolha a pasta.")
-    folder = Path(raw)
-    if not folder.is_absolute():
-        raise InvalidInputError("A pasta precisa ser um caminho completo, como D:\\Fechamento\\2026-10.")
-    if not folder.is_dir():
-        raise InvalidInputError(f"A pasta não existe: {folder}")
-    pattern = cfg.pattern.strip() or "*"
-    if any(c in pattern for c in "/\\") or ".." in pattern:
-        raise InvalidInputError("O padrão vale para o nome do arquivo: não pode ter barras nem '..'.")
-    found = sorted(
-        (
-            p
-            for p in folder.iterdir()
-            if p.is_file()
-            and p.suffix.lower() in EXTENSIONS
-            and not p.name.startswith("~$")  # arquivo temporário do Excel aberto
-            and fnmatch.fnmatch(p.name.lower(), pattern.lower())
-        ),
-        key=lambda p: p.name.lower(),
-    )
-    if len(found) > MAX_FILES:
-        raise InvalidInputError(
-            f"{len(found)} arquivos casam com '{pattern}': o limite é {MAX_FILES}. Use um padrão mais específico."
-        )
-    return found
-
-
 def _folder_signature(_ctx: NodeContext, cfg: InputFolderConfig) -> str:
     try:
-        files = folder_files(cfg)
-    except InvalidInputError:
+        return files_signature(folder_files(cfg.folder, cfg.pattern))
+    except InvalidInputError, NotFoundError:
         return ""
-    return "|".join(f"{p.name}:{p.stat().st_size}:{p.stat().st_mtime_ns}" for p in files)
 
 
 @tool(
@@ -89,49 +58,24 @@ def _folder_signature(_ctx: NodeContext, cfg: InputFolderConfig) -> str:
     name="Input Folder",
     category="inout",
     icon="directory",
-    description="Lê todos os arquivos de uma pasta que casam com um padrão de nome, como vendas_*.xlsx, e empilha as linhas.",
+    description="(Antiga) Lê os arquivos de uma pasta que casam com um padrão. Cadastre a pasta na vista Dados e use o Input Data.",
     config=InputFolderConfig,
     inputs=[],
     outputs=[Port("out", "O", "Dados")],
     annotate=lambda c: c.pattern or "Escolha a pasta",
     fingerprint=_folder_signature,
+    hidden=True,
 )
 def input_folder(ctx: NodeContext, cfg: InputFolderConfig) -> NodeOutput:
-    files = folder_files(cfg)
+    files = folder_files(cfg.folder, cfg.pattern)
     if not files:
         raise InvalidInputError(
             f"Nenhum arquivo em {cfg.folder.strip()} casa com '{cfg.pattern.strip() or '*'}'."
         )
-    column = cfg.file_column.strip()
-    frames: list[pl.DataFrame] = []
-    odd: list[str] = []
-    first: list[str] = []
-    for i, path in enumerate(files, start=1):
-        ctx.report(f"{i}/{len(files)} arquivos")
-        frame = read_table(path, cfg, n_rows=cfg.limit or None)
-        if not frames:
-            first = frame.columns
-        elif set(frame.columns) != set(first):
-            odd.append(path.name)
-        if column:
-            if column in frame.columns:
-                raise InvalidInputError(
-                    f"'{path.name}' já tem uma coluna '{column}': troque o nome da coluna do arquivo."
-                )
-            frame = frame.with_columns(pl.lit(path.name).alias(column))
-        frames.append(frame)
-    try:
-        table = pl.concat(frames, how="diagonal_relaxed")
-    except pl.exceptions.PolarsError as exc:
-        raise InvalidInputError(
-            f"Os arquivos têm colunas com tipos que não combinam: {str(exc).splitlines()[0]}"
-        ) from exc
+    table, odd = read_folder(files, cfg, cfg.file_column, limit=cfg.limit or None, report=ctx.report)
     extra: dict[str, Any] = {"folder_files": [p.name for p in files], "source_read_at": _now()}
     if odd:
-        shown = ", ".join(odd[:5]) + ("…" if len(odd) > 5 else "")
-        extra["warnings"] = [
-            f"{len(odd)} arquivo(s) com colunas diferentes de {files[0].name}: {shown}. O que falta fica vazio."
-        ]
+        extra["warnings"] = [odd_warning(odd, files[0].name)]
     return NodeOutput(tables={"out": table}, extra=extra)
 
 

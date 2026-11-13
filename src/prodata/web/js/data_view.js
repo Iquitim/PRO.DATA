@@ -7,6 +7,7 @@ import { jiraConnectionEditor, refreshJira } from './jira_ui.js';
 import { connectionEditor, queryEditor, refreshConnections, refreshQueries } from './connections.js';
 import { refreshConstants } from './constants.js';
 import { constantEditor } from './constants_ui.js';
+import { folderEditor, refreshFolderSources } from './folder_sources.js';
 import { sourceDetail } from './data_detail.js';
 import { markOpened, organizedList } from './data_folders.js';
 import { allSources, KINDS, refreshUsage, usesOf } from './data_sources.js';
@@ -26,7 +27,7 @@ const fileInput = h('input', { type: 'file', multiple: true, hidden: true,
 const sourceByKey = (key) => allSources().find((s) => s.key === key) || null;
 
 async function afterChange() {
-  await Promise.all([refreshDatasets(), refreshQueries(), refreshApis(), refreshJira(), refreshConnections(), refreshConstants(), refreshUsage()]).catch(() => {});
+  await Promise.all([refreshDatasets(), refreshQueries(), refreshApis(), refreshJira(), refreshConnections(), refreshConstants(), refreshFolderSources(), refreshUsage()]).catch(() => {});
   renderDataView();
 }
 
@@ -48,6 +49,7 @@ function addMenu(e) {
   showMenu(r.left, r.bottom + 4, [
     { label: 'Enviar arquivo', icon: 'upload', onSelect: () => { fileInput.accept = accept(); fileInput.click(); } },
     { label: 'Vincular arquivo (lido onde está)', icon: 'link', onSelect: () => linkFile().then(afterChange) },
+    { label: 'Pasta de arquivos (vários de uma vez)', icon: 'directory', onSelect: () => newSource('folder') },
     'separator',
     { label: 'Nova conexão com banco', icon: 'database', onSelect: () => newSource('conn') },
     { label: 'Nova consulta de banco', icon: 'server', disabled: !store.connections.length, onSelect: () => newSource('query') },
@@ -121,6 +123,7 @@ function creatingPane() {
   const editor = kind === 'api' ? apiEditor({ ...opts, onSaved: done }, host)
     : kind === 'query' ? queryEditor({ ...opts, onSaved: done }, host)
       : kind === 'const' ? constantEditor(null, { onSaved: done }, host)
+        : kind === 'folder' ? folderEditor(null, { onSaved: done, onLinked: afterLinked }, host)
         : kind === 'jiraconn' ? jiraConnectionEditor(null, { onSaved: done }, host)
           : kind === 'jira' ? jiraQueryEditor({ ...opts, onSaved: done }, host)
         : connectionEditor(null, { onSaved: done }, host);
@@ -129,6 +132,13 @@ function creatingPane() {
       h('span', { class: 'dv-head-icon', style: { '--kind': KINDS[kind].color } }, icon(KINDS[kind].icon, 22)),
       h('div', { class: 'dv-head-text' }, h('h2', {}, editor.title))),
     h('div', { class: 'dv-body' }, h('div', { class: 'dv-editor' }, editor.body, h('footer', { class: 'dv-editor-actions' }, editor.actions))));
+}
+
+/** "Um por arquivo": abre a primeira fonte vinculada, já dentro da pasta da organização. */
+async function afterLinked(names) {
+  ui.creating = null;
+  ui.key = names.length ? `file:${names[0]}` : null;
+  await afterChange();
 }
 
 async function afterSave(kind, saved) {
@@ -194,7 +204,7 @@ export function renderDataView() {
 export function initDataView(el, opts) {
   root = el;
   handlers = { ...handlers, ...opts };
-  for (const event of ['datasets', 'queries', 'apis', 'connections', 'constants', 'organization']) on(event, () => renderDataView());
+  for (const event of ['datasets', 'queries', 'apis', 'connections', 'constants', 'organization', 'folders']) on(event, () => renderDataView());
 }
 
 /** Ao entrar na vista: dados de uso frescos, porque outro fluxo pode ter sido salvo. */

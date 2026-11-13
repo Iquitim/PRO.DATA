@@ -50,6 +50,15 @@ export const changeSources = (keys, changes) => call(api.changeSources(keys, cha
 export const deleteFolder = (id) => call(api.deleteFolder(id), 'Não foi possível excluir a pasta');
 export const moveFolder = (id, position) => call(api.moveFolder(id, position), 'Não foi possível mover a pasta');
 
+/** Id da pasta com esse nome; cria se não existir. Para agrupar fontes novas sem perguntar (spec 035). */
+export async function ensureFolder(name) {
+  const wanted = name.trim().slice(0, 60);
+  const found = folders().find((f) => f.name.toLowerCase() === wanted.toLowerCase());
+  if (found) return found.id;
+  const org = await call(api.addFolder(wanted, Object.keys(FOLDER_COLORS)[folders().length % 5]), 'Não foi possível criar a pasta');
+  return org ? org.folders.find((f) => f.name.toLowerCase() === wanted.toLowerCase())?.id || null : null;
+}
+
 /** A fonte foi excluída: a organização dela sai junto, sem aviso (não há o que a pessoa decidir). */
 export async function forgetSources(keys) {
   try { set(await api.forgetSources(keys)); } catch { /* sobra só uma entrada órfã, inofensiva */ }
